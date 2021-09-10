@@ -1,9 +1,7 @@
-name: Docker Image CI
+name: Docker Image build + push - main branch
 
 on:
   push:
-    branches: [ master ]
-  pull_request:
     branches: [ master ]
 
 jobs:
@@ -24,4 +22,21 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     - name: Push Docker image
       run: docker push ghcr.io/es-na-battlesnake/code-snake:latest
-      
+    
+    - name: 'Login via Azure CLI'
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+    
+    - name: 'Deploy to Azure Container Instances'
+      uses: 'azure/aci-deploy@v1'
+      with:
+        resource-group: snekResourceGroup
+        dns-name-label: code-snek
+        image: ghcr.io/es-na-battlesnake/code-snake:latest
+        name: code-snake
+        location: 'west us'
+        ports: '4567'
+        memory: 0.5
+        
+            

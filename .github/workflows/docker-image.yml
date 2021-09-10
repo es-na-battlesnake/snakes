@@ -1,0 +1,42 @@
+name: Docker Image build + push - main branch
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build the Docker image
+      run: docker build . --file Dockerfile --tag ghcr.io/es-na-battlesnake/code-snake:latest
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v1
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Push Docker image
+      run: docker push ghcr.io/es-na-battlesnake/code-snake:latest
+    
+    - name: 'Login via Azure CLI'
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+    
+    - name: 'Deploy to Azure Container Instances'
+      uses: 'azure/aci-deploy@v1'
+      with:
+        resource-group: snekResourceGroup
+        dns-name-label: code-snek
+        image: ghcr.io/es-na-battlesnake/code-snake:latest
+        name: code-snake
+        location: 'west us'
+        ports: '4567'
+        memory: 0.5
+        
+            

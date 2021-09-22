@@ -1,5 +1,5 @@
 FROM ruby:2.7
-RUN apt-get update && apt-get install -y supervisor
+RUN apt-get update && apt-get install --no-install-suggests -y supervisor
 RUN mkdir -p /var/log/supervisor
 
 RUN bundle config --global frozen 1

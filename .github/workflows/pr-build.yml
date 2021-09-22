@@ -17,8 +17,6 @@ jobs:
     - name: Build the Docker image
       run: docker build . --file Dockerfile --tag code-snek:$GITHUB_HEAD_REF
     - name: Run the Docker image
-      uses: docker://code-snek:$GITHUB_HEAD_REF
-      with:
-        ports: 4567
+      run: docker run -d -p 4567:4567 --name=$GITHUB_HEAD_REF code-snek:$GITHUB_HEAD_REF
     - name: Test app response
-      run: curl -v http://localhost:4567/
+      run: curl -v http://$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $GITHUB_HEAD_REF):4567/

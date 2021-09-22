@@ -17,6 +17,6 @@ jobs:
     - name: Build the Docker image
       run: docker build . --file Dockerfile --tag code-snek:$GITHUB_HEAD_REF
     - name: Run the Docker image
-      run: docker run -d -p 4357:4357 code-snek:$GITHUB_HEAD_REF
+      run: docker run -d -p 4567:4567 code-snek:$GITHUB_HEAD_REF
     - name: Test app response
-      run: curl -v http://localhost:4357/
+      run: curl -v http://localhost:4567/

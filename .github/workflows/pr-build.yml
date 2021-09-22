@@ -16,7 +16,10 @@ jobs:
     - uses: actions/checkout@v2
     - name: Build the Docker image
       run: docker build . --file Dockerfile --tag code-snek:pr
+    - name: Setup Docker network
+      run: docker network create test
     - name: Run the Docker image
-      run: docker run -d -p 4567:4567 --name=code-snek code-snek:pr
+      run: docker run -d -p 4567:4567 --network test --name code-snek code-snek:pr
     - name: Test app response
-      run: curl -v --retry-delay 2 --retry 5 http://localhost:4567/
+      run: docker run --rm --network test curlimages/curl:latest http://code-snek:4567/
+ 

@@ -23,3 +23,14 @@ jobs:
     - name: Test app response
       run: docker run --rm --network test curlimages/curl:latest --retry 5 --retry-delay 2 http://code-snek:4567/ 
  
+    - name: Create status check
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+            BUILD_COMMIT=$(git rev-parse HEAD)
+            curl \
+            -X POST \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/{org}/{repo}/check-runs \
+            -d '{"name":"build", "head_sha": "'"$BUILD_COMMIT"'", "status": "completed", "conclusion": "success" }'

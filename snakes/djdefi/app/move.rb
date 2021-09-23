@@ -2,7 +2,7 @@
 
 $VERBOSE = nil
 # Health find threshold variable
-@@health_threshold = 99
+@@health_threshold = 95
 
 # This function is called on every turn of a game. It's how your Battlesnake decides where to move.
 # Valid moves are "up", "down", "left", or "right".
@@ -39,7 +39,7 @@ def move(board)
       { x: j, y: i }
     end
   end.flatten
-  puts "All board cells are at: #{@board_hash}"
+  #puts "All board cells are at: #{@board_hash}"
 
   # Puts x, y coordinates hash of my snake's head
   @head = board[:you][:head]
@@ -57,6 +57,9 @@ def move(board)
   @snakes_heads = board[:board][:snakes].map { |s| s[:head] }.flatten || []
   puts "All snakes heads are at: #{@snakes_heads}"
 
+  # Puts where all snakes heads are, but not my head
+  @snakes_heads_not_my_head = board[:board][:snakes].map { |s| s[:head] }.flatten - [@head] || []
+
   # Function to determine x,y coordinate pair hash of each cell adjacent to the head
   def adjacent_cells(x, y)
     [{ x: x - 1, y: y }, { x: x + 1, y: y }, { x: x, y: y - 1 }, { x: x, y: y + 1 }]
@@ -65,6 +68,14 @@ def move(board)
   @head_neighbors = adjacent_cells(@head[:x], @head[:y])
 
   puts "My head neighbors are: #{@head_neighbors}"
+
+  @other_snakes_head_neighbors = @snakes_heads_not_my_head.map { |s| adjacent_cells(s[:x], s[:y]) }.flatten
+
+  puts "Other snakes head neighbors are: #{@other_snakes_head_neighbors}"
+
+  # Check if any @head_neighbors are in @other_snakes_head_neighbors
+  @shared_neighbors = @head_neighbors.select { |h| @other_snakes_head_neighbors.include?(h) }
+  puts "Shared neighbors are: #{@shared_neighbors}"
 
   @possible_moves = []
 
@@ -95,11 +106,11 @@ def move(board)
   end
 
   @all_occupied_cells = (@snakes_heads + @snakes_bodies + @head.to_a + @body).flatten
-  puts "All occupied cells are: #{@all_occupied_cells}"
+  #puts "All occupied cells are: #{@all_occupied_cells}"
 
   # x, y coordinates hash of all empty cells on the board
   @empty_cells = @board_hash - @all_occupied_cells
-  puts "All empty cells are: #{@empty_cells}"
+  #puts "All empty cells are: #{@empty_cells}"
 
   # x, y coordinates of each corner cell
   @corners = [{ x: 0, y: 0 }, { x: @width - 1, y: 0 }, { x: 0, y: @height - 1 },
@@ -137,7 +148,7 @@ def move(board)
   end
 
   # Create an array of all cells. Each cell is a hash with x and y coordinates, a type, and the direction of the cell realative to the snake's head.
-  # The type of cell is either a wall, a hazard, a food, a snake body, or a snake head.
+  # The type of cell is either a wall, a hazard, a food, a food_hazard, a snake body, or a snake head.
   # The direction is the direction of the cell relative to the snake's head.
   turn_array = []
   @board_hash.each do |cell|
@@ -149,25 +160,25 @@ def move(board)
     elsif @food.include?(cell)
       # Set :score to +5 for food
       turn_array << { x: cell[:x], y: cell[:y], type: 'food',
-                      direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 15 }
+                      direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 11 }
     elsif @snakes_heads.include?(cell)
       # Set :score to -1 for snake heads
       turn_array << { x: cell[:x], y: cell[:y], type: 'snake_head',
-                      direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 1 }
+                      direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 0 }
     elsif @snakes_bodies.include?(cell)
       # Set :score to -1 for snake bodies
       turn_array << { x: cell[:x], y: cell[:y], type: 'snake_body',
-                      direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 1 }
+                      direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 0 }
     elsif @hazards.include?(cell)
       # Set :score to -0.5 for hazards
       turn_array << { x: cell[:x], y: cell[:y], type: 'hazard',
-                      direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 1 }
+                      direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 0 }
     elsif @body.include?(cell)
       turn_array << { x: cell[:x], y: cell[:y], type: 'my_body',
-                      direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 1 }
+                      direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 0 }
     elsif @corners.include?(cell)
       turn_array << { x: cell[:x], y: cell[:y], type: 'corner',
-                      direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 4 }
+                      direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 2 }
     # all other cells are empty
     elsif @empty_cells.include?(cell)
       # Set :score to 1 for empty cells
@@ -175,9 +186,34 @@ def move(board)
                       direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 10 }
     end
   end
-  puts "Turn array is: #{turn_array}"
+  #puts "Turn array is: #{turn_array}"
 
-  puts "My neigbors are: #{@head_neighbors}"
+  # If a cell is both a hazard and a food, reduce the score of the cell to 4 in the turn_array and set the type to food_hazard
+  @board_hash.each do |cell|
+    if @food.include?(cell) && @hazards.include?(cell)
+      turn_array.each do |cell_hash|
+        if cell_hash[:x] == cell[:x] && cell_hash[:y] == cell[:y]
+          cell_hash[:score] = 4
+          cell_hash[:type] = 'food_hazard'
+          puts "Cell is a food hazard: #{cell_hash}"
+        end
+      end
+    end
+  end
+
+  # If a cell is a shared_neighbors, reduce the score of the cell to 1 in the turn_array and set the type to shared_neighbor
+  @board_hash.each do |cell|
+    if @shared_neighbors.include?(cell)
+      turn_array.each do |cell_hash|
+        if cell_hash[:x] == cell[:x] && cell_hash[:y] == cell[:y]
+          cell_hash[:score] = 1
+          cell_hash[:type] = 'shared_neighbor'
+          puts "Cell is a shared neighbor: #{cell_hash}"
+        end
+      end
+    end
+  end
+
 
   @possible_turns = []
   # For each head_neighbor, inspect the corresponding cell in turn_array and output the results
@@ -185,7 +221,7 @@ def move(board)
     turn_array.each do |turn|
       next unless head_neighbor[:x] == turn[:x] && head_neighbor[:y] == turn[:y]
 
-      puts "Turn is: #{turn}"
+      puts "Possible turn is: #{turn}"
       # Add entire turn array to a new array of possible_turns
       @possible_turns << turn
       case turn[:type]
@@ -245,7 +281,7 @@ def move(board)
 
   # Once our snake's length is greater than that of any other snake.
   # then we need to find the direction of the nearest snake's head and set @move_direction to that direction if it is in @possible_moves
-  largest_other_snake = @snakes.each do |snake|
+  @snakes.each do |snake|
     if snake[:id] != @id
       if snake[:length] < (@length - 1)
         puts "Largest other snake is: #{snake[:name]} whos length is: #{snake[:length]} - my length is: #{@length}"
@@ -263,9 +299,9 @@ def move(board)
       elsif snake[:length] > @length
         @@health_threshold = 100
         puts "Longer snake exists - lets eat food! - health threshold is: #{@@health_threshold}"
-      # If all snakes are shorter than our snake, decrease health_threshold by 10
+      # If all snakes are shorter than our snake, decrease health_threshold by 1
       else
-        @@health_threshold -= 10
+        @@health_threshold -= 1
         # Clamp health_threshold to a minimum of 10
         @@health_threshold = 10 if @@health_threshold < 10
         puts "We are the biggest - Decreasing health threshold - health threshold is: #{@@health_threshold}"
@@ -273,7 +309,7 @@ def move(board)
     end
   end
 
-  # If our health drops below 50, find direction of the nearest food and set @move_direction to that direction
+  # If our health drops below threshold, find direction of the nearest food and set @move_direction to that direction
   @health = board[:you][:health]
   if @health < @@health_threshold
     @record_low_health = @health
@@ -305,7 +341,21 @@ def move(board)
     @move_direction = center_direction if @possible_moves.include?(center_direction)
     puts "Moving to center - #{center_direction}"
   end
-  
+
+  # If hazards are in my head_neighbors array, then attempt to move to the center_direction
+  if @head_neighbors.include?('hazard')
+    puts "Hazard in my head_neighbors array!! Finding center"
+    # Find x and y coordinates of center of board
+    center_x = @width / 2
+    center_y = @height / 2
+    # Get the direction of the center of the board
+    center_direction = direction_between(@head[:x], @head[:y], center_x.round, center_y.round)
+
+    # If the center_direction is in @possible_moves, then set @move_direction to that direction
+    @move_direction = center_direction if @possible_moves.include?(center_direction)
+    puts "Moving to center - #{center_direction}"
+  end
+
   puts "Possible moves are: #{@possible_moves}"
   puts "MOVE: #{@move_direction}"
   { "move": @move_direction }

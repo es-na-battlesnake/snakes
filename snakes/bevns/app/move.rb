@@ -112,6 +112,7 @@ def move(board)
     end
   end
 
+ move = possible_moves.sample
  {"move": move}
 
 end

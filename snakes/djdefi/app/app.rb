@@ -14,9 +14,9 @@ get '/' do
   appearance = {
     apiversion: '1',
     author: 'djdefi', # TODO: Your Battlesnake Username
-    color: '#993366', # TODO: Personalize
-    head: 'shades', # TODO: Personalize
-    tail: 'mystic-moon' # TODO: Personalize
+    color: '#48ffa8', # TODO: Personalize
+    head: 'gamer', # TODO: Personalize
+    tail: 'mouse' # TODO: Personalize
   }
 
   camelcase(appearance).to_json

@@ -21,5 +21,5 @@ jobs:
     - name: Run the Docker image
       run: docker run -d -p 4567:4567 --network test --name code-snek code-snek:pr
     - name: Test app response
-      run: docker run --rm --network test curlimages/curl:latest http://code-snek:4567/
+      run: docker run --rm --network test curlimages/curl:latest --retry 5 --retry-delay 2 http://code-snek:4567/ 
  

@@ -39,7 +39,7 @@ def move(board)
       { x: j, y: i }
     end
   end.flatten
-  puts "All board cells are at: #{@board_hash}"
+  #puts "All board cells are at: #{@board_hash}"
 
   # Puts x, y coordinates hash of my snake's head
   @head = board[:you][:head]
@@ -57,6 +57,9 @@ def move(board)
   @snakes_heads = board[:board][:snakes].map { |s| s[:head] }.flatten || []
   puts "All snakes heads are at: #{@snakes_heads}"
 
+  # Puts where all snakes heads are, but not my head
+  @snakes_heads_not_my_head = board[:board][:snakes].map { |s| s[:head] }.flatten - [@head] || []
+
   # Function to determine x,y coordinate pair hash of each cell adjacent to the head
   def adjacent_cells(x, y)
     [{ x: x - 1, y: y }, { x: x + 1, y: y }, { x: x, y: y - 1 }, { x: x, y: y + 1 }]
@@ -65,6 +68,14 @@ def move(board)
   @head_neighbors = adjacent_cells(@head[:x], @head[:y])
 
   puts "My head neighbors are: #{@head_neighbors}"
+
+  @other_snakes_head_neighbors = @snakes_heads_not_my_head.map { |s| adjacent_cells(s[:x], s[:y]) }.flatten
+
+  puts "Other snakes head neighbors are: #{@other_snakes_head_neighbors}"
+
+  # Check if any @head_neighbors are in @other_snakes_head_neighbors
+  @shared_neighbors = @head_neighbors.select { |h| @other_snakes_head_neighbors.include?(h) }
+  puts "Shared neighbors are: #{@shared_neighbors}"
 
   @possible_moves = []
 
@@ -177,21 +188,32 @@ def move(board)
   end
   puts "Turn array is: #{turn_array}"
 
-  # If a cell is both a hazard and a food, reduce the score of the cell to 1 in the turn_array and set the type to food_hazard
+  # If a cell is both a hazard and a food, reduce the score of the cell to 4 in the turn_array and set the type to food_hazard
   @board_hash.each do |cell|
     if @food.include?(cell) && @hazards.include?(cell)
       turn_array.each do |cell_hash|
         if cell_hash[:x] == cell[:x] && cell_hash[:y] == cell[:y]
-          cell_hash[:score] = 1
+          cell_hash[:score] = 4
           cell_hash[:type] = 'food_hazard'
           puts "Cell is a food hazard: #{cell_hash}"
         end
       end
     end
   end
-  
 
-  puts "My neigbors are: #{@head_neighbors}"
+  # If a cell is a shared_neighbors, reduce the score of the cell to 1 in the turn_array and set the type to shared_neighbor
+  @board_hash.each do |cell|
+    if @shared_neighbors.include?(cell)
+      turn_array.each do |cell_hash|
+        if cell_hash[:x] == cell[:x] && cell_hash[:y] == cell[:y]
+          cell_hash[:score] = 1
+          cell_hash[:type] = 'shared_neighbor'
+          puts "Cell is a shared neighbor: #{cell_hash}"
+        end
+      end
+    end
+  end
+
 
   @possible_turns = []
   # For each head_neighbor, inspect the corresponding cell in turn_array and output the results
@@ -199,7 +221,7 @@ def move(board)
     turn_array.each do |turn|
       next unless head_neighbor[:x] == turn[:x] && head_neighbor[:y] == turn[:y]
 
-      puts "Turn is: #{turn}"
+      puts "Possible turn is: #{turn}"
       # Add entire turn array to a new array of possible_turns
       @possible_turns << turn
       case turn[:type]

@@ -45,8 +45,6 @@ def move(board)
   end
 
   # Avoid yourself by removing move from possible moves if the snake body is part is one position away from the head.
-  # This is a very simple way to avoid yourself.
-  # To-do: Remove entirely
   body.each do |body_part|
     if xhead - 1 == body_part[:x].to_i && yhead == body_part[:y].to_i
       possible_moves.delete("left")
@@ -60,10 +58,13 @@ def move(board)
   end
 
   # Avoid other snakes by removing move from possible moves if the snake body is part is one position away from the head.
-  # This is actually looking at other snakes and yourself. I could probably just use this as avoid yourself and other snakes.
-  # The difference here is that we are looking at all the snakes which includes our own snake.   
-  board[:board][:snakes].each do |body|
-    body[:body].each do |body_part|
+  snakes = board[:board][:snakes]
+  # Remove yourslef from list of snakes. We avoid ourselvs already above.
+  snakes.delete(board[:you])
+  
+  
+  snakes.each do |snake|
+    snake[:body].each do |body_part|
       if xhead - 1 == body_part[:x].to_i && yhead == body_part[:y].to_i
         possible_moves.delete("left")
       elsif xhead + 1 == body_part[:x].to_i && yhead == body_part[:y].to_i
@@ -98,7 +99,7 @@ def move(board)
 
 
   # Avoid food by removing move from possible moves if the snake is one position away from the food.
-  if board[:you][:health] > 50 
+  if board[:you][:health] > 85 
   food.each do |food_part|
       if xhead - 1 == food_part[:x].to_i && yhead == food_part[:y].to_i && xhead != 0 && possible_moves.length > 1
         possible_moves.delete("left")

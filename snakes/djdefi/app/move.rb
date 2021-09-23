@@ -106,11 +106,11 @@ def move(board)
   end
 
   @all_occupied_cells = (@snakes_heads + @snakes_bodies + @head.to_a + @body).flatten
-  puts "All occupied cells are: #{@all_occupied_cells}"
+  #puts "All occupied cells are: #{@all_occupied_cells}"
 
   # x, y coordinates hash of all empty cells on the board
   @empty_cells = @board_hash - @all_occupied_cells
-  puts "All empty cells are: #{@empty_cells}"
+  #puts "All empty cells are: #{@empty_cells}"
 
   # x, y coordinates of each corner cell
   @corners = [{ x: 0, y: 0 }, { x: @width - 1, y: 0 }, { x: 0, y: @height - 1 },
@@ -186,7 +186,7 @@ def move(board)
                       direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 10 }
     end
   end
-  puts "Turn array is: #{turn_array}"
+  #puts "Turn array is: #{turn_array}"
 
   # If a cell is both a hazard and a food, reduce the score of the cell to 4 in the turn_array and set the type to food_hazard
   @board_hash.each do |cell|

@@ -2,7 +2,7 @@
 
 $VERBOSE = nil
 # Health find threshold variable
-@@health_threshold = 95
+@@health_threshold = 40
 
 # This function is called on every turn of a game. It's how your Battlesnake decides where to move.
 # Valid moves are "up", "down", "left", or "right".
@@ -39,7 +39,7 @@ def move(board)
       { x: j, y: i }
     end
   end.flatten
-  #puts "All board cells are at: #{@board_hash}"
+  # puts "All board cells are at: #{@board_hash}"
 
   # Puts x, y coordinates hash of my snake's head
   @head = board[:you][:head]
@@ -112,11 +112,11 @@ def move(board)
   end
 
   @all_occupied_cells = (@snakes_heads + @snakes_bodies + @head.to_a + @body).flatten
-  #puts "All occupied cells are: #{@all_occupied_cells}"
+  # puts "All occupied cells are: #{@all_occupied_cells}"
 
   # x, y coordinates hash of all empty cells on the board
   @empty_cells = @board_hash - @all_occupied_cells
-  #puts "All empty cells are: #{@empty_cells}"
+  # puts "All empty cells are: #{@empty_cells}"
 
   # x, y coordinates of each corner cell
   @corners = [{ x: 0, y: 0 }, { x: @width - 1, y: 0 }, { x: 0, y: @height - 1 },
@@ -191,14 +191,14 @@ def move(board)
     elsif @shared_neighbors.include?(cell)
       turn_array << { x: cell[:x], y: cell[:y], type: 'shared_neighbor',
                       direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 4 }
-    # all other cells are empty
-    else @empty_cells.include?(cell)
+      # all other cells are empty
+    elsif @empty_cells.include?(cell)
       # Set :score to 10 for empty cells
       turn_array << { x: cell[:x], y: cell[:y], type: 'empty',
                       direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 11 }
     end
   end
-  #puts "Turn array is: #{turn_array}"
+  # puts "Turn array is: #{turn_array}"
 
   # Retrun most common direction of empty cells and food cells
   # takes the @turn_array as input
@@ -301,7 +301,7 @@ def move(board)
         end
       # If there is another longer snake, set @@health_threshold to X
       elsif snake[:length] > @length
-        @@health_threshold = 70
+        @@health_threshold = 100
         puts "Longer snake exists - lets eat more food! - health threshold is: #{@@health_threshold}"
         puts "Largest other snake is: #{snake[:name]} whos length is: #{snake[:length]} - my length is: #{@length}"
       # If all snakes are shorter than our snake, decrease health_threshold by 1
@@ -350,7 +350,7 @@ def move(board)
 
   # If hazards are in my head_neighbors array, then attempt to move to the center_direction
   if @head_neighbors.include?('hazard')
-    puts "Hazard in my head_neighbors array!! Finding center"
+    puts 'Hazard in my head_neighbors array!! Finding center'
     # Find x and y coordinates of center of board
     center_x = @width / 2
     center_y = @height / 2

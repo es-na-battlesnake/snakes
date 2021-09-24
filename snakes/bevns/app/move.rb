@@ -115,21 +115,6 @@ def move(board)
     end
   end
 
-  # Avoid moving into a cell where the snakes head is one position away from a neighboring cell.
-  if @shared_neighbors.length > 0
-    @shared_neighbors.each do |s|
-      if xhead - 1 == s[:x].to_i && yhead == s[:y].to_i && xhead != 0 && possible_moves.length > 1
-        possible_moves.delete("left")
-      elsif xhead + 1 == s[:x].to_i && yhead == s[:y].to_i && xhead != bwidth - 1 && possible_moves.length > 1
-        possible_moves.delete("right")
-      elsif yhead - 1 == s[:y].to_i && xhead == s[:x].to_i && yhead != 0 && possible_moves.length > 1
-        possible_moves.delete("down")
-      elsif yhead + 1 == s[:y].to_i && xhead == s[:x].to_i && yhead != bheight - 1 && possible_moves.length > 1
-        possible_moves.delete("up")
-      end
-    end
-  end
-
  move = possible_moves.sample
  {"move": move}
 

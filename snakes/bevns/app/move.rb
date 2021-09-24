@@ -23,24 +23,33 @@ def move(board)
   gamemode = board[:game][:ruleset][:name] 
   # Sets up an array that contains each of the possible moves at the start of the turn. We'll remove turns when they are no valid.
   possible_moves = ["up", "down", "left", "right"]
-
+  #create a couple arrays to store hazards and myhead.
+  @hazards = board[:board][:hazards].map { |b| { x: b[:x], y: b[:y] } }.flatten
+  @myhead = board[:you][:head]  
+  # Function to determine x,y coordinate pair hash of each cell adjacent to the head
+  def adjacent_cells(x, y)
+    [{ x: x - 1, y: y }, { x: x + 1, y: y }, { x: x, y: y - 1 }, { x: x, y: y + 1 }]
+  end
+  # Find out if the head is adjacent to any cells I am next to.
+  @head_neighbors = adjacent_cells(@myhead[:x], @myhead[:y])
+  # Create an array of all the other snakes heads
+  @snakes_heads_not_my_head = board[:board][:snakes].map { |s| s[:head] }.flatten - [@myhead] || []
+  @other_snakes_head_neighbors = @snakes_heads_not_my_head.map { |s| adjacent_cells(s[:x], s[:y]) }.flatten
+  # Check if any @head_neighbors are in @other_snakes_head_neighbors
+  @shared_neighbors = @head_neighbors.select { |h| @other_snakes_head_neighbors.include?(h) }
 
   # Avoid walls by looking at X and Y positions. If the snake is on the edge of the board, move away from the wall. 
   # Remove move from possible moves if at the edge of the board. 
   if xhead == 0
-    puts "removing left"
     possible_moves.delete("left")
   end
   if xhead == bwidth - 1
-    puts "removing right"
     possible_moves.delete("right")
   end
   if yhead == 0
-    puts "removing down"
     possible_moves.delete("down")
   end
   if yhead == bheight - 1
-    puts "removing up"
     possible_moves.delete("up")  
   end
 
@@ -61,8 +70,7 @@ def move(board)
   snakes = board[:board][:snakes]
   # Remove yourslef from list of snakes. We avoid ourselvs already above.
   snakes.delete(board[:you])
-  
-  
+
   snakes.each do |snake|
     snake[:body].each do |body_part|
       if xhead - 1 == body_part[:x].to_i && yhead == body_part[:y].to_i
@@ -76,38 +84,47 @@ def move(board)
       end
     end
   end
-
-  # Avoid hazards by removing move from possible moves if hazard near by.
-  if gamemode == "royale"
-  hazards.each do |hazard|
-      if xhead - 1 == hazard[:x].to_i && yhead == hazard[:y].to_i && xhead != 0 && possible_moves.length > 1
-        puts "Avoiding left hazard"
+  
+  # Avoid moving into a cell where the snakes head is one position away from a neighboring cell.
+  if @shared_neighbors.length > 0
+    @shared_neighbors.each do |s|
+      if xhead - 1 == s[:x].to_i && yhead == s[:y].to_i && xhead != 0 && possible_moves.length > 1
         possible_moves.delete("left")
-      elsif xhead + 1 == hazard[:x].to_i && yhead == hazard[:y].to_i && xhead != bwidth - 1 && possible_moves.length > 1
-        puts "Avoiding right hazard"
+      elsif xhead + 1 == s[:x].to_i && yhead == s[:y].to_i && xhead != bwidth - 1 && possible_moves.length > 1
         possible_moves.delete("right")
-      elsif yhead - 1 == hazard[:y].to_i && xhead == hazard[:x].to_i && yhead != 0 && possible_moves.length > 1
-        puts "Avoiding down hazard"
+      elsif yhead - 1 == s[:y].to_i && xhead == s[:x].to_i && yhead != 0 && possible_moves.length > 1
         possible_moves.delete("down")
-      elsif yhead + 1 == hazard[:y].to_i && xhead == hazard[:x].to_i && yhead != bheight - 1 && possible_moves.length > 1
-        puts "Avoiding up hazard"
+      elsif yhead + 1 == s[:y].to_i && xhead == s[:x].to_i && yhead != bheight - 1 && possible_moves.length > 1
         possible_moves.delete("up")
       end
     end
   end
 
-
-
-  # Avoid food by removing move from possible moves if the snake is one position away from the food.
-  if board[:you][:health] > 85 
-  food.each do |food_part|
-      if xhead - 1 == food_part[:x].to_i && yhead == food_part[:y].to_i && xhead != 0 && possible_moves.length > 1
+  # Avoid hazards by removing move from possible moves if hazard near by.
+  if gamemode == "royale"
+  hazards.each do |hazard|
+      if xhead - 1 == hazard[:x].to_i && yhead == hazard[:y].to_i && xhead != 0 && possible_moves.length > 1
         possible_moves.delete("left")
-      elsif xhead + 1 == food_part[:x].to_i && yhead == food_part[:y].to_i && xhead != bwidth - 1 && possible_moves.length > 1
+      elsif xhead + 1 == hazard[:x].to_i && yhead == hazard[:y].to_i && xhead != bwidth - 1 && possible_moves.length > 1
         possible_moves.delete("right")
-      elsif yhead - 1 == food_part[:y].to_i && xhead == food_part[:x].to_i && yhead != 0 && possible_moves.length > 1
+      elsif yhead - 1 == hazard[:y].to_i && xhead == hazard[:x].to_i && yhead != 0 && possible_moves.length > 1
         possible_moves.delete("down")
-      elsif yhead + 1 == food_part[:y].to_i && xhead == food_part[:x].to_i && yhead != bheight - 1 && possible_moves.length > 1
+      elsif yhead + 1 == hazard[:y].to_i && xhead == hazard[:x].to_i && yhead != bheight - 1 && possible_moves.length > 1
+        possible_moves.delete("up")
+      end
+    end
+  end
+
+  # Avoid moving into a cell where the snakes head is one position away from a neighboring cell.
+  if @shared_neighbors.length > 0
+    @shared_neighbors.each do |s|
+      if xhead - 1 == s[:x].to_i && yhead == s[:y].to_i && xhead != 0 && possible_moves.length > 1
+        possible_moves.delete("left")
+      elsif xhead + 1 == s[:x].to_i && yhead == s[:y].to_i && xhead != bwidth - 1 && possible_moves.length > 1
+        possible_moves.delete("right")
+      elsif yhead - 1 == s[:y].to_i && xhead == s[:x].to_i && yhead != 0 && possible_moves.length > 1
+        possible_moves.delete("down")
+      elsif yhead + 1 == s[:y].to_i && xhead == s[:x].to_i && yhead != bheight - 1 && possible_moves.length > 1
         possible_moves.delete("up")
       end
     end

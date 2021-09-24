@@ -2,7 +2,7 @@
 
 $VERBOSE = nil
 # Health find threshold variable
-@@health_threshold = 70
+@@health_threshold = 50
 
 # This function is called on every turn of a game. It's how your Battlesnake decides where to move.
 # Valid moves are "up", "down", "left", or "right".
@@ -181,7 +181,7 @@ def move(board)
                       direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 4 }
     elsif @body.include?(cell)
       turn_array << { x: cell[:x], y: cell[:y], type: 'my_body',
-                      direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 0 }
+                      direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 3 }
     elsif @corners.include?(cell)
       turn_array << { x: cell[:x], y: cell[:y], type: 'corner',
                       direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 6 }
@@ -191,9 +191,7 @@ def move(board)
     elsif @shared_neighbors.include?(cell)
       turn_array << { x: cell[:x], y: cell[:y], type: 'shared_neighbor',
                       direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 4 }
-      # all other cells are empty
-    elsif @empty_cells.include?(cell)
-      # Set :score to 10 for empty cells
+    else # is empty
       turn_array << { x: cell[:x], y: cell[:y], type: 'empty',
                       direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 11 }
     end
@@ -211,9 +209,6 @@ def move(board)
     # Return the most common direction
     @common_directions.key(@common_directions.values.max)
   end
-
-  # Return the most common direction of empty cells and food cells
-  puts "Most common (free + food spaces) direction is: #{most_common_direction(turn_array)}"
 
   @possible_turns = []
   # For each head_neighbor, inspect the corresponding cell in turn_array and output the results
@@ -363,11 +358,16 @@ def move(board)
   end
 
   puts "Possible moves are: #{@possible_moves}"
+  puts "Highest score is: #{@highest_score}"
 
-  # if there are more than one possible_moves, then prefer the most common direction
-  if @possible_moves.length > 1 && @possible_moves.include?(@common_direction)
-    @move_direction = @common_direction
-    puts "Moving to common direction - #{@common_direction}"
+  # Return the most common direction of empty cells and food cells
+  puts "Most common (free + food spaces) direction is: #{most_common_direction(turn_array)}"
+
+
+  # if there are more than direction possible_moves, then prefer the most common direction
+  if @possible_moves.length > 1 && @possible_moves.include?(most_common_direction(turn_array))
+    @move_direction = most_common_direction(turn_array)
+    puts "Most common possible direction is: #{@move_direction} -- Moving!"
   end
 
   puts "MOVE: #{@move_direction}"

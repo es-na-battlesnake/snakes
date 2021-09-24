@@ -210,9 +210,6 @@ def move(board)
     @common_directions.key(@common_directions.values.max)
   end
 
-  # Return the most common direction of empty cells and food cells
-  puts "Most common (free + food spaces) direction is: #{most_common_direction(turn_array)}"
-
   @possible_turns = []
   # For each head_neighbor, inspect the corresponding cell in turn_array and output the results
   @head_neighbors.each do |head_neighbor|
@@ -363,10 +360,14 @@ def move(board)
   puts "Possible moves are: #{@possible_moves}"
   puts "Highest score is: #{@highest_score}"
 
+  # Return the most common direction of empty cells and food cells
+  puts "Most common (free + food spaces) direction is: #{most_common_direction(turn_array)}"
+
+
   # if there are more than direction possible_moves, then prefer the most common direction
-  if @possible_moves.length > 1 && @possible_moves.include?(@common_directions)
-    @move_direction = @common_directions
-    puts "Moving to common direction - #{@common_directions}"
+  if @possible_moves.length > 1 && @possible_moves.include?(most_common_direction(turn_array))
+    @move_direction = most_common_direction(turn_array)
+    puts "Most common possible direction is: #{@move_direction} -- Moving!"
   end
 
   puts "MOVE: #{@move_direction}"

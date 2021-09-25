@@ -222,25 +222,26 @@ def move(board)
   
   @food_cells = board[:board][:food].map { |b| { x: b[:x], y: b[:y] } }.flatten
   puts "food: #{@food_cells}"
+  @health = board[:you][:health]
 
- if @food_cells.length > 0
+ if @food_cells.length > 0 && @health < 65
   # prefer to move to it over the other possible moves
   @food_cells.each do |food|
-    if xhead - 1 == food[:x].to_i && yhead == food[:y].to_i && xhead != 0
+    if xhead - 1 == food[:x].to_i && yhead == food[:y].to_i && xhead != 0 && @shared_neighbors.exclude?(food)
       @possible_moves_score["left"] += 0.5
     end
-    if xhead + 1 == food[:x].to_i && yhead == food[:y].to_i && xhead != bwidth - 1
+    if xhead + 1 == food[:x].to_i && yhead == food[:y].to_i && xhead != bwidth - 1 && @shared_neighbors.exclude?(food)
       @possible_moves_score["right"] += 0.5
     end
-    if yhead - 1 == food[:y].to_i && xhead == food[:x].to_i && yhead != 0
+    if yhead - 1 == food[:y].to_i && xhead == food[:x].to_i && yhead != 0 && @shared_neighbors.exclude?(food)
       @possible_moves_score["down"] += 0.5
     end
-    if yhead + 1 == food[:y].to_i && xhead == food[:x].to_i && yhead != bheight - 1
+    if yhead + 1 == food[:y].to_i && xhead == food[:x].to_i && yhead != bheight - 1 && @shared_neighbors.exclude?(food)
       @possible_moves_score["up"] += 0.5
     end
   end
 end
-if @food_cells.length > 0
+if @food_cells.length > 0 && @health < 75
   # prefer to move to it over the other possible moves
   @food_cells.each do |food|
     if xhead - 2 == food[:x].to_i && yhead == food[:y].to_i && xhead != 0

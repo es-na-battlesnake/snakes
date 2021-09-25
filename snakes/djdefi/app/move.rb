@@ -135,6 +135,23 @@ def move(board)
     end
   end
 
+  # Function to determine the two possible directions between two cell x,y coordinates from the perspective of the snake (x1, y1)
+  def possible_directions_between(x1, y1, x2, y2)
+    if x1 < x2
+      if y1 < y2
+        ['right', 'up']
+      elsif y1 > y2
+        ['right', 'down']
+      end
+    elsif x1 > x2
+      if y1 < y2
+        ['left', 'down']
+      elsif y1 > y2
+        ['left', 'up']
+      end
+    end
+  end
+
   # Function to determine the opposite direction between two cell x,y coordinates from the perspective of the snake
   def opposite_direction(x1, y1, x2, y2)
     if x1 < x2
@@ -160,13 +177,13 @@ def move(board)
   @board_hash.each do |cell|
     # Check if is a wall
     if is_wall?(cell[:x], cell[:y])
-      # Set :score to -5 for walls
+      # Set :score to 0 for walls
       turn_array << { x: cell[:x], y: cell[:y], type: 'wall',
-                      direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 0 }
+                      direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), both_dirs: possible_directions_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 0 }
     elsif @food.include?(cell)
       # Set :score to +5 for food
       turn_array << { x: cell[:x], y: cell[:y], type: 'food',
-                      direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 12 }
+                      direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), both_dirs: possible_directions_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 12 }
     elsif @snakes_heads.include?(cell)
       # Set :score to -1 for snake heads
       turn_array << { x: cell[:x], y: cell[:y], type: 'snake_head',
@@ -196,18 +213,24 @@ def move(board)
                       direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 11 }
     end
   end
-  # puts "Turn array is: #{turn_array}"
+   #puts "Turn array is: #{turn_array}"
 
-  # Retrun most common direction of empty cells and food cells
+  # For each direction, find the number of empty or food cells in that direction, and the total score of all cells in that direction
   # takes the @turn_array as input
-  def most_common_direction(turn_array)
+  def direction_scores(turn_array)
     # Create a hash of all the directions and the number of times they appear
-    @common_directions = Hash.new(0)
+    @direction_scores = Hash.new(0)
     turn_array.each do |cell|
-      @common_directions[cell[:direction]] += 1
+      if cell[:type] == 'food' || cell[:type] == 'empty'
+        @direction_scores[cell[:direction]] += cell[:score]
+      end
+      if cell[:both_dirs] != nil
+        @direction_scores[cell[:both_dirs][0]] += cell[:score]
+        @direction_scores[cell[:both_dirs][1]] += cell[:score]
+      end
     end
-    # Return the most common direction
-    @common_directions.key(@common_directions.values.max)
+    # Return the most common directions and their scores
+    @direction_scores
   end
 
   @possible_turns = []
@@ -268,11 +291,11 @@ def move(board)
   # If the @highest_score[:direction] is not in @possible_moves, then remove from @possible_turns
   unless @possible_moves.include?(@highest_score[:direction])
     @possible_turns.delete(@highest_score)
-    puts 'High score move not possible!'
+    puts '--- High score move not possible!'
 
     # Select next highest score object from possible_turns array
     @highest_score = @possible_turns.max_by { |turn| turn[:score] }
-    puts "Next best score is: #{@highest_score}"
+   puts "--- Next best score is: #{@highest_score}"
 
     # set @move_direction to the direction of the next highest score object
     @move_direction = @highest_score[:direction]
@@ -310,23 +333,7 @@ def move(board)
     end
   end
 
-  # If our health drops below threshold, find direction of the nearest food and set @move_direction to that direction
-  @health = board[:you][:health]
-  if @health < @@health_threshold
-    @record_low_health = @health
-    puts "Health is: #{@health}!! Finding food"
-    turn_array.each do |turn|
-      if turn[:type] == 'food' && @possible_moves.include?(turn[:direction])
-        # If the direction of the food is in @possible_moves, then set @move_direction to that direction
-        @move_direction = turn[:direction]
-      end
-    end
-    # if @health is still below @@health_threshold, increase the @@health_threshold
-    if @health < @@health_threshold
-      @@health_threshold += 1
-      puts "Health threshold is now: #{@@health_threshold}"
-    end
-  end
+  
 
   # Once we have a snake length of greater than board width or height
   # then we need to start trying to move to the center of the board
@@ -359,15 +366,16 @@ def move(board)
 
   puts "Possible moves are: #{@possible_moves}"
   puts "Highest score is: #{@highest_score}"
-
   # Return the most common direction of empty cells and food cells
-  puts "Most common (free + food spaces) direction is: #{most_common_direction(turn_array)}"
+  puts "Direction scores are: #{direction_scores(turn_array)}"
+  # Top scoring direction
+  @top_score_direction = direction_scores(turn_array).sort_by { |_k, v| v }.last[0]
+  puts "Top score direction is: #{@top_score_direction}"
 
-
-  # if there are more than direction possible_moves, then prefer the most common direction
-  if @possible_moves.length > 1 && @possible_moves.include?(most_common_direction(turn_array))
-    @move_direction = most_common_direction(turn_array)
-    puts "Most common possible direction is: #{@move_direction} -- Moving!"
+  # If top score direction is a possible move, then set @move_direction to that direction
+  if @possible_moves.include?(@top_score_direction)
+    @move_direction = @top_score_direction
+    puts "---- Moving to top score direction - #{@top_score_direction}"
   end
 
   puts "MOVE: #{@move_direction}"

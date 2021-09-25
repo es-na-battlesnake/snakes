@@ -25,6 +25,9 @@ def move(board)
   @snakes = board[:board][:snakes] || []
   puts "There are the following snakes: #{@snakes}"
 
+  # Remove our snake from the array
+  @snakes.delete_if { |snake| snake[:id] == board[:you][:id] }
+
   # Puts all the food in an array
   @food = board[:board][:food] || []
   puts "There is food at: #{@food}"
@@ -218,7 +221,8 @@ def move(board)
                       direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 25 }
     end
   end
-   #puts "Turn array is: #{turn_array}"
+  # Puts turn_array sorted by direction
+  #puts turn_array.sort_by { |cell| cell[:score] } 
 
   # For each direction, find the number of empty or food cells in that direction, and the total score of all cells in that direction
   # takes the @turn_array as input
@@ -234,6 +238,23 @@ def move(board)
     # Return the most common directions and their scores
     @direction_scores
   end
+
+  # For each both_dirs, find the number of cells in that direction, and the total score of all cells in that direction
+  # takes the @turn_array as input
+  def both_dirs_scores(turn_array)
+    # Create a hash of all the directions and the number of times they appear
+    @both_dirs_scores = Hash.new(0)
+    turn_array.each do |cell|
+      if cell[:both_dirs]
+        # Add 10 to the score for food cells
+        @both_dirs_scores[cell[:both_dirs]] += 10
+      end
+    end
+    # Return the most common directions and their scores
+    @both_dirs_scores
+  end
+
+  puts both_dirs_scores(turn_array)
 
   @possible_turns = []
   # For each head_neighbor, inspect the corresponding cell in turn_array and output the results
@@ -284,9 +305,9 @@ def move(board)
   
   # Once our snake's length is greater than that of any other snake.
   # then we need to find the direction of the nearest snake's head and set @move_direction to that direction if it is in @possible_moves
-  @snakes.each do |snake|
+  largest_other_snake = @snakes.each do |snake|
     if snake[:id] != @id
-      if snake[:length] < (@length)
+      if snake[:length] < (@length - 1)
         puts "Largest other snake is: #{snake[:name]} whos length is: #{snake[:length]} - my length is: #{@length}"
         # Find x and y coordinates of head of other snake
         other_head_x = snake[:head][:x]
@@ -295,29 +316,19 @@ def move(board)
         other_head_direction = direction_between(@head[:x], @head[:y], other_head_x, other_head_y)
         # If the other_head_direction is in @possible_moves, then set @move_direction to that direction
         if @possible_moves.include?(other_head_direction)
-          # Increase the score of the dicrection in the @possible_turns array by 10
-          @possible_turns.each do |turn|
-            if turn[:direction] == other_head_direction
-              turn[:score] += 10
-              turn[:type] = 'shared_neighbor_shorter'
-            end
-          end
-
           puts "Moving to eat other snake - #{other_head_direction}"
-          @move_direction = other_head_direction
+          @move_direction_force = other_head_direction
         end
-      # If there is another longer snake, set @@health_threshold to X
+      # If there is another longer snake, set @@health_threshold to 100
       elsif snake[:length] > @length
         @@health_threshold = 100
-        puts "Longer snake exists - lets eat more food! - health threshold is: #{@@health_threshold}"
-        puts "Largest other snake is: #{snake[:name]} whos length is: #{snake[:length]} - my length is: #{@length}"
+        puts "Longer snake exists - lets eat food! - health threshold is: #{@@health_threshold}"
       # If all snakes are shorter than our snake, decrease health_threshold by 10
       else
         @@health_threshold -= 10
-        # Clamp health_threshold to a minimum of 30
-        @@health_threshold = 30 if @@health_threshold < 30
+        # Clamp health_threshold to a minimum of 10
+        @@health_threshold = 10 if @@health_threshold < 10
         puts "We are the biggest - Decreasing health threshold - health threshold is: #{@@health_threshold}"
-        puts "Largest other snake is: #{snake[:name]} whos length is: #{snake[:length]} - my length is: #{@length}"
       end
     end
   end
@@ -432,6 +443,10 @@ def move(board)
     @move_direction = @second_highest_score_direction
   end
 
+  if @possible_moves.include?(@move_direction_force)
+    puts "Forced move direction is a possible move!"
+    @move_direction = @move_direction_force
+  end
 
   # Output the end time
   end_time = Time.now

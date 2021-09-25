@@ -161,7 +161,7 @@ def move(board)
     elsif @hazards.include?(cell)
       # Set :score to -0.5 for hazards
       turn_array << { x: cell[:x], y: cell[:y], type: 'hazard',
-                      direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 1 }
+                      direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 4 }
     elsif @body.include?(cell)
       turn_array << { x: cell[:x], y: cell[:y], type: 'my_body',
                       direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 1 }

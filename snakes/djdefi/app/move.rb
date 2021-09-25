@@ -191,7 +191,7 @@ def move(board)
     elsif @food.include?(cell)
       # Set :score to +5 for food
       turn_array << { x: cell[:x], y: cell[:y], type: 'food',
-                      direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), both_dirs: possible_directions_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 30 }
+                      direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), both_dirs: possible_directions_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 60 }
     elsif @snakes_heads.include?(cell)
       # Set :score to -1 for snake heads
       turn_array << { x: cell[:x], y: cell[:y], type: 'snake_head',
@@ -215,7 +215,7 @@ def move(board)
                       direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 10 }
     elsif @shared_neighbors.include?(cell)
       turn_array << { x: cell[:x], y: cell[:y], type: 'shared_neighbor',
-                      direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 6 }
+                      direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 5 }
     else # is empty
       turn_array << { x: cell[:x], y: cell[:y], type: 'empty',
                       direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 25 }
@@ -232,8 +232,18 @@ def move(board)
     turn_array.each do |cell|
       if cell[:type] == 'empty' || cell[:type] == 'food'
         # Add 5 to the score for food cells
-        @direction_scores[cell[:direction]] += 5
+        @direction_scores[cell[:direction]] += 150
       end
+
+      # Multiply the up and down direction scores by X
+      if cell[:direction] == 'up' || cell[:direction] == 'down'
+        @direction_scores[cell[:direction]] *= 1.5
+      end
+
+      if cell[:type] == 'shared_neighbor'
+        @direction_scores[cell[:direction]] -= 500
+      end
+
     end
     # Return the most common directions and their scores
     @direction_scores
@@ -333,13 +343,12 @@ def move(board)
     end
   end
 
-  
-  # If top score direction is a possible move, then increase the score of that direction in the @possible_turns by 10
+  # If top score direction is a possible move, then increase the score of that direction in the @possible_turns by X
   if @possible_moves.include?(@top_score_direction)
     puts "Top score direction is a possible move!"
     @possible_turns.each do |turn|
       if turn[:direction] == @top_score_direction
-        turn[:score] += 10
+        turn[:score] += 50
         turn[:type] = 'top_score'
         puts "Top score direction is: #{@top_score_direction}!"
       end
@@ -425,6 +434,21 @@ def move(board)
   # Return the most common direction of empty cells and food cells
   @direction_best_scores = direction_scores(turn_array)
   puts "Direction best scores are: #{@direction_best_scores}"
+
+
+  # Add the scores for each direction pair in both_dirs_scores(turn_array) to the corresponding singular direction :score in @direction_best_scores
+  # and sort the results by the total score
+  #
+  # Example output of `both_dirs_scores(turn_array)`:
+  # {["left", "up"]=>10, ["right", "down"]=>20, ["right", "up"]=>10}
+  both_dirs_scores(turn_array).each do |dir_pair, score|
+    @direction_best_scores[dir_pair[0]] += score
+    @direction_best_scores[dir_pair[1]] += score
+  end
+    
+
+  puts "Possible turns after adding both_dirs scores are: #{@possible_turns}"
+  
   
   # Top scoring direction based on value of @direction_best_scores
   @top_score_direction = @direction_best_scores.select { |k, v| v == @direction_best_scores.values.max }.keys.first

@@ -2,7 +2,7 @@
 
 $VERBOSE = nil
 # Health find threshold variable
-@@health_threshold = 35
+@@health_threshold = 100
 
 # This function is called on every turn of a game. It's how your Battlesnake decides where to move.
 # Valid moves are "up", "down", "left", or "right".
@@ -149,7 +149,7 @@ def move(board)
     elsif @food.include?(cell)
       # Set :score to +5 for food
       turn_array << { x: cell[:x], y: cell[:y], type: 'food',
-                      direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 15 }
+                      direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 55 }
     elsif @snakes_heads.include?(cell)
       # Set :score to -1 for snake heads
       turn_array << { x: cell[:x], y: cell[:y], type: 'snake_head',
@@ -161,7 +161,7 @@ def move(board)
     elsif @hazards.include?(cell)
       # Set :score to -0.5 for hazards
       turn_array << { x: cell[:x], y: cell[:y], type: 'hazard',
-                      direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 1 }
+                      direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 4 }
     elsif @body.include?(cell)
       turn_array << { x: cell[:x], y: cell[:y], type: 'my_body',
                       direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 1 }

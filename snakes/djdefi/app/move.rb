@@ -2,7 +2,7 @@
 
 $VERBOSE = nil
 # Health find threshold variable
-@@health_threshold = 35
+@@health_threshold = 25
 
 # This function is called on every turn of a game. It's how your Battlesnake decides where to move.
 # Valid moves are "up", "down", "left", or "right".
@@ -226,21 +226,9 @@ def move(board)
     # Create a hash of all the directions and the number of times they appear
     @direction_scores = Hash.new(0)
     turn_array.each do |cell|
-      if cell[:type] == 'empty'
-        # Add 3 to the score for empty cells
-        @direction_scores[cell[:direction]] += 3
-      end
-      if cell[:both_dirs] != nil
-        @direction_scores[cell[:both_dirs][0]] += cell[:score]
-        @direction_scores[cell[:both_dirs][1]] += cell[:score]
-      end
-      if cell[:type] == 'food'
+      if cell[:type] == 'empty' || cell[:type] == 'food'
         # Add 5 to the score for food cells
         @direction_scores[cell[:direction]] += 5
-      end
-      if cell[:type] == 'food_hazard'
-        # Add 2 to the score for food_hazard cells
-        @direction_scores[cell[:direction]] += 2
       end
     end
     # Return the most common directions and their scores
@@ -347,53 +335,6 @@ def move(board)
     end
   end
 
-  # If we are within 2 cells of the top of the board, then increase the score for down in the @possible_turns by 50
-  if @head[:y] > (@height - 2)
-    puts "We are within 2 cells of the top of the board!"
-    @possible_turns.each do |turn|
-      if turn[:direction] == 'down'
-        turn[:score] += 50
-        turn[:type] = 'pref_down'
-      end
-    end
-  end
-
-  # If we are within 2 cells of the bottom of the board, then increase the score for up in the @possible_turns by 50
-  if @head[:y] < 2
-    puts "We are within 2 cells of the bottom of the board!"
-    @possible_turns.each do |turn|
-      if turn[:direction] == 'up'
-        turn[:score] += 50
-        turn[:type] = 'pref_up'
-      end
-    end
-  end
-
-  # If we are within 2 cells of the left of the board, then increase the score for right in the @possible_turns by 1
-  if @head[:x] < 2
-    puts "We are within 2 cells of the left of the board!"
-    @possible_turns.each do |turn|
-      if turn[:direction] == 'right'
-        turn[:score] += 1
-        turn[:type] = 'pref_right'
-      end
-    end
-  end
-
-  # If we are within 2 cells of the right of the board, then increase the score for left in the @possible_turns by 1
-  if @head[:x] > (@width - 2)
-    puts "We are within 2 cells of the right of the board!"
-    @possible_turns.each do |turn|
-      if turn[:direction] == 'left'
-        turn[:score] += 1
-        turn[:type] = 'pref_left'
-      end
-    end
-  end
-
-
-    
-
   # Select higest score object from possible_turns array
   @highest_score = @possible_turns.max_by { |turn| turn[:score] }
 
@@ -471,11 +412,27 @@ def move(board)
 
   puts "Highest score is: #{@highest_score}"
   # Return the most common direction of empty cells and food cells
-  puts "Direction scores are: #{direction_scores(turn_array)}"
-  # Top scoring direction
-  @top_score_direction = direction_scores(turn_array).sort_by { |_k, v| v }.last[0]
-  puts "Top score direction is: #{@top_score_direction}"
+  @direction_best_scores = direction_scores(turn_array)
+  puts "Direction best scores are: #{@direction_best_scores}"
   
+  # Top scoring direction based on value of @direction_best_scores
+  @top_score_direction = @direction_best_scores.select { |k, v| v == @direction_best_scores.values.max }.keys.first
+  puts "Top score direction is: #{@top_score_direction}"
+
+  # Second highest scoring direction from direction_scores(turn_array)
+  @second_score_direction = @direction_best_scores.select { |k, v| v == @direction_best_scores.values.max(2).min }.keys.first
+  puts "Second score direction is: #{@second_score_direction}"
+
+  # If the top score direction is in @possible_moves, then go to that direction, otherwise go to the second highest score direction
+  if @possible_moves.include?(@top_score_direction)
+    puts "Top score direction is a possible move!"
+    @move_direction = @top_score_direction
+  elsif @possible_moves.include?(@second_highest_score_direction)
+    puts "Second highest score direction is a possible move!"
+    @move_direction = @second_highest_score_direction
+  end
+
+
   # Output the end time
   end_time = Time.now
   puts "End time is: #{end_time} - took #{end_time - start_time} seconds"

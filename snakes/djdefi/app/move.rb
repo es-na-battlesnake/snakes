@@ -2,12 +2,16 @@
 
 $VERBOSE = nil
 # Health find threshold variable
-@@health_threshold = 50
+@@health_threshold = 35
 
 # This function is called on every turn of a game. It's how your Battlesnake decides where to move.
 # Valid moves are "up", "down", "left", or "right".
 # TODO: Use the information in board to decide your next move.
 def move(board)
+
+  # Record the start time of the turn
+  start_time = Time.now
+
   puts board
 
   # Example board object:
@@ -54,11 +58,12 @@ def move(board)
   # Remove my body from the list of snakes bodies
   @snakes_bodies.delete_if { |s| s[:id] == board[:you][:id] }
 
-  puts "All snakes bodies are at: #{@snakes_bodies}"
-
   # Puts where all snakes heads are
   @snakes_heads = board[:board][:snakes].map { |s| s[:head] }.flatten || []
   puts "All snakes heads are at: #{@snakes_heads}"
+
+  # Remove snake heads from the list of snakes bodies
+  @snakes_bodies.delete_if { |s| @snakes_heads.include?(s) }
 
   # Puts where all snakes heads are, but not my head
   @snakes_heads_not_my_head = board[:board][:snakes].map { |s| s[:head] }.flatten - [@head] || []
@@ -183,7 +188,7 @@ def move(board)
     elsif @food.include?(cell)
       # Set :score to +5 for food
       turn_array << { x: cell[:x], y: cell[:y], type: 'food',
-                      direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), both_dirs: possible_directions_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 12 }
+                      direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), both_dirs: possible_directions_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 30 }
     elsif @snakes_heads.include?(cell)
       # Set :score to -1 for snake heads
       turn_array << { x: cell[:x], y: cell[:y], type: 'snake_head',
@@ -210,7 +215,7 @@ def move(board)
                       direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 4 }
     else # is empty
       turn_array << { x: cell[:x], y: cell[:y], type: 'empty',
-                      direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 11 }
+                      direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 25 }
     end
   end
    #puts "Turn array is: #{turn_array}"
@@ -221,12 +226,21 @@ def move(board)
     # Create a hash of all the directions and the number of times they appear
     @direction_scores = Hash.new(0)
     turn_array.each do |cell|
-      if cell[:type] == 'food' || cell[:type] == 'empty'
-        @direction_scores[cell[:direction]] += cell[:score]
+      if cell[:type] == 'empty'
+        # Add 3 to the score for empty cells
+        @direction_scores[cell[:direction]] += 3
       end
       if cell[:both_dirs] != nil
         @direction_scores[cell[:both_dirs][0]] += cell[:score]
         @direction_scores[cell[:both_dirs][1]] += cell[:score]
+      end
+      if cell[:type] == 'food'
+        # Add 5 to the score for food cells
+        @direction_scores[cell[:direction]] += 5
+      end
+      if cell[:type] == 'food_hazard'
+        # Add 2 to the score for food_hazard cells
+        @direction_scores[cell[:direction]] += 2
       end
     end
     # Return the most common directions and their scores
@@ -272,21 +286,122 @@ def move(board)
     end
   end
 
-  puts "possible_turns are: #{@possible_turns}"
+
 
   # If head is at edge of board, then remove the direction from @possible_moves
   @possible_moves.delete('left') if (@head[:x]).zero?
   @possible_moves.delete('right') if @head[:x] == @width
   @possible_moves.delete('down') if (@head[:y]).zero?
   @possible_moves.delete('up') if @head[:y] == @height
+  
+  # Once our snake's length is greater than that of any other snake.
+  # then we need to find the direction of the nearest snake's head and set @move_direction to that direction if it is in @possible_moves
+  @snakes.each do |snake|
+    if snake[:id] != @id
+      if snake[:length] < (@length)
+        puts "Largest other snake is: #{snake[:name]} whos length is: #{snake[:length]} - my length is: #{@length}"
+        # Find x and y coordinates of head of other snake
+        other_head_x = snake[:head][:x]
+        other_head_y = snake[:head][:y]
+        # Get the direction of the head of the other snake
+        other_head_direction = direction_between(@head[:x], @head[:y], other_head_x, other_head_y)
+        # If the other_head_direction is in @possible_moves, then set @move_direction to that direction
+        if @possible_moves.include?(other_head_direction)
+          # Increase the score of the dicrection in the @possible_turns array by 10
+          @possible_turns.each do |turn|
+            if turn[:direction] == other_head_direction
+              turn[:score] += 10
+              turn[:type] = 'shared_neighbor_shorter'
+            end
+          end
 
-  puts "Possible moves are: #{@possible_moves}"
+          puts "Moving to eat other snake - #{other_head_direction}"
+          @move_direction = other_head_direction
+        end
+      # If there is another longer snake, set @@health_threshold to X
+      elsif snake[:length] > @length
+        @@health_threshold = 100
+        puts "Longer snake exists - lets eat more food! - health threshold is: #{@@health_threshold}"
+        puts "Largest other snake is: #{snake[:name]} whos length is: #{snake[:length]} - my length is: #{@length}"
+      # If all snakes are shorter than our snake, decrease health_threshold by 10
+      else
+        @@health_threshold -= 10
+        # Clamp health_threshold to a minimum of 30
+        @@health_threshold = 30 if @@health_threshold < 30
+        puts "We are the biggest - Decreasing health threshold - health threshold is: #{@@health_threshold}"
+        puts "Largest other snake is: #{snake[:name]} whos length is: #{snake[:length]} - my length is: #{@length}"
+      end
+    end
+  end
+
+  
+  # If top score direction is a possible move, then increase the score of that direction in the @possible_turns by 10
+  if @possible_moves.include?(@top_score_direction)
+    puts "Top score direction is a possible move!"
+    @possible_turns.each do |turn|
+      if turn[:direction] == @top_score_direction
+        turn[:score] += 10
+        turn[:type] = 'top_score'
+        puts "Top score direction is: #{@top_score_direction}!"
+      end
+    end
+  end
+
+  # If we are within 2 cells of the top of the board, then increase the score for down in the @possible_turns by 50
+  if @head[:y] > (@height - 2)
+    puts "We are within 2 cells of the top of the board!"
+    @possible_turns.each do |turn|
+      if turn[:direction] == 'down'
+        turn[:score] += 50
+        turn[:type] = 'pref_down'
+      end
+    end
+  end
+
+  # If we are within 2 cells of the bottom of the board, then increase the score for up in the @possible_turns by 50
+  if @head[:y] < 2
+    puts "We are within 2 cells of the bottom of the board!"
+    @possible_turns.each do |turn|
+      if turn[:direction] == 'up'
+        turn[:score] += 50
+        turn[:type] = 'pref_up'
+      end
+    end
+  end
+
+  # If we are within 2 cells of the left of the board, then increase the score for right in the @possible_turns by 1
+  if @head[:x] < 2
+    puts "We are within 2 cells of the left of the board!"
+    @possible_turns.each do |turn|
+      if turn[:direction] == 'right'
+        turn[:score] += 1
+        turn[:type] = 'pref_right'
+      end
+    end
+  end
+
+  # If we are within 2 cells of the right of the board, then increase the score for left in the @possible_turns by 1
+  if @head[:x] > (@width - 2)
+    puts "We are within 2 cells of the right of the board!"
+    @possible_turns.each do |turn|
+      if turn[:direction] == 'left'
+        turn[:score] += 1
+        turn[:type] = 'pref_left'
+      end
+    end
+  end
+
+
+    
 
   # Select higest score object from possible_turns array
   @highest_score = @possible_turns.max_by { |turn| turn[:score] }
 
   # Set @move_direction to the direction of the highest score object
   @move_direction = @highest_score[:direction]
+
+  puts "possible_turns are: #{@possible_turns}"
+  puts "Possible moves are: #{@possible_moves}"
 
   # If the @highest_score[:direction] is not in @possible_moves, then remove from @possible_turns
   unless @possible_moves.include?(@highest_score[:direction])
@@ -301,43 +416,33 @@ def move(board)
     @move_direction = @highest_score[:direction]
   end
 
-  # Once our snake's length is greater than that of any other snake.
-  # then we need to find the direction of the nearest snake's head and set @move_direction to that direction if it is in @possible_moves
-  @snakes.each do |snake|
-    if snake[:id] != @id
-      if snake[:length] < (@length - 2)
-        puts "Largest other snake is: #{snake[:name]} whos length is: #{snake[:length]} - my length is: #{@length}"
-        # Find x and y coordinates of head of other snake
-        other_head_x = snake[:head][:x]
-        other_head_y = snake[:head][:y]
-        # Get the direction of the head of the other snake
-        other_head_direction = direction_between(@head[:x], @head[:y], other_head_x, other_head_y)
-        # If the other_head_direction is in @possible_moves, then set @move_direction to that direction
-        if @possible_moves.include?(other_head_direction)
-          puts "Moving to eat other snake - #{other_head_direction}"
-          @move_direction = other_head_direction
+
+    # If our health drops below 50, find direction of the nearest food and set @move_direction to that direction
+    @health = board[:you][:health]
+    if @health < @@health_threshold
+      @record_low_health = @health
+      puts "Health is: #{@health}!! Finding food"
+      turn_array.each do |turn|
+        if turn[:type] == 'food' && @possible_moves.include?(turn[:direction])
+          # If the direction of the food is in @possible_moves, then increase the score of that direction in the @possible_turns by 100
+          @possible_turns.each do |turn|
+            if turn[:direction] == turn[:direction]
+              turn[:score] += 100
+              turn[:type] = 'required_food'
+            end
+          end
         end
-      # If there is another longer snake, set @@health_threshold to X
-      elsif snake[:length] > @length
-        @@health_threshold = 100
-        puts "Longer snake exists - lets eat more food! - health threshold is: #{@@health_threshold}"
-        puts "Largest other snake is: #{snake[:name]} whos length is: #{snake[:length]} - my length is: #{@length}"
-      # If all snakes are shorter than our snake, decrease health_threshold by 1
-      else
-        @@health_threshold -= 1
-        # Clamp health_threshold to a minimum of 30
-        @@health_threshold = 30 if @@health_threshold < 30
-        puts "We are the biggest - Decreasing health threshold - health threshold is: #{@@health_threshold}"
-        puts "Largest other snake is: #{snake[:name]} whos length is: #{snake[:length]} - my length is: #{@length}"
+      end
+      # if @health is still below @@health_threshold, increase the @@health_threshold
+      if @health < @@health_threshold
+        @@health_threshold += 1
+        puts "Health threshold is now: #{@@health_threshold}"
       end
     end
-  end
-
-  
 
   # Once we have a snake length of greater than board width or height
   # then we need to start trying to move to the center of the board
-  if @length > @width * 2 || @length > @height * 2
+  if @length > @width * 3 || @length > @height * 3
     puts "Snake length is: #{@length}!! Finding center"
     # Find x and y coordinates of center of board
     center_x = @width / 2
@@ -364,20 +469,16 @@ def move(board)
     puts "Moving to center - #{center_direction}"
   end
 
-  puts "Possible moves are: #{@possible_moves}"
   puts "Highest score is: #{@highest_score}"
   # Return the most common direction of empty cells and food cells
   puts "Direction scores are: #{direction_scores(turn_array)}"
   # Top scoring direction
   @top_score_direction = direction_scores(turn_array).sort_by { |_k, v| v }.last[0]
   puts "Top score direction is: #{@top_score_direction}"
-
-  # If top score direction is a possible move, then set @move_direction to that direction
-  if @possible_moves.include?(@top_score_direction)
-    @move_direction = @top_score_direction
-    puts "---- Moving to top score direction - #{@top_score_direction}"
-  end
-
+  
+  # Output the end time
+  end_time = Time.now
+  puts "End time is: #{end_time} - took #{end_time - start_time} seconds"
   puts "MOVE: #{@move_direction}"
   { "move": @move_direction }
 end

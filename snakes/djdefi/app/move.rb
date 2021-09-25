@@ -2,7 +2,7 @@
 
 $VERBOSE = nil
 # Health find threshold variable
-@@health_threshold = 25
+@@health_threshold = 100
 
 # This function is called on every turn of a game. It's how your Battlesnake decides where to move.
 # Valid moves are "up", "down", "left", or "right".
@@ -397,18 +397,18 @@ def move(board)
   end
 
   # If hazards are in my head_neighbors array, then attempt to move to the center_direction
-  if @head_neighbors.include?('hazard')
-    puts 'Hazard in my head_neighbors array!! Finding center'
-    # Find x and y coordinates of center of board
-    center_x = @width / 2
-    center_y = @height / 2
-    # Get the direction of the center of the board
-    center_direction = direction_between(@head[:x], @head[:y], center_x.round, center_y.round)
+ # if @head_neighbors.include?('hazard')
+ #   puts 'Hazard in my head_neighbors array!! Finding center'
+ #   # Find x and y coordinates of center of board
+ #   center_x = @width / 2
+ #   center_y = @height / 2
+ #   # Get the direction of the center of the board
+ #   center_direction = direction_between(@head[:x], @head[:y], center_x.round, center_y.round)
 
-    # If the center_direction is in @possible_moves, then set @move_direction to that direction
-    @move_direction = center_direction if @possible_moves.include?(center_direction)
-    puts "Moving to center - #{center_direction}"
-  end
+ #   # If the center_direction is in @possible_moves, then set @move_direction to that direction
+ #   @move_direction = center_direction if @possible_moves.include?(center_direction)
+ #   puts "Moving to center - #{center_direction}"
+ # end
 
   puts "Highest score is: #{@highest_score}"
   # Return the most common direction of empty cells and food cells

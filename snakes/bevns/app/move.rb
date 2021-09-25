@@ -274,6 +274,24 @@ end
     end
   end
 
+# if there are multiple possible moves, choose the one that moves away from the wall.
+  if @possible_moves_score.length > 1
+    @possible_moves_score.each do |key, value|
+      if key == "left" && xhead < (bwidth / 2) - 1
+        @possible_moves_score["left"] -= 0.1
+      end
+      if key == "right" && xhead > (bwidth / 2) + 1
+        @possible_moves_score["right"] -= 0.1
+      end
+      if key == "down" && yhead < (bheight / 2) - 1
+        @possible_moves_score["down"] -= 0.1
+      end
+      if key == "up" && yhead > (bheight / 2) + 1
+        @possible_moves_score["up"] -= 0.1
+      end
+    end
+  end
+
  # sort the possible moves by score  
  @highscore_move = @possible_moves_score.select {|x,i| i == @possible_moves_score.values.max }.keys
  #move = possible_moves.sample

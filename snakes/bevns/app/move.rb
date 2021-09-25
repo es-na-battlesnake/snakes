@@ -224,7 +224,7 @@ def move(board)
   puts "food: #{@food_cells}"
   @health = board[:you][:health]
 
- if @food_cells.length > 0 && @health < 75
+ if @food_cells.length > 0 && @health < 65
   # prefer to move to it over the other possible moves
   @food_cells.each do |food|
     if xhead - 1 == food[:x].to_i && yhead == food[:y].to_i && xhead != 0 && @shared_neighbors.exclude?(food)
@@ -241,7 +241,7 @@ def move(board)
     end
   end
 end
-if @food_cells.length > 0
+if @food_cells.length > 0 && @health < 75
   # prefer to move to it over the other possible moves
   @food_cells.each do |food|
     if xhead - 2 == food[:x].to_i && yhead == food[:y].to_i && xhead != 0

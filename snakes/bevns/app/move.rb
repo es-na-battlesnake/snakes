@@ -258,18 +258,18 @@ if @food_cells.length > 0
   end
 end
 
-# reducs score of moves that are a wall cell. 
+# reducs score of moves that are two wall cells away. 
   @possible_moves_score.each do |key, value|
-    if key == "left" && xhead - 1 == 0
+    if key == "left" && xhead - 2 == 0
       @possible_moves_score["left"] -= 0.1
     end
-    if key == "right" && xhead + 1 == bwidth - 1
+    if key == "right" && xhead + 2 == bwidth - 1
       @possible_moves_score["right"] -= 0.1
     end
-    if key == "down" && yhead - 1 == 0
+    if key == "down" && yhead - 2 == 0
       @possible_moves_score["down"] -= 0.1
     end
-    if key == "up" && yhead + 1 == bheight - 1
+    if key == "up" && yhead + 2 == bheight - 1
       @possible_moves_score["up"] -= 0.1
     end
   end

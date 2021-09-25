@@ -212,7 +212,7 @@ def move(board)
                       direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 10 }
     elsif @shared_neighbors.include?(cell)
       turn_array << { x: cell[:x], y: cell[:y], type: 'shared_neighbor',
-                      direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 4 }
+                      direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 6 }
     else # is empty
       turn_array << { x: cell[:x], y: cell[:y], type: 'empty',
                       direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 25 }

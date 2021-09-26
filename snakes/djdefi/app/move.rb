@@ -4,6 +4,9 @@ $VERBOSE = nil
 # Health find threshold variable
 @@health_threshold = 100
 
+# Record number of turns we habe responded to
+@@turn_count = 1
+
 # This function is called on every turn of a game. It's how your Battlesnake decides where to move.
 # Valid moves are "up", "down", "left", or "right".
 # TODO: Use the information in board to decide your next move.
@@ -20,6 +23,16 @@ def move(board)
   # Puts board height and width
   @height = board[:board][:height]
   @width = board[:board][:width]
+
+  # Turn number from board
+  @turn_number = board[:turn]
+  puts "Turn number: #{@turn_number}"
+
+  # If turn number is higher than the turn count, note that we are behind
+  if @turn_number > @@turn_count
+    puts "!!!!!!!! We are behind by #{@turn_number - @@turn_count} turns"
+  end
+
 
   # Puts all the snakes in an array
   @snakes = board[:board][:snakes] || []
@@ -39,6 +52,12 @@ def move(board)
   # Puts the snakes length
   @length = board[:you][:length]
   puts "My length is: #{@length}"
+
+  # Puts the tail cells of all the snakes
+  @snake_tails = []
+  @snakes.each do |snake|
+    @snake_tails << snake[:body][-1]
+  end
 
   # Puts x, y coordinates hash of all cells on the board
   @board_hash = board[:board][:height].times.map do |i|
@@ -70,6 +89,15 @@ def move(board)
 
   # Puts where all snakes heads are, but not my head
   @snakes_heads_not_my_head = board[:board][:snakes].map { |s| s[:head] }.flatten - [@head] || []
+
+  # Puts cells that are food within one move of my head at the same as being within once move of any other snake's head
+  @food_within_one_move_of_snake_head = @food.select do |f|
+    @snakes_heads_not_my_head.any? do |s|
+      (f[:x] - s[:x]).abs <= 1 && (f[:y] - s[:y]).abs <= 1
+    end
+  end
+  puts "Food within one move of snake head: #{@food_within_one_move_of_snake_head}"
+
 
   # Puts where all food hazards are
   @food_hazards = board[:board][:food] + @hazards || []
@@ -301,11 +329,25 @@ def move(board)
       when 'hazard'
         # Add the direction to the @possible_moves array
         @possible_moves << turn[:direction]
+      when 'shared_neighbor'
+        # Add the direction to the @possible_moves array
+        @possible_moves << turn[:direction]
       end
     end
   end
 
-
+ # If there are any @food_within_one_move_of_snake_head cells, increase the their score by 2x if we are the lonest snake, or reduce it by 50 if we are the shortest snake
+  @food_within_one_move_of_snake_head.each do |food|
+    turn_array.each do |turn|
+      next unless food[:x] == turn[:x] && food[:y] == turn[:y]
+      
+      if @snake_length == @longest_snake_length
+        turn[:score] *= 2
+      else
+        turn[:score] -= 50
+      end
+    end
+  end
 
   # If head is at edge of board, then remove the direction from @possible_moves
   @possible_moves.delete('left') if (@head[:x]).zero?
@@ -449,7 +491,34 @@ def move(board)
 
   puts "Possible turns after adding both_dirs scores are: #{@possible_turns}"
   
-  
+  # Set @shared_food_neighbors to any head_neighbors that are food and are shared by any snake
+  @shared_food_neighbors = @head_neighbors.select { |neighbor| neighbor[:type] == 'food' && @shared_neighbors.include?(neighbor) }
+  puts "Shared food neighbors are: #{@shared_food_neighbors}"
+
+  # Check if there are any food cells which are shared_neighbors with our head and any other snake's head
+  # If the shared_neighbor is with a shorter snake, then increase the score of that direction in the @possible_turns by 50
+  # If the shared_neighbor is with a longer snake, then decrease the score of that direction in the @possible_turns by 100
+  # If the shared_neighbor is with a snake of the same length, then increase the score of that direction in the @possible_turns by 10
+  #
+  @shared_food_neighbors.each do |food|
+    @possible_turns.each do |turn|
+      if turn[:direction] == turn[:direction]
+        if food[:snake_length] < @length
+          turn[:score] += 50
+          turn[:type] = 'shared_food_short'
+        elsif food[:snake_length] > @length
+          turn[:score] -= 100
+          turn[:type] = 'shared_food_long'
+        else
+          turn[:score] += 10
+          turn[:type] = 'shared_food_same'
+        end
+      end
+    end
+  end
+
+  puts "Possible turns after adding shared food scores are: #{@possible_turns}"
+
   # Top scoring direction based on value of @direction_best_scores
   @top_score_direction = @direction_best_scores.select { |k, v| v == @direction_best_scores.values.max }.keys.first
   puts "Top score direction is: #{@top_score_direction}"
@@ -475,6 +544,11 @@ def move(board)
   # Output the end time
   end_time = Time.now
   puts "End time is: #{end_time} - took #{end_time - start_time} seconds"
+    # Increment the turn count
+    @@turn_count += 1
   puts "MOVE: #{@move_direction}"
   { "move": @move_direction }
+
+
+
 end

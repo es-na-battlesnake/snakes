@@ -49,6 +49,9 @@ post '/end' do
 
 
   puts 'END'
-  "OK\n"
 
+  # Output final state of the game
+  request = underscore(env['rack.request.form_hash'])
+  puts request
+  "OK\n"
 end

@@ -242,7 +242,7 @@ def move(board)
     'shared_neighbor' => -3,
     'shared_shorter_snake' => 5,
     'shared_longer_snake' => -15,
-    'shared_same_length_snake' => -1,
+    'shared_same_length_snake' => -10,
     'empty' => 15,
     'snake_head' => -4,
     'snake_body' => -4,

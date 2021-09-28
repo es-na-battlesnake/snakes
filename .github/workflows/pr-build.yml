@@ -21,9 +21,9 @@ jobs:
     - name: Run the Docker image
       run: docker run -d -p 4567:4567 --network test --name code-snek code-snek:pr
     - name: Test snake1 app response
-      run: docker run --rm --network test curlimages/curl:latest --connect-timeout 10 --retry 5 --retry-delay 2 http://code-snek:4567/ 
+      run: docker run --rm --network test curlimages/curl:latest --connect-timeout 10 --retry 5 --retry-delay 2 --retry-connrefused http://code-snek:4567/ 
     - name: Test snake2 app response
-      run: docker run --rm --network test curlimages/curl:latest --connect-timeout 10 --retry 5 --retry-delay 2 http://code-snek:4568/ 
+      run: docker run --rm --network test curlimages/curl:latest --connect-timeout 10 --retry 5 --retry-delay 2 --retry-connrefused http://code-snek:4568/ 
 
     - name: Create status check
       env:

@@ -44,7 +44,7 @@ jobs:
       uses: 'azure/aci-deploy@v1'
       with:
         resource-group: snekResourceGroup
-        dns-name-label: code-snek
+        dns-name-label: code-snek-backup
         image: ghcr.io/es-na-battlesnake/code-snake:latest
         name: code-snake-backup
         location: 'west us'

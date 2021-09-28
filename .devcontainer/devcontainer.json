@@ -30,7 +30,16 @@
 	],
 	"portsAttributes": {
 		"4567": {
-			"label": "snake1"
+			"label": "4567-djdefi"
+		},
+		"4568": {
+			"label": "4568-djdefi2"
+		},
+		"4569": {
+			"label": "4569-bevns"
+		},
+		"4570": {
+			"label": "4570-wilsonwong1990"
 		}
 	},
 

@@ -2,8 +2,9 @@
 
 $VERBOSE = nil
 $stdout.sync = true
-# Health find threshold variable
-@@health_threshold = 85
+# Health find threshold variable clamped to 0-100
+@@health_threshold = 100
+@@health_threshold.clamp(0, 100)
 
 # This function is called on every turn of a game. It's how your Battlesnake decides where to move.
 # Valid moves are "up", "down", "left", or "right".
@@ -42,6 +43,8 @@ def move(board)
   @snakes.each do |snake|
     @snake_tails << snake[:body][-1]
   end
+
+  puts "The snake tails are: #{@snake_tails}"
 
   # Puts x, y coordinates hash of all cells on the board
   @board_hash = board[:board][:height].times.map do |i|
@@ -248,7 +251,7 @@ def move(board)
     'other_snake_body' => -15,
     'body' => -14,
     'head' => -4,
-    'tail' => 8,
+    'tail' => 18,
     'head_neighbor' => 0
   }
 
@@ -357,6 +360,13 @@ def move(board)
       puts "I'm going to move #{direction} because I'm going to eat a snake named #{snake[:name]}"
       @move_direction = direction
     end
+    
+    # If we are the longest by at least 2 cells, reduce our @@health_threshold by 1
+    if @length - snake[:length] >= 2
+      @@health_threshold -= 1
+      puts "I'm going to eat a snake named #{snake[:name]}. I'm going to reduce my health_threshold by 1 to #{@@health_threshold}"
+    end
+
   end
 
   # If top score direction is a possible move, then increase the score of that direction in the @possible_turns by X
@@ -396,13 +406,22 @@ def move(board)
   # If more than 1 possible_turns have the highest score, prefer the direction between by head and @closest_food_cell_to_my_head
   if @possible_turns.count { |turn| turn[:score] == @highest_score[:score] } > 1
     puts "There are #{@possible_turns.count { |turn| turn[:score] == @highest_score[:score] }} possible turns with the highest score of #{@highest_score[:score]}"
+
+
     if @possible_turns.select { |turn| turn[:score] == @highest_score[:score] }.map { |turn| turn[:direction] }.include?(direction_between(@head[:x], @head[:y], @closest_food_cell_to_my_head[:x], @closest_food_cell_to_my_head[:y]))
       @move_direction = direction_between(@head[:x], @head[:y], @closest_food_cell_to_my_head[:x], @closest_food_cell_to_my_head[:y])
       puts "I'm going to move #{@move_direction} because I'm going to eat a food cell"
+    else
+      @least_types = @possible_turns.select { |turn| turn[:score] == @highest_score[:score] }.min_by { |turn| turn[:types].count }
+      # Set @move_direction to the direction of the least types turn
+      @move_direction = @least_types[:direction]
+      puts "I'm going to move #{@move_direction} because it has the least types and my health is #{@health} and my health_threshold is #{@@health_threshold}"
     end
+
+
   else # If only 1 possible_turns has the highest score, then set @move_direction to that direction
-    @highest_score = @possible_turns.sample
-    puts "I'm going to move #{@highest_score[:direction]} because I have a tie for the highest score at #{@highest_score[:score]}"
+    @highest_score = @possible_turns.max_by { |turn| turn[:score] }
+    puts "I'm going to move #{@highest_score[:direction]} because it is the highest score at #{@highest_score[:score]}"
   end
 
 
@@ -416,6 +435,21 @@ def move(board)
   if @possible_moves.include?(@move_direction_force)
     puts 'Forced move direction is a possible move!'
     @move_direction = @move_direction_force
+  end
+  
+  # Double check tha the move direction is not taking us off the board
+  if @move_direction == 'down' && @head[:y] == 0
+    @move_direction = @possible_moves.sample
+    puts "I'm going to move #{@move_direction} because I'm going to take off the board"
+  elsif @move_direction == 'up' && @head[:y] == @height - 1
+    @move_direction = @possible_moves.sample
+    puts "I'm going to move #{@move_direction} because I'm going to take off the board"
+  elsif @move_direction == 'left' && @head[:x] == 0
+    @move_direction = @possible_moves.sample
+    puts "I'm going to move #{@move_direction} because I'm going to take off the board"
+  elsif @move_direction == 'right' && @head[:x] == @width - 1
+    @move_direction = @possible_moves.sample
+    puts "I'm going to move #{@move_direction} because I'm going to take off the board"
   end
 
   # Output the end time in ms

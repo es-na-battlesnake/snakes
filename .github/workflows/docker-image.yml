@@ -36,7 +36,7 @@ jobs:
         image: ghcr.io/es-na-battlesnake/code-snake:latest
         name: code-snake
         location: 'west us'
-        ports: '4567 4568 4569 4570'
+        ports: '4567 4568 4569 4570 4571'
         memory: 1.5
         cpu: 2
- 
+        

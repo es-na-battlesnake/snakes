@@ -3,7 +3,7 @@
 $VERBOSE = nil
 $stdout.sync = true
 # Health find threshold variable clamped to 0-100
-@@health_threshold = 100
+@@health_threshold = 60
 @@health_threshold.clamp(0, 100)
 
 # This function is called on every turn of a game. It's how your Battlesnake decides where to move.
@@ -237,21 +237,21 @@ def move(board)
   @score_multiplier = {
     'wall' => -10,
     'hazard' => -2,
-    'food' => 7,
+    'food' => 70,
     'food_hazard' => 2,
     'shared_neighbor' => -3,
     'shared_shorter_snake' => 5,
     'shared_longer_snake' => -15,
-    'shared_same_length_snake' => -10,
+    'shared_same_length_snake' => -15,
     'empty' => 15,
     'snake_head' => -4,
     'snake_body' => -4,
-    'corner' => -5,
+    'corner' => -3,
     'other_snake_head' => -4,
     'other_snake_body' => -15,
     'body' => -14,
     'head' => -4,
-    'tail' => 18,
+    'tail' => 20,
     'head_neighbor' => 0
   }
 
@@ -404,7 +404,7 @@ def move(board)
   @move_direction = @highest_score[:direction]
   
   # If more than 1 possible_turns have the highest score, prefer the direction between by head and @closest_food_cell_to_my_head
-  if @possible_turns.count { |turn| turn[:score] == @highest_score[:score] } > 1
+  if @possible_turns.count { |turn| turn[:score] == @highest_score[:score] } > 1 && @health < @@health_threshold
     puts "There are #{@possible_turns.count { |turn| turn[:score] == @highest_score[:score] }} possible turns with the highest score of #{@highest_score[:score]}"
 
 

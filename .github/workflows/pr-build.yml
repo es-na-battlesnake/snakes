@@ -25,7 +25,7 @@ jobs:
     - name: Test snake2 app response
       run: docker run --rm --network test curlimages/curl:latest --connect-timeout 10 --retry 5 --retry-delay 2 --retry-connrefused http://code-snek:4568/ 
     - name: Rspec test djdefi snake
-      run: cd snakes/djdefi && bundle config set with 'dev' && bundle install && ruby app/spec/app_spec.rb
+      run: cd snakes/djdefi && bundle config set with 'dev' && bundle update && ruby app/spec/app_spec.rb
 
     - name: Create status check
       env:

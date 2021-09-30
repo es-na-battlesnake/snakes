@@ -261,7 +261,7 @@ def move(board)
     'other_snake_head_neighbor' => -3,
     'body' => -8,
     'head' => -4,
-    'tail' => 4,
+    'tail' => 1,
     'my_tail' => 6,
     'edge' => -2,
     'edge_adjacent' => -1,

@@ -9,4 +9,5 @@ gem 'sinatra'
 
 group :dev do
     gem 'rubocop'
+    gem 'rack-test'
   end

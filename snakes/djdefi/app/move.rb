@@ -255,7 +255,7 @@ def move(board)
     'snake_head' => -2,
     'snake_body' => -2,
     'snake_body_neighbor' => -2,
-    'corner' => -1,
+    'corner' => -3,
     'other_snake_head' => -2,
     'other_snake_body' => -2,
     'other_snake_head_neighbor' => -3,

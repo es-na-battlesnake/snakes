@@ -1,0 +1,2 @@
+#!/bin/bash
+ruby test/spec/app_spec.rb $1

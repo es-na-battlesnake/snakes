@@ -14,10 +14,10 @@ use Rack::PostBodyContentTypeParser
 get '/' do
   appearance = {
     apiversion: '1',
-    author: 'djdefi', # TODO: Your Battlesnake Username
-    color: '#48ffa8', # TODO: Personalize
-    head: 'gamer', # TODO: Personalize
-    tail: 'mouse' # TODO: Personalize
+    author: 'djdefi',
+    color: '#48ffa8', 
+    head: 'gamer', 
+    tail: 'virus' 
   }
 
   camelcase(appearance).to_json
@@ -37,6 +37,8 @@ end
 # Valid moves are "up", "down", "left", or "right".
 # TODO: Use the information in rack.request.form_hash to decide your next move.
 post '/move' do
+    # Puts raw request body
+    #puts request.body.read
   request = underscore(env['rack.request.form_hash'])
 
   # Implement move logic in app/move.rb

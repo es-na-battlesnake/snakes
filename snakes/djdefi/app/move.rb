@@ -11,7 +11,7 @@ def move(board)
   start_time = Time.now
 
   # Health find threshold variable clamped to 0-100
-  @@health_threshold = 45
+  @@health_threshold = 65
   @@health_threshold.clamp(0, 100)
 
   #puts board
@@ -262,28 +262,28 @@ def move(board)
 
   # Set score multiplier for each type of cell
   @score_multiplier = {
-    'wall' => -50,
+    'wall' => -5,
     'hazard' => -1,
     'hazard_adjacent' => -1,
-    'food' => 15,
+    'food' => 5,
     'food_hazard' => 2,
     'food_adjacent' => 2,
     'shared_neighbor' => 0,
-    'shared_shorter_snake' => 15,
+    'shared_shorter_snake' => 5,
     'shared_longer_snake' => -20,
-    'shared_same_length_snake' => -2,
+    'shared_same_length_snake' => -3,
     'empty' => 3,
     'snake_head' => -2,
     'snake_body' => -2,
-    'snake_body_neighbor' => -10,
-    'corner' => -1,
+    'snake_body_neighbor' => -5,
+    'corner' => -2,
     'other_snake_head' => -2,
-    'other_snake_body' => -50,
-    'other_snake_head_neighbor' => -10,
+    'other_snake_body' => -30,
+    'other_snake_head_neighbor' => -5,
     'body' => -8,
     'head' => -4,
     'tail' => 2,
-    'my_tail' => 7,
+    'my_tail' => 8,
     'edge' => -4,
     'edge_adjacent' => -1,
     'head_neighbor' => 0
@@ -432,7 +432,7 @@ def move(board)
   # Once our snake's length is greater than that of any other snake.
   # then we need to find the direction of the nearest snake's head and set @move_direction to that direction if it is in @possible_moves
   @snakes_info.each do |snake|
-    next unless snake[:length] < @length - 4
+    next unless snake[:length] < @length - 5
 
     puts "Snake named #{snake[:name]} is shorter than me. It's length is #{snake[:length]} and mine is #{@length}"
     # Find the direction between our head and any shorter snake's head

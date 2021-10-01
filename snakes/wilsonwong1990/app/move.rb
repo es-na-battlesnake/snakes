@@ -114,18 +114,34 @@ puts "Where are enemy snake body" + @othersnakesbody.inspect
 @othersnakesbody.each {
   |otherpiece|
     puts "x: #{otherpiece[:x]}, y: #{otherpiece[:y]}"
-    if otherpiece[:x] == @spacebelowx && otherpiece[:y] == @spacebelowy
+    if otherpiece[:x] == @snakeheadx && otherpiece[:y] == @snakeheady - 1
       @possible_moves.delete("down")
       puts "Eek! Snake below. Deleting that move."
-    elsif otherpiece[:x] == @spaceleftx && otherpiece[:y] == @spacelefty
+    elsif otherpiece[:x] == @snakeheadx - 1 && otherpiece[:y] == @snakeheady
       @possible_moves.delete("left")
       puts "Eek! Snake left. Deleting that move"
-    elsif otherpiece[:x] == @spacerightx && otherpiece[:y] == @spacerighty
+    elsif otherpiece[:x] == @snakeheadx + 1 && otherpiece[:y] == @snakeheady
       @possible_moves.delete("right")
       puts "Eek! Snake right. Deleting that move"
-    elsif otherpiece[:x] == @spaceabovex && otherpiece[:y] == @spaceabovey
+    elsif otherpiece[:x] == @snakeheadx && otherpiece[:y] == @snakeheady + 1
       @possible_moves.delete("up")
       puts "Eek! Snake above. Deleting that move."
+    elsif otherpiece[:x] == @snakeheadx - 1 && otherpiece[:y] == @snakeheady + 1
+      @possible_moves.delete("up")
+      @possible_moves.delete("left")
+      puts "Eek! Snake left and up. Deleting that move."
+    elsif otherpiece[:x] == @snakeheadx + 1 && otherpiece[:y] == @snakeheady + 1
+      @possible_moves.delete("up")
+      @possible_moves.delete("right")
+      puts "Eek! Snake right and up. Deleting that move."
+    elsif otherpiece[:x] == @snakeheadx - 1 && otherpiece[:y] == @snakeheady - 1
+      @possible_moves.delete("down")
+      @possible_moves.delete("left")
+      puts "Eek! Snake left and down. Deleting that move."
+    elsif otherpiece[:x] == @snakeheadx + 1 && otherpiece[:y] == @snakeheady - 1
+      @possible_moves.delete("down")
+      @possible_moves.delete("right")
+      puts "Eek! Snake right and down. Deleting that move."
     else
       puts "No snake body nearby" 
     end
@@ -133,18 +149,34 @@ puts "Where are enemy snake body" + @othersnakesbody.inspect
 @othersnakeshead.each {
   |headpiece|
     puts "x: #{headpiece[:x].to_i}, y: #{headpiece[:y].to_i}"
-    if headpiece[:x] == @spacebelowx && headpiece[:y] == @spacebelowy
+    if headpiece[:x] == @snakeheadx && headpiece[:y] == @snakeheady - 1
       @possible_moves.delete("down")
       puts "Eek! Snake head below. Deleting that move."
-    elsif headpiece[:x] == @spaceleftx && headpiece[:y] == @spacelefty
+    elsif headpiece[:x] == @snakeheadx - 1 && headpiece[:y] == @snakeheady
       @possible_moves.delete("left")
       puts "Eek! Snake head left. Deleting that move"
-    elsif headpiece[:x] == @spacerightx && headpiece[:y] == @spacerighty
+    elsif headpiece[:x] == @snakeheadx + 1 && headpiece[:y] == @snakeheady
       @possible_moves.delete("right")
       puts "Eek! Snake head right. Deleting that move"
-    elsif headpiece[:x] == @spaceabovex && headpiece[:y] == @spaceabovey
+    elsif headpiece[:x] == @snakeheadx && headpiece[:y] == @snakeheady + 1
       @possible_moves.delete("up")
       puts "Eek! Snake head above. Deleting that move."
+    elsif headpiece[:x] == @snakeheadx - 1 && headpiece[:y] == @snakeheady + 1
+      @possible_moves.delete("up")
+      @possible_moves.delete("left")
+      puts "Eek! Snake head left and above corner. Deleting that move."
+    elsif headpiece[:x] == @snakeheadx + 1 && headpiece[:y] == @snakeheady + 1
+      @possible_moves.delete("up")
+      @possible_moves.delete("right")
+      puts "Eek! Snake head right and above corner. Deleting that move."
+    elsif headpiece[:x] == @snakeheadx - 1 && headpiece[:y] == @snakeheady - 1
+      @possible_moves.delete("down")
+      @possible_moves.delete("left")
+      puts "Eek! Snake head left and below corner. Deleting that move."
+    elsif headpiece[:x] == @snakeheadx + 1 && headpiece[:y] == @snakeheady - 1
+      @possible_moves.delete("down")
+      @possible_moves.delete("right")
+      puts "Eek! Snake head right and below corner. Deleting that move."
     else
       puts "No snake head nearby" 
     end
@@ -159,7 +191,7 @@ puts "Where are enemy snake body" + @othersnakesbody.inspect
 @donotmoveup = 0
 @donotmovedown = 0
 @donotmoveright = 0
-@donotmoveleft =0
+@donotmoveleft = 0
 
 # Avoid the tail
 if @snakeheadx == @snaketail[:x] && @snakeheady > @snaketail[:y] 
@@ -183,14 +215,39 @@ if @snakeheady == @snaketail[:y] && @snakeheadx < @snaketail[:x]
   puts "Avoiding tail, removing right"
 end
 
+# Check if next to food and so, move to it, overriding other moves
+@food.each {
+  |foodpiece|
+    puts "Food coordinates x: #{foodpiece[:x]}, y: #{foodpiece[:y]}"
+    if foodpiece[:x] == @snakeheadx && foodpiece[:y] == @snakeheady - 1
+      @possible_moves.clear
+      @possible_moves.push("down")
+      puts "Yo! There's food. Going down"
+    elsif foodpiece[:x] == @snakeheadx - 1 && foodpiece[:y] == @snakeheady
+      @possible_moves.clear
+      @possible_moves.push("left")
+      puts "Yo! There's food. Going left"
+    elsif foodpiece[:x] == @snakeheadx + 1 && foodpiece[:y] == @snakeheady
+      @possible_moves.clear
+      @possible_moves.push("right")
+      puts "Yo! There's food. Going right"
+    elsif foodpiece[:x] == @snakeheadx && foodpiece[:y] == @snakeheady + 1
+      @possible_moves.clear
+      @possible_moves.push("up")
+      puts "Yo! There's food Going up"
+    else
+      puts "No food" 
+    end
+  }
 
 
 # Prints out the possible moves
-puts "Remaining moves after removing head collisions and walls"
+puts "Remaining moves after removing collisions, snakes, walls and searching for food"
 puts @possible_moves.inspect 
 puts "Length of possible_moves: #{@possible_moves.length}"
 puts "Is possible_moves empty: #{@possible_moves.empty?}"
 
+# Safety net. If there are no moves, then just move randomly
 if @possible_moves.empty? == true
   puts "No moves in array. Repopulating with all moves"
   @possible_moves.push("up")
@@ -198,15 +255,6 @@ if @possible_moves.empty? == true
   @possible_moves.push("left")
   @possible_moves.push("right")
 end
-
-#upvalue = @height - @snakeheady
-#downvalue = @snakeheady
-#leftvalue = @snakeheadx
-#rightvalue = @width - @snakeheadx
-
-# check if these if statements work
-
-puts "Moves available were:" + @moves_available.inspect
 
 move = @possible_moves.sample  
 puts "MOVE: " + move.to_s

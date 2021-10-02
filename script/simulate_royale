@@ -1,15 +1,15 @@
 # go install github.com/BattlesnakeOfficial/rules/cli/battlesnake@latest
-battlesnake play -W 11 -H 11 --name ruby-danger-noodle --url http://code-snek:4567/ --name code-snake --url http://code-snek:4568/  --name bevns --url http://code-snek:4569/ --name wilsonwong1990 --url http://code-snek:4570/ -g royale -v
+#battlesnake play -W 11 -H 11 --name ruby-danger-noodle --url http://code-snek:4567/ --name code-snake --url http://code-snek:4568/  --name bevns --url http://code-snek:4569/ --name wilsonwong1990 --url http://code-snek:4570/ -g royale -v
 
 # Run the simulation battlesnake play 10 times, recording who the winner was each time from the output.
 # Example winner output line: "2021/10/02 05:32:05 [DONE]: Game completed after 96 turns. <winner> is the winner."
 
 rm winner.txt
 # Run command 7 times and record "is the winner" line of output to a file.
-for i in {1..100}
+for i in {1..150}
 do
     echo "Simulation $i"
-    battlesnake play -W 11 -H 11 --name ruby-danger-noodle --url http://code-snek:4567/ --name code-snake --url http://code-snek:4568/  --name bevns --url http://code-snek:4569/ --name wilsonwong1990 --url http://code-snek:4570/ -g royale 2>&1 | grep "is the winner" | tee -a winner.txt
+    /root/go/bin/battlesnake play -W 11 -H 11 --name ruby-danger-noodle --url http://code-snek:4567/ --name code-snake --url http://code-snek:4568/  --name bevns --url http://code-snek:4569/ --name wilsonwong1990 --url http://code-snek:4570/ -g royale 2>&1 | grep "is the winner" | tee -a winner.txt
 done
 
 # Output the most winning player from the file.

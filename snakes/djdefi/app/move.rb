@@ -11,7 +11,7 @@ def move(board)
   start_time = Time.now
 
   # Health find threshold variable clamped to 0-100
-  @@health_threshold = 75
+  @@health_threshold = 97
   @@health_threshold.clamp(0, 100)
 
   #puts board
@@ -273,7 +273,7 @@ puts "My tail is: #{@my_tail}"
   @my_tail_neighbors = @my_tail.map { |t| adjacent_cells(t[:x], t[:y]) }.flatten
 
   # Cell base score
-  @cell_base_score = 100
+  @cell_base_score = 1000
 
   # Set score multiplier for each type of cell
   @score_multiplier = {
@@ -285,15 +285,15 @@ puts "My tail is: #{@my_tail}"
     'food_adjacent' => 2,
     'shared_neighbor' => 0,
     'shared_shorter_snake' => 5,
-    'shared_longer_snake' => -5,
-    'shared_same_length_snake' => -3,
+    'shared_longer_snake' => -50,
+    'shared_same_length_snake' => -30,
     'empty' => 3,
     'snake_head' => -2,
     'snake_body' => -2,
     'snake_body_neighbor' => -10,
     'corner' => -2,
     'other_snake_head' => -2,
-    'other_snake_body' => -30,
+    'other_snake_body' => -130,
     'other_snake_head_neighbor' => -0,
     'body' => -80,
     'head' => -4,

@@ -11,7 +11,7 @@ def move(board)
   start_time = Time.now
 
   # Health find threshold variable clamped to 0-100
-  @@health_threshold = 45
+  @@health_threshold = 75
   @@health_threshold.clamp(0, 100)
 
   #puts board
@@ -42,16 +42,18 @@ def move(board)
   @length = board[:you][:length].to_i
   # puts "My length is: #{@length}"
 
+  @my_tail = []
   # Puts the tail cells of all the snakes
   @snake_tails = []
   @snakes.each do |snake|
     @snake_tails << snake[:body][-1]
+    # If the snake is you, then we can use it to find our tail
+    if snake[:id] == board[:you][:id]
+      @my_tail << snake[:body][-1]
+    end
   end
 
-  #puts "The snake tails are: #{@snake_tails}"
-
-  # Puts my tail cell, if there is one
-  @my_tail = board[:you][:body][-1]
+puts "My tail is: #{@my_tail}"
 
   # Puts x, y coordinates hash of all cells on the board
   @board_hash = board[:board][:height].to_i.times.map do |i|
@@ -100,10 +102,20 @@ def move(board)
     [{ x: x - 1, y: y }, { x: x + 1, y: y }, { x: x, y: y - 1 }, { x: x, y: y + 1 }]
   end
 
+  # Function to determine x,y coordinate pair hash of each cell adjacent to the head within 3 cells
+  def adjacent_cells_3(x, y)
+    # Set x and y coordinates to_i
+    x = x.to_i
+    y = y.to_i
+    [{ x: x - 1, y: y }, { x: x + 1, y: y }, { x: x, y: y - 1 }, { x: x, y: y + 1 }, { x: x - 1, y: y - 1 }, { x: x - 1, y: y + 1 }, { x: x + 1, y: y - 1 }, { x: x + 1, y: y + 1 }]
+  end
+
   # Food adjacent cells
   @food_adjacent_cells = @food.map { |f| adjacent_cells(f[:x], f[:y]) }.flatten
 
   @head_neighbors = adjacent_cells(@head[:x], @head[:y])
+
+  @three_head_neighbors = adjacent_cells_3(@head[:x], @head[:y])
 
   @other_snakes_head_neighbors = @snakes_heads_not_my_head.map { |s| adjacent_cells(s[:x], s[:y]) }.flatten
 
@@ -257,36 +269,41 @@ def move(board)
     adjacent_cells(x, y)
   end
 
+  # My tail neighbors are the cells adjacent to my tail
+  @my_tail_neighbors = @my_tail.map { |t| adjacent_cells(t[:x], t[:y]) }.flatten
+
   # Cell base score
   @cell_base_score = 100
 
   # Set score multiplier for each type of cell
   @score_multiplier = {
     'wall' => -5,
-    'hazard' => -3,
-    'hazard_adjacent' => -1,
+    'hazard' => -4,
+    'hazard_adjacent' => -3,
     'food' => 5,
     'food_hazard' => 2,
     'food_adjacent' => 2,
     'shared_neighbor' => 0,
     'shared_shorter_snake' => 5,
-    'shared_longer_snake' => -20,
+    'shared_longer_snake' => -5,
     'shared_same_length_snake' => -3,
     'empty' => 3,
     'snake_head' => -2,
     'snake_body' => -2,
-    'snake_body_neighbor' => -5,
+    'snake_body_neighbor' => -10,
     'corner' => -2,
     'other_snake_head' => -2,
     'other_snake_body' => -30,
-    'other_snake_head_neighbor' => -5,
-    'body' => -8,
+    'other_snake_head_neighbor' => -0,
+    'body' => -80,
     'head' => -4,
     'tail' => 2,
     'my_tail' => 8,
+    'my_tail_neighbor' => 4,
     'edge' => -4,
     'edge_adjacent' => -1,
-    'head_neighbor' => 0
+    'head_neighbor' => 0,
+    'three_head_neighbor' => -2
   }
 
   # Create an array of all of this turn's cells. Each cell is a hash with x and y coordinates, a set of types, and the direction of the cell realative to the snake's head.
@@ -305,6 +322,8 @@ def move(board)
     types << 'other_snake_body' if @snakes_bodies.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
     types << 'body' if @body.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
     types << 'tail' if @snake_tails.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
+    types << 'my_tail' if @my_tail.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
+    types << 'my_tail_neighbor' if @my_tail_neighbors.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
     # types << 'head' if @head.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
     types << 'food' if @food.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
     types << 'food_hazard' if @food_hazards.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
@@ -323,6 +342,7 @@ def move(board)
     types << 'food_adjacent' if @food_adjacent_cells.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
     types << 'hazard_adjacent' if @hazard_adjacent_cells.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
     types << 'edge_adjacent' if @edge_adjacent_cells.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
+    types << 'three_head_neighbor' if @three_head_neighbors.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
     
 
     # Determine the direction between this cell and the snake's head
@@ -455,8 +475,12 @@ def move(board)
   # Get highest score in @possible_turns
   @highest_score = @possible_turns.max_by { |turn| turn[:score] }
 
+  puts "Highest score is #{@highest_score}"
+
   # Set @move_direction to the direction of the highest score object
   @move_direction = @highest_score[:direction]
+
+  # Puts the turn_score_array for the highest score cell on the board
 
   puts "possible_turns are: #{@possible_turns}"
 

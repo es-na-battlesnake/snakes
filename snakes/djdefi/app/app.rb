@@ -3,8 +3,8 @@
 require 'rack'
 require 'rack/contrib'
 require 'sinatra'
-require './app/util'
-require './app/move'
+require_relative './util'
+require_relative './move'
 
 
 use Rack::PostBodyContentTypeParser
@@ -38,7 +38,7 @@ end
 # TODO: Use the information in rack.request.form_hash to decide your next move.
 post '/move' do
     # Puts raw request body
-    #puts request.body.read
+    puts request.body.read
   request = underscore(env['rack.request.form_hash'])
 
   # Implement move logic in app/move.rb

@@ -56,7 +56,7 @@ describe 'Does not move off the board top right' do
     end
 end
 
-describe 'Favors direction of tail' do
+describe 'Favors direction of tail 1' do
 
     post_data_json = '{"game":{"id":"c97e6918-e5a1-4f10-88d4-a72ee539bd82","ruleset":{"name":"royale","version":"v1.0.22","settings":{"foodSpawnChance":15,"minimumFood":1,"hazardDamagePerTurn":14,"royale":{"shrinkEveryNTurns":25},"squad":{"allowBodyCollisions":false,"sharedElimination":false,"sharedHealth":false,"sharedLength":false}}},"timeout":500,"source":""},"turn":54,"board":{"height":11,"width":11,"snakes":[{"id":"gs_BdDTpqTkvjX6FWWMYbBP9tRH","name":"code-snake","latency":"36","health":97,"body":[{"x":1,"y":7},{"x":0,"y":7},{"x":0,"y":8},{"x":1,"y":8},{"x":1,"y":9},{"x":2,"y":9},{"x":3,"y":9},{"x":3,"y":8},{"x":3,"y":7}],"head":{"x":1,"y":7},"length":9,"shout":"","squad":""},{"id":"gs_bjV6HXCD7Rt8rgcwQfmgCGqd","name":"code-snek-dev","latency":"104","health":80,"body":[{"x":2,"y":2},{"x":2,"y":1},{"x":3,"y":1},{"x":4,"y":1},{"x":4,"y":2},{"x":4,"y":3},{"x":3,"y":3},{"x":2,"y":3},{"x":1,"y":3}],"head":{"x":2,"y":2},"length":9,"shout":"","squad":""}],"food":[{"x":10,"y":0},{"x":2,"y":0},{"x":4,"y":0}],"hazards":[{"x":0,"y":0},{"x":1,"y":0},{"x":2,"y":0},{"x":3,"y":0},{"x":4,"y":0},{"x":5,"y":0},{"x":6,"y":0},{"x":7,"y":0},{"x":8,"y":0},{"x":9,"y":0},{"x":10,"y":0},{"x":10,"y":1},{"x":10,"y":2},{"x":10,"y":3},{"x":10,"y":4},{"x":10,"y":5},{"x":10,"y":6},{"x":10,"y":7},{"x":10,"y":8},{"x":10,"y":9},{"x":10,"y":10}]},"you":{"id":"gs_bjV6HXCD7Rt8rgcwQfmgCGqd","name":"code-snek-dev","latency":"104","health":80,"body":[{"x":2,"y":2},{"x":2,"y":1},{"x":3,"y":1},{"x":4,"y":1},{"x":4,"y":2},{"x":4,"y":3},{"x":3,"y":3},{"x":2,"y":3},{"x":1,"y":3}],"head":{"x":2,"y":2},"length":9,"shout":"","squad":""}}'
     it 'No Dead end' do
@@ -72,3 +72,29 @@ describe 'Favors direction of tail' do
         
     end
 end
+
+# For 
+
+describe 'Favors direction of tail 2' do
+
+    post_data_json = '{"game":{"id":"b4d4e09c-26fb-418e-99f7-4ac23b16b517","ruleset":{"name":"royale","version":"v1.0.22","settings":{"foodSpawnChance":20,"minimumFood":1,"hazardDamagePerTurn":14,"royale":{"shrinkEveryNTurns":20},"squad":{"allowBodyCollisions":false,"sharedElimination":false,"sharedHealth":false,"sharedLength":false}}},"timeout":500,"source":""},"turn":69,"board":{"height":11,"width":11,"snakes":[{"id":"gs_VBPVrbwHv6jcMYrYHGvDBGvX","name":"Potoooooooo","latency":"2","health":81,"body":[{"x":0,"y":3},{"x":0,"y":2},{"x":1,"y":2},{"x":2,"y":2},{"x":3,"y":2},{"x":4,"y":2},{"x":5,"y":2}],"head":{"x":0,"y":3},"length":7,"shout":"","squad":""},{"id":"gs_DqXYrm8mwPTqCdhDqpCRHm6P","name":"ruby-danger-noodle","latency":"52","health":83,"body":[{"x":1,"y":4},{"x":1,"y":5},{"x":2,"y":5},{"x":3,"y":5},{"x":3,"y":4},{"x":2,"y":4}],"head":{"x":1,"y":4},"length":6,"shout":"","squad":""}],"food":[{"x":9,"y":4},{"x":0,"y":5},{"x":7,"y":6},{"x":10,"y":0},{"x":3,"y":7}],"hazards":[{"x":0,"y":0},{"x":0,"y":1},{"x":1,"y":0},{"x":1,"y":1},{"x":2,"y":0},{"x":2,"y":1},{"x":3,"y":0},{"x":3,"y":1},{"x":4,"y":0},{"x":4,"y":1},{"x":5,"y":0},{"x":5,"y":1},{"x":6,"y":0},{"x":6,"y":1},{"x":7,"y":0},{"x":7,"y":1},{"x":8,"y":0},{"x":8,"y":1},{"x":9,"y":0},{"x":9,"y":1},{"x":10,"y":0},{"x":10,"y":1},{"x":10,"y":2},{"x":10,"y":3},{"x":10,"y":4},{"x":10,"y":5},{"x":10,"y":6},{"x":10,"y":7},{"x":10,"y":8},{"x":10,"y":9},{"x":10,"y":10}]},"you":{"id":"gs_DqXYrm8mwPTqCdhDqpCRHm6P","name":"ruby-danger-noodle","latency":"52","health":83,"body":[{"x":1,"y":4},{"x":1,"y":5},{"x":2,"y":5},{"x":3,"y":5},{"x":3,"y":4},{"x":2,"y":4}],"head":{"x":1,"y":4},"length":6,"shout":"","squad":""}}'
+
+    it 'Favor chasing tail if neigbors are scary' do
+        header 'Content-Type', 'application/json'
+        post '/move', post_data_json
+        last_response.must_be :ok?
+        last_response.body.must_include "move"
+        # Should move right 
+        last_response.body.must_include "right"
+        last_response.body.wont_include "left"
+        last_response.body.wont_include "up"
+        last_response.body.wont_include "down"
+        
+    end
+end
+
+#:types=>["other_snake_body", "body", "tail", "my_tail", "head_neighbor", "snake_body_neighbor", "three_head_neighbor", "top_direction"], :score=>865
+#:types=>["shared_neighbor", "shared_longer_snake", "shared_same_length_snake", "empty", "head_neighbor", "other_snake_head_neighbor", "snake_body_neighbor", "edge_adjacent", "three_head_neighbor"], :score=>910
+
+#:types=>["other_snake_body", "body", "tail", "my_tail", "head_neighbor", "snake_body_neighbor", "three_head_neighbor", "top_direction"], :score=>875
+#:types=>["other_snake_body", "body", "tail", "my_tail", "head_neighbor", "snake_body_neighbor", "three_head_neighbor", "top_direction"], :score=>905

@@ -299,7 +299,7 @@ puts "My tail is: #{@my_tail}"
     'head' => -4,
     'tail' => 2,
     'my_tail' => 10,
-    'my_tail_neighbor' => 4,
+    'my_tail_neighbor' => 6,
     'edge' => -4,
     'edge_adjacent' => -1,
     'head_neighbor' => 0,

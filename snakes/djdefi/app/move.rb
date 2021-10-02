@@ -278,8 +278,8 @@ puts "My tail is: #{@my_tail}"
   # Set score multiplier for each type of cell
   @score_multiplier = {
     'wall' => -5,
-    'hazard' => -1,
-    'hazard_adjacent' => -1,
+    'hazard' => -4,
+    'hazard_adjacent' => -3,
     'food' => 5,
     'food_hazard' => 2,
     'food_adjacent' => 2,

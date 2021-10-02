@@ -285,7 +285,7 @@ puts "My tail is: #{@my_tail}"
     'food_adjacent' => 2,
     'shared_neighbor' => 0,
     'shared_shorter_snake' => 5,
-    'shared_longer_snake' => -20,
+    'shared_longer_snake' => -5,
     'shared_same_length_snake' => -3,
     'empty' => 3,
     'snake_head' => -2,

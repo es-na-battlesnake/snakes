@@ -6,7 +6,7 @@
 
 rm winner.txt
 # Run command 7 times and record "is the winner" line of output to a file.
-for i in {1..15}
+for i in {1..215}
 do
     echo "Simulation $i"
     /root/go/bin/battlesnake play -W 11 -H 11 --name ruby-danger-noodle --url http://code-snek:4567/ --name code-snake --url http://code-snek:4568/  --name bevns --url http://code-snek:4569/ --name wilsonwong1990 --url http://code-snek:4570/ -g royale 2>&1 | grep "is the winner" | tee -a winner.txt

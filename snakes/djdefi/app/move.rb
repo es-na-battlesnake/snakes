@@ -11,7 +11,7 @@ def move(board)
   start_time = Time.now
 
   # Health find threshold variable clamped to 0-100
-  @@health_threshold = 65
+  @@health_threshold = 45
   @@health_threshold.clamp(0, 100)
 
   #puts board
@@ -263,7 +263,7 @@ def move(board)
   # Set score multiplier for each type of cell
   @score_multiplier = {
     'wall' => -5,
-    'hazard' => -1,
+    'hazard' => -3,
     'hazard_adjacent' => -1,
     'food' => 5,
     'food_hazard' => 2,

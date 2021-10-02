@@ -42,18 +42,16 @@ def move(board)
   @length = board[:you][:length].to_i
   # puts "My length is: #{@length}"
 
-  @my_tail = []
+
   # Puts the tail cells of all the snakes
   @snake_tails = []
   @snakes.each do |snake|
     @snake_tails << snake[:body][-1]
-    # If the snake is you, then we can use it to find our tail
-    if snake[:id] == board[:you][:id]
-      @my_tail << snake[:body][-1]
-    end
   end
 
-puts "My tail is: #{@my_tail}"
+  # My tail coordinates
+  @my_tail = [{:x => board[:you][:body][-1][:x], :y => board[:you][:body][-1][:y]}]
+  puts "My tail is: #{@my_tail}"
 
   # Puts x, y coordinates hash of all cells on the board
   @board_hash = board[:board][:height].to_i.times.map do |i|
@@ -270,7 +268,7 @@ puts "My tail is: #{@my_tail}"
   end
 
   # My tail neighbors are the cells adjacent to my tail
-  @my_tail_neighbors = @my_tail.map { |t| adjacent_cells(t[:x], t[:y]) }.flatten
+  @my_tail_neighbors = adjacent_cells(@my_tail.first[:x], @my_tail.first[:y])
 
   # Cell base score
   @cell_base_score = 1000
@@ -280,13 +278,13 @@ puts "My tail is: #{@my_tail}"
     'wall' => -5,
     'hazard' => -3,
     'hazard_adjacent' => -3,
-    'food' => 5,
+    'food' => 15,
     'food_hazard' => 2,
     'food_adjacent' => 2,
     'shared_neighbor' => 0,
     'shared_shorter_snake' => 5,
     'shared_longer_snake' => -50,
-    'shared_same_length_snake' => -30,
+    'shared_same_length_snake' => -5,
     'empty' => 3,
     'snake_head' => -2,
     'snake_body' => -2,
@@ -295,10 +293,10 @@ puts "My tail is: #{@my_tail}"
     'other_snake_head' => -2,
     'other_snake_body' => -130,
     'other_snake_head_neighbor' => -0,
-    'body' => -80,
+    'body' => -5,
     'head' => -4,
     'tail' => 2,
-    'my_tail' => 10,
+    'my_tail' => 76,
     'my_tail_neighbor' => 6,
     'edge' => -4,
     'edge_adjacent' => -1,

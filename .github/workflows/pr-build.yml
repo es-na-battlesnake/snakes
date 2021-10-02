@@ -14,18 +14,26 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    
     - name: Build the Docker image
       run: docker build . --file Dockerfile --tag code-snek:pr
     - name: Setup Docker network
       run: docker network create test
     - name: Run the Docker image
       run: docker run -d -p 4567:4567 --network test --name code-snek code-snek:pr
+    
     - name: Test snake1 app response
       run: docker run --rm --network test curlimages/curl:latest --connect-timeout 10 --retry 5 --retry-delay 2 --retry-connrefused http://code-snek:4567/ 
     - name: Test snake2 app response
       run: docker run --rm --network test curlimages/curl:latest --connect-timeout 10 --retry 5 --retry-delay 2 --retry-connrefused http://code-snek:4568/ 
+    
     - name: Rspec test djdefi snake
       run: docker exec code-snek bundle config set with 'dev' && docker exec code-snek bundle config unset frozen && docker exec code-snek bundle update && docker exec code-snek /bin/bash -c 'script/test djdefi'
+
+    - name: Simulate a game
+      run: |
+            go install github.com/BattlesnakeOfficial/rules/cli/battlesnake@latest
+            battlesnake play -W 11 -H 11 --name ruby-danger-noodle --url http://code-snek:4567/ --name code-snake --url http://code-snek:4568/  --name bevns --url http://code-snek:4569/ --name wilsonwong1990 --url http://code-snek:4570/ -g royale -v
 
     - name: Create status check
       env:

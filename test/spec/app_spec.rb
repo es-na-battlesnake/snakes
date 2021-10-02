@@ -92,9 +92,3 @@ describe 'Favors direction of tail 2' do
         
     end
 end
-
-#:types=>["other_snake_body", "body", "tail", "my_tail", "head_neighbor", "snake_body_neighbor", "three_head_neighbor", "top_direction"], :score=>865
-#:types=>["shared_neighbor", "shared_longer_snake", "shared_same_length_snake", "empty", "head_neighbor", "other_snake_head_neighbor", "snake_body_neighbor", "edge_adjacent", "three_head_neighbor"], :score=>910
-
-#:types=>["other_snake_body", "body", "tail", "my_tail", "head_neighbor", "snake_body_neighbor", "three_head_neighbor", "top_direction"], :score=>875
-#:types=>["other_snake_body", "body", "tail", "my_tail", "head_neighbor", "snake_body_neighbor", "three_head_neighbor", "top_direction"], :score=>905

@@ -278,7 +278,7 @@ puts "My tail is: #{@my_tail}"
   # Set score multiplier for each type of cell
   @score_multiplier = {
     'wall' => -5,
-    'hazard' => -4,
+    'hazard' => -3,
     'hazard_adjacent' => -3,
     'food' => 5,
     'food_hazard' => 2,
@@ -298,7 +298,7 @@ puts "My tail is: #{@my_tail}"
     'body' => -80,
     'head' => -4,
     'tail' => 2,
-    'my_tail' => 8,
+    'my_tail' => 10,
     'my_tail_neighbor' => 4,
     'edge' => -4,
     'edge_adjacent' => -1,
@@ -452,7 +452,7 @@ puts "My tail is: #{@my_tail}"
   # Once our snake's length is greater than that of any other snake.
   # then we need to find the direction of the nearest snake's head and set @move_direction to that direction if it is in @possible_moves
   @snakes_info.each do |snake|
-    next unless snake[:length] < @length - 5
+    next unless snake[:length] < @length - 10
 
     puts "Snake named #{snake[:name]} is shorter than me. It's length is #{snake[:length]} and mine is #{@length}"
     # Find the direction between our head and any shorter snake's head
@@ -466,8 +466,8 @@ puts "My tail is: #{@my_tail}"
     # If we are the longest by at least 2 cells, reduce our @@health_threshold by 1
     if @length - snake[:length] >= 2
       @@health_threshold -= 1
-      # Clamp the health threshold to a minimum of 35
-      @@health_threshold = 35 if @@health_threshold < 35
+      # Clamp the health threshold to a minimum of 55
+      @@health_threshold = 55 if @@health_threshold < 55
       puts "I'm going to eat a snake named #{snake[:name]}. I'm going to reduce my health_threshold by 1 to #{@@health_threshold}"
     end
   end

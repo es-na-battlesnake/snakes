@@ -1,4 +1,4 @@
-FROM ruby:2.7
+FROM ruby:3.0.2
 RUN apt-get update && apt-get install --no-install-suggests -y supervisor
 RUN mkdir -p /var/log/supervisor
 

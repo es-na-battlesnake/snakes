@@ -12,5 +12,7 @@ do
     /root/go/bin/battlesnake play -W 11 -H 11 --name ruby-danger-noodle --url http://code-snek:4567/ --name code-snake --url http://code-snek:4568/  --name bevns --url http://code-snek:4569/ --name wilsonwong1990 --url http://code-snek:4570/ -g royale 2>&1 | grep "is the winner" | tee -a winner.txt
 done
 
+# Run with xargs parallel 50 times
+
 # Output the most winning player from the file.
 cat winner.txt | cut -d " " -f 9 | sort | uniq -c | sort -nr 

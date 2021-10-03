@@ -276,8 +276,8 @@ def move(board)
   # Set score multiplier for each type of cell
   @score_multiplier = {
     'wall' => -5,
-    'hazard' => -3,
-    'hazard_adjacent' => -3,
+    'hazard' => -5,
+    'hazard_adjacent' => -4,
     'food' => 15,
     'food_hazard' => 2,
     'food_adjacent' => 2,

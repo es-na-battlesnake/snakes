@@ -92,3 +92,20 @@ describe 'Favors direction of tail 2' do
         
     end
 end
+
+describe 'No hazard without reason' do
+
+    post_data_json = '{"game":{"id":"14db21c8-5760-4afb-b30e-9721c284f24b","ruleset":{"name":"royale","version":"v1.0.22","settings":{"foodSpawnChance":20,"minimumFood":1,"hazardDamagePerTurn":14,"royale":{"shrinkEveryNTurns":20},"squad":{"allowBodyCollisions":false,"sharedElimination":false,"sharedHealth":false,"sharedLength":false}}},"timeout":500,"source":""},"turn":93,"board":{"height":11,"width":11,"snakes":[{"id":"gs_4b6tWpBrgj4DBcQQtdt8gwYK","name":"ChoffesBattleSnakeV1","latency":"171","health":83,"body":[{"x":4,"y":7},{"x":3,"y":7},{"x":3,"y":6},{"x":2,"y":6},{"x":2,"y":5},{"x":2,"y":4},{"x":1,"y":4},{"x":1,"y":3},{"x":2,"y":3},{"x":3,"y":3}],"head":{"x":4,"y":7},"length":10,"shout":"","squad":""},{"id":"gs_bkkhRjXDgT4vD8yCRPYB9rdP","name":"a noodle full of danger","latency":"32","health":71,"body":[{"x":7,"y":6},{"x":7,"y":7},{"x":7,"y":8},{"x":6,"y":8},{"x":5,"y":8},{"x":5,"y":7},{"x":6,"y":7}],"head":{"x":7,"y":6},"length":7,"shout":"","squad":""},{"id":"gs_3pQqFwgY4XQdc3TBdBV7cBXb","name":"ruby-danger-noodle","latency":"48","health":85,"body":[{"x":8,"y":1},{"x":7,"y":1},{"x":6,"y":1},{"x":5,"y":1},{"x":4,"y":1},{"x":3,"y":1}],"head":{"x":8,"y":1},"length":6,"shout":"","squad":""}],"food":[{"x":10,"y":10},{"x":5,"y":10},{"x":7,"y":10},{"x":10,"y":6},{"x":9,"y":7},{"x":0,"y":9},{"x":10,"y":8}],"hazards":[{"x":0,"y":0},{"x":0,"y":10},{"x":1,"y":0},{"x":1,"y":10},{"x":2,"y":0},{"x":2,"y":10},{"x":3,"y":0},{"x":3,"y":10},{"x":4,"y":0},{"x":4,"y":10},{"x":5,"y":0},{"x":5,"y":10},{"x":6,"y":0},{"x":6,"y":10},{"x":7,"y":0},{"x":7,"y":10},{"x":8,"y":0},{"x":8,"y":10},{"x":9,"y":0},{"x":9,"y":1},{"x":9,"y":2},{"x":9,"y":3},{"x":9,"y":4},{"x":9,"y":5},{"x":9,"y":6},{"x":9,"y":7},{"x":9,"y":8},{"x":9,"y":9},{"x":9,"y":10},{"x":10,"y":0},{"x":10,"y":1},{"x":10,"y":2},{"x":10,"y":3},{"x":10,"y":4},{"x":10,"y":5},{"x":10,"y":6},{"x":10,"y":7},{"x":10,"y":8},{"x":10,"y":9},{"x":10,"y":10}]},"you":{"id":"gs_3pQqFwgY4XQdc3TBdBV7cBXb","name":"ruby-danger-noodle","latency":"48","health":85,"body":[{"x":8,"y":1},{"x":7,"y":1},{"x":6,"y":1},{"x":5,"y":1},{"x":4,"y":1},{"x":3,"y":1}],"head":{"x":8,"y":1},"length":6,"shout":"","squad":""}}'
+    
+    it 'Should not move into a hazard with no other scary neighbors' do
+        header 'Content-Type', 'application/json'
+        post '/move', post_data_json
+        last_response.must_be :ok?
+        last_response.body.must_include "move"
+        # Should move right 
+        last_response.body.must_include "up"
+        last_response.body.wont_include "left"
+        last_response.body.wont_include "right"
+        last_response.body.wont_include "down"
+    end
+end

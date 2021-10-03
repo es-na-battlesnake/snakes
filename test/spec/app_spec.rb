@@ -104,7 +104,7 @@ describe 'No hazard without reason' do
         post '/move', post_data_json
         last_response.must_be :ok?
         last_response.body.must_include "move"
-        # Should move right 
+        # Should move up 
         last_response.body.must_include "up"
         last_response.body.wont_include "left"
         last_response.body.wont_include "right"

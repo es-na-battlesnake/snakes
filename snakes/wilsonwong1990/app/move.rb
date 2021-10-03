@@ -36,6 +36,9 @@ def move(board)
 #Get number of other snakes
 @othersnakescount = board[:board][:snakes].length
 
+#Get snake health 
+@health = board[:you][:health]
+
 
 # Think of the moves as a 3x3 grid. The head is in the middle at (2,2). 
 # ---------------
@@ -99,7 +102,7 @@ if @snakeheady == @height - 1
   @possible_moves.delete("up")
 end
 
-if @snakeheady == 0
+if @snakeheady == 1
   puts "removing down"
   @possible_moves.delete("down")
 end
@@ -109,7 +112,7 @@ if@snakeheadx == @width - 1
   @possible_moves.delete("right")
 end
 
-if@snakeheadx == 0
+if@snakeheadx == 1
   puts "removing left"
   @possible_moves.delete("left")
 end 
@@ -288,7 +291,48 @@ end
   end
 } 
 
+# Check for hazards
+@hazards.each {
+  |hazardpiece|
+    puts "Hazard coordinates x: #{hazardpiece[:x]}, y: #{hazardpiece[:y]}"
+    if hazardpiece[:x] <= @snakeheadx 
+      if @health > 16
+      @leftscore = @leftscore - 0.5
+      puts "Hazard to left, down -.5"
+      elsif @health < 16
+      @leftscore = @leftscore - 100
+      puts "Hazard to left and health is low, -100 to left"
+      end
+    elsif hazardpiece[:x] >= @snakeheadx
+      if @health > 16
+      @rightscore = @rightscore - 0.5
+      puts "Hazard to the right, right -.5"
+      elsif @health < 16
+      @rightscore = @rightscore - 100
+      puts "Hazard to right and health is low, -100 to right"
+      end
+    elsif hazardpiece[:y] <= @snakeheady
+      if @health > 16
+      @downscore = @downscore - 0.5
+      puts "Hazard below, down -.5"
+      elsif @health < 16
+      @downscore = @downscore - 100
+      puts "Hazard below and health is low, -100 to down"
+      end
+    elsif hazardpiece[:y] >= @snakeheady 
+      if @health > 16
+      @upscore = @upscore - 0.5
+      puts "Hazard above, up -.5"
+      elsif @health < 16
+      @upscore = @upscore - 100
+      puts "Hazard above and health is low, -100 to up"
+      end
+    else
+      puts "No hazards adjacent" 
+    end
+  }
 
+  # Add snake head checking two spaces away
 
 # Prints out the possible moves
 puts "Remaining moves after removing collisions, snakes, walls and searching for food"
@@ -332,7 +376,19 @@ if @scores.max == @scores.min
 end
 # reset the scores with new values
 @scores.clear
-@scores = [@upscore, @downscore, @leftscore, @rightscore]
+@possible_moves.each {
+  |move|
+    if move == "up"
+      @scores.push(@upscore)
+    elsif move == "down"
+      @scores.push(@downscore)
+    elsif move == "left"
+      @scores.push(@leftscore)
+    elsif move == "right"
+      @scores.push(@rightscore)
+    end
+  }
+
 
 
 puts "best score is:" + @scores.max.to_s

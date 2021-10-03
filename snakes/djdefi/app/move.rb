@@ -276,8 +276,8 @@ def move(board)
   # Set score multiplier for each type of cell
   @score_multiplier = {
     'wall' => -5,
-    'hazard' => -3,
-    'hazard_adjacent' => -3,
+    'hazard' => -5,
+    'hazard_adjacent' => -7,
     'food' => 15,
     'food_hazard' => 2,
     'food_adjacent' => 2,
@@ -285,7 +285,7 @@ def move(board)
     'shared_shorter_snake' => 5,
     'shared_longer_snake' => -50,
     'shared_same_length_snake' => -5,
-    'empty' => 3,
+    'empty' => 8,
     'snake_head' => -2,
     'snake_body' => -2,
     'snake_body_neighbor' => -10,
@@ -297,7 +297,7 @@ def move(board)
     'head' => -4,
     'tail' => 2,
     'my_tail' => 76,
-    'my_tail_neighbor' => 6,
+    'my_tail_neighbor' => 12,
     'edge' => -4,
     'edge_adjacent' => -1,
     'head_neighbor' => 0,
@@ -388,7 +388,7 @@ def move(board)
   if @health > @@health_threshold
     @top_direction_score_multiplier = 0
   else
-    @top_direction_score_multiplier = 5
+    @top_direction_score_multiplier = 15
   end
 
   # For every cell in the turn_score_array, add types 'top_direction' if the cell's direction is the same as @highest_score_direction and increase the score by @top_direction_score_multiplier

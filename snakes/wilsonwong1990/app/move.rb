@@ -228,7 +228,7 @@ if @snakeheady == @snaketail[:y] && @snakeheadx < @snaketail[:x]
   puts "Trying to avoid tail, right -5"
 end
 
-# Check if next to food and so, move to it, overriding other moves
+# Check if next to food and add 10 to score
 @food.each {
   |foodpiece|
     puts "Food coordinates x: #{foodpiece[:x]}, y: #{foodpiece[:y]}"
@@ -249,6 +249,46 @@ end
     end
   }
 
+# How much food in each direction
+@food.each {
+  |foodpiece|
+    puts "Food coordinates x: #{foodpiece[:x]}, y: #{foodpiece[:y]}"
+  if foodpiece[:x] == @snakeheadx
+    # food is to above
+    if foodpiece[:y] > @snakeheady
+      @fooddistance = foodpiece[:y] - @snakeheady
+      # Adjusting the distance to subtract from the board size.
+      @fooddistance = @height - @fooddistance
+      @upscore = @upscore + @fooddistance
+      puts "Food to above, above + #{@fooddistance}"
+    elsif foodpiece[:y] < @snakeheady
+      # food is below
+      @fooddistance = @snakeheady - foodpiece[:y]
+      # Adjusting the distance to subtract from the board size.
+      @fooddistance = @height - @fooddistance
+      @downscore = @downscore + @fooddistance
+      puts "Food to the below, below + #{@fooddistance}"
+    end
+  elsif foodpiece[:y] == @snakeheady
+    # food is to the right
+    if foodpiece[:x] > @snakeheadx
+      @fooddistance = foodpiece[:x] - @snakeheadx
+      # Adjusting the distance to subtract from the board size.
+      @fooddistance = @width - @fooddistance
+      @rightscore = @rightscore + @fooddistance
+      puts "Food is to the right, right + #{@fooddistance}"
+    elsif foodpiece[:x] < @snakeheadx
+      # food is to the left
+      @fooddistance = @snakeheadx - foodpiece[:x]
+      # Adjusting the distance to subtract from the board size.
+      @fooddistance = @width - @fooddistance
+      @leftscore = @leftscore + @fooddistance
+      puts "Food to the left, down + #{@fooddistance}"
+    end
+  end
+} 
+
+
 
 # Prints out the possible moves
 puts "Remaining moves after removing collisions, snakes, walls and searching for food"
@@ -260,21 +300,56 @@ puts "down score:" + @downscore.to_s
 puts "left score:" + @leftscore.to_s
 puts "right score:" + @rightscore.to_s
 
+@scores = [@upscore, @downscore, @leftscore, @rightscore] 
+
+# If the there is a tie between min and max move, use wall distance to break the tie
+if @scores.max == @scores.min
+  puts "Tie between max and min"
+  @scores.each {
+    |score|
+      if score == @upscore
+        # find distance from wall
+        @wallupdistance = @height - @snakeheady
+        @upscore = @upscore + @wallupdistance
+        puts "up score + wall up distance: #{@upscore}"
+      elsif score == @downscore
+        # find distance from wall
+        @walldowndistance = @snakeheady - @height
+        @downscore = @downscore + @walldowndistance
+        puts "down score + wall down distance: #{@downscore}"
+      elsif score == @leftscore
+        # find distance from wall
+        @wallleftdistance = @width - @snakeheadx
+        @leftscore = @leftscore + @wallleftdistance
+        puts "left score + wall left distance: #{@leftscore}"
+      elsif score == @rightscore
+        # find distance from wall
+        @wallrightdistance = @snakeheadx - @width
+        @rightscore = @rightscore + @wallrightdistance
+        puts "right score + wall right distance: #{@rightscore}"
+      end
+    }
+end
+# reset the scores with new values
+@scores.clear
 @scores = [@upscore, @downscore, @leftscore, @rightscore]
 
+
+puts "best score is:" + @scores.max.to_s
+# Use scoring if there is more than 1 move
 if @possible_moves.length > 1
   @possible_moves.each {
     |move|
-      if move == "up" && @upscore == @scores.max.to_i
+      if move == "up" && @upscore == @scores.max
         @possible_moves.clear
         @possible_moves.push("up")
-      elsif move == "down" && @downscore == @scores.max.to_i
+      elsif move == "down" && @downscore == @scores.max
         @possible_moves.clear
         @possible_moves.push("down")
-      elsif move == "left" && @leftscore == @scores.max.to_i
+      elsif move == "left" && @leftscore == @scores.max
         @possible_moves.clear
         @possible_moves.push("left")
-      elsif move == "right" && @rightscore == @scores.max.to_i
+      elsif move == "right" && @rightscore == @scores.max
         @possible_moves.clear
         @possible_moves.push("right")
       end

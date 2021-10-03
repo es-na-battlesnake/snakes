@@ -39,6 +39,8 @@ jobs:
         ports: '4567 4568 4569 4570 4571'
         memory: 1.5
         cpu: 2
+        log-analytics-workspace: ${{ secrets.AZURE_LOG_WORKSPACE }}
+        log-analytics-workspace-key: ${{ secrets.AZURE_LOG_WORKSPACE_KEY }}
 
     - name: 'Deploy backup to Azure Container Instances'
       uses: 'azure/aci-deploy@v1'
@@ -51,4 +53,6 @@ jobs:
         ports: '4567 4568 4569 4570'
         memory: 1
         cpu: 1
-  
+        log-analytics-workspace: ${{ secrets.AZURE_LOG_WORKSPACE }}
+        log-analytics-workspace-key: ${{ secrets.AZURE_LOG_WORKSPACE_KEY }}
+        

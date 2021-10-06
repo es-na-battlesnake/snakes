@@ -11,7 +11,7 @@ def move(board)
   start_time = Time.now
 
   # Health find threshold variable clamped to 0-100
-  @@health_threshold = 97
+  @@health_threshold = 99
   @@health_threshold.clamp(0, 100)
 
   #puts board
@@ -462,7 +462,7 @@ def move(board)
     end
 
     # If we are the longest by at least 2 cells, reduce our @@health_threshold by 1
-    if @length - snake[:length] >= 2
+    if @length - snake[:length] >= 5
       @@health_threshold -= 1
       # Clamp the health threshold to a minimum of 55
       @@health_threshold = 55 if @@health_threshold < 55

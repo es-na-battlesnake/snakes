@@ -37,22 +37,7 @@ jobs:
         name: code-snake
         location: 'west us'
         ports: '4567 4568 4569 4570 4571'
-        memory: 1.5
-        cpu: 2
-        log-analytics-workspace: ${{ secrets.AZURE_LOG_WORKSPACE }}
-        log-analytics-workspace-key: ${{ secrets.AZURE_LOG_WORKSPACE_KEY }}
-
-    - name: 'Deploy backup to Azure Container Instances'
-      uses: 'azure/aci-deploy@v1'
-      with:
-        resource-group: snekResourceGroup
-        dns-name-label: code-snek-backup
-        image: ghcr.io/es-na-battlesnake/code-snake:latest
-        name: code-snake-backup
-        location: 'west us'
-        ports: '4567 4568 4569 4570'
         memory: 1
         cpu: 1
         log-analytics-workspace: ${{ secrets.AZURE_LOG_WORKSPACE }}
         log-analytics-workspace-key: ${{ secrets.AZURE_LOG_WORKSPACE_KEY }}
-        

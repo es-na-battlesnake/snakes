@@ -10,7 +10,7 @@ require 'rack/test'
 
 if ARGV[0]
   #Dir.chdir "/workspaces/starter-snake-ruby/snakes/#{ARGV[0]}/"
-  require_relative "../../snakes/#{ARGV[0]}/app/app.rb"
+  require_relative "../../snakes/ruby/#{ARGV[0]}/app/app.rb"
 else
   require_relative '../app'
 end

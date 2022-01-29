@@ -4,6 +4,9 @@ RUN mkdir -p /var/log/supervisor
 
 RUN bundle config --global frozen 1
 
+COPY setup-go.sh setup-go.sh
+RUN bash setup-go.sh
+
 WORKDIR /usr/src/app
 
 COPY Gemfile Gemfile.lock ./

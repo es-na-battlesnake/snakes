@@ -37,8 +37,8 @@ func sanatizeInput(s string) string {
 
 // This function helps ensure that user input is clearly marked in log entries, and that
 // a malicious user cannot cause confusion in other ways. Intended to be used with log.Printf.
-
-// Create a function that checks that the input is a number only.
+// Should log an int only any where we log `state.Turn`. 
+// Added to try and clear up a codeql security flag. Its seems redundant but will leave it for now. 
 func isNumber(i int) int {
 	// if number i divded by 1 is equal to i, then i is a number
 	if i/1 == i {

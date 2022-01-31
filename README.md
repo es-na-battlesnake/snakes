@@ -5,14 +5,18 @@
 ## Adding snakes
 
 1. Add snake directory within `snakes`
-2. Make new program config in `supervisord.conf` choosing a new port
+2. Make new program config in `supervisord.conf` choosing a new port. Currently we have snakes in two languages (Ruby and Go)
+     - Ruby snakes run on ports 4567+
+     - Go snakes run on 8080+
+
+
 
 ## Running snakes
 
 ### Codespaces
 
 1. Run `script/server` to launch all snakes
-2. Make port public as needed to access from outside
+2. [Make port public](https://docs.github.com/en/codespaces/developing-in-codespaces/forwarding-ports-in-your-codespace#sharing-a-port) as needed to access from outside
 
 ### Docker
 

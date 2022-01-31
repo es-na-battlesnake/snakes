@@ -5,7 +5,11 @@
 ## Adding snakes
 
 1. Add snake directory within `snakes`
-2. Make new program config in `supervisord.conf` choosing a new port
+2. Make new program config in `supervisord.conf` choosing a new port. Currently we have snakes in two languages (Ruby and Go)
+     - Ruby snakes run on ports 4567+
+     - Go snakes run on 8080+
+
+
 
 ## Running snakes
 

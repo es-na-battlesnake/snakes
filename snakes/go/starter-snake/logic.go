@@ -28,9 +28,7 @@ func info() BattlesnakeInfoResponse {
 }
 
 // This function helps ensure that user input is clearly marked in log entries, and that
-// a malicious user cannot cause confusion in other ways. Intends to be used with log.Printf.
-
-// Create function that takes a string and alters it.
+// a malicious user cannot cause confusion in other ways. Intended to be used with log.Printf.
 func sanatizeInput(s string) string {
 	escapedInput := strings.Replace(s, "\n", "", -1)
 	escapedInput = strings.Replace(escapedInput, "\r", "", -1)

@@ -8,6 +8,7 @@ package main
 import (
 	"log"
 	"math/rand"
+	"strings"
 )
 
 // This function is called when you register your Battlesnake on play.battlesnake.com
@@ -26,17 +27,29 @@ func info() BattlesnakeInfoResponse {
 	}
 }
 
+// This function helps ensure that user input is clearly marked in log entries, and that
+// a malicious user cannot cause confusion in other ways. Intends to be used with log.Printf.
+
+// Create function that takes a string and alters it.
+func sanatizeInput(s string) string {
+	log.Printf(s)
+	escapedInput := strings.Replace(s, "\n", "", -1)
+	escapedInput = strings.Replace(escapedInput, "\r", "", -1)
+	log.Printf(escapedInput)
+	return escapedInput
+}
+
 // This function is called everytime your Battlesnake is entered into a game.
 // The provided GameState contains information about the game that's about to be played.
 // It's purely for informational purposes, you don't have to make any decisions here.
 func start(state GameState) {
-	log.Printf("%s START\n", state.Game.ID)
+	log.Printf("%s START\n", sanatizeInput(state.Game.ID))
 }
 
 // This function is called when a game your Battlesnake was in has ended.
 // It's purely for informational purposes, you don't have to make any decisions here.
 func end(state GameState) {
-	log.Printf("%s END\n\n", state.Game.ID)
+	log.Printf("%s END\n\n", sanatizeInput(state.Game.ID))
 }
 
 // This function is called on every turn of a game. Use the provided GameState to decide
@@ -91,10 +104,10 @@ func move(state GameState) BattlesnakeMoveResponse {
 
 	if len(safeMoves) == 0 {
 		nextMove = "down"
-		log.Printf("%s MOVE %d: No safe moves detected! Moving %s\n", state.Game.ID, state.Turn, nextMove)
+		log.Printf("%s MOVE %d: No safe moves detected! Moving %s\n", sanatizeInput(state.Game.ID), state.Turn, nextMove)
 	} else {
 		nextMove = safeMoves[rand.Intn(len(safeMoves))]
-		log.Printf("%s MOVE %d: %s\n", state.Game.ID, state.Turn, nextMove)
+		log.Printf("%s MOVE %d: %s\n", sanatizeInput(state.Game.ID), state.Turn, nextMove)
 	}
 	return BattlesnakeMoveResponse{
 		Move: nextMove,

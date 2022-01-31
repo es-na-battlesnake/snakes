@@ -38,6 +38,8 @@ func sanatizeInput(s string) string {
 
 // This function helps ensure that user input is clearly marked in log entries, and that
 // a malicious user cannot cause confusion in other ways. Intended to be used with log.Printf.
+// Should log an int only any where we log `state.Turn`. 
+// Added to try and clear up a codeql security flag. Its seems redundant but will leave it for now. 
 func isNumber(i int) int {
 	// convert i to string and then sanatize it with the sanatizeInput function.
 	s := strconv.Itoa(i)

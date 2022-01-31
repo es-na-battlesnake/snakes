@@ -9,6 +9,7 @@ import (
 	"log"
 	"math/rand"
 	"strings"
+	"strconv"
 )
 
 // This function is called when you register your Battlesnake on play.battlesnake.com
@@ -37,10 +38,16 @@ func sanatizeInput(s string) string {
 
 // This function helps ensure that user input is clearly marked in log entries, and that
 // a malicious user cannot cause confusion in other ways. Intended to be used with log.Printf.
-
-// Create a function that checks that the input is a number only.
 func isNumber(i int) int {
-	// if number i divded by 1 is equal to i, then i is a number
+	// convert i to string and then sanatize it with the sanatizeInput function.
+	s := strconv.Itoa(i)
+	s = sanatizeInput(s)
+	// convert the sanatized string back to an int.
+	i, err := strconv.Atoi(s)
+	if err != nil {
+		log.Println("Error converting to int")
+	}
+	// if i divded by 1 is equal to i, then i is a number and return that.
 	if i/1 == i {
 		return i
 	} else {

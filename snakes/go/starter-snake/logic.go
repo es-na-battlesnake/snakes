@@ -35,6 +35,20 @@ func sanatizeInput(s string) string {
 	return escapedInput
 }
 
+// This function helps ensure that user input is clearly marked in log entries, and that
+// a malicious user cannot cause confusion in other ways. Intended to be used with log.Printf.
+
+// Create a function that checks that the input is a number only.
+func isNumber(i int) int {
+	// if number i divded by 1 is equal to i, then i is a number
+	if i/1 == i {
+		return i
+	} else {
+		// 0000 is meant to represent and error. Meaning we received a turn that was not a number.
+		return 0000
+	}
+}
+
 // This function is called everytime your Battlesnake is entered into a game.
 // The provided GameState contains information about the game that's about to be played.
 // It's purely for informational purposes, you don't have to make any decisions here.
@@ -100,10 +114,10 @@ func move(state GameState) BattlesnakeMoveResponse {
 
 	if len(safeMoves) == 0 {
 		nextMove = "down"
-		log.Printf("%s MOVE %d: No safe moves detected! Moving %s\n", sanatizeInput(state.Game.ID), state.Turn, nextMove)
+		log.Printf("%s MOVE %d: No safe moves detected! Moving %s\n", sanatizeInput(state.Game.ID), isNumber(state.Turn), nextMove)
 	} else {
 		nextMove = safeMoves[rand.Intn(len(safeMoves))]
-		log.Printf("%s MOVE %d: %s\n", sanatizeInput(state.Game.ID), state.Turn, nextMove)
+		log.Printf("%s MOVE %d: %s\n", sanatizeInput(state.Game.ID), isNumber(state.Turn), nextMove)
 	}
 	return BattlesnakeMoveResponse{
 		Move: nextMove,

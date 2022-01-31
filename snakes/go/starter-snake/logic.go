@@ -32,10 +32,8 @@ func info() BattlesnakeInfoResponse {
 
 // Create function that takes a string and alters it.
 func sanatizeInput(s string) string {
-	log.Printf(s)
 	escapedInput := strings.Replace(s, "\n", "", -1)
 	escapedInput = strings.Replace(escapedInput, "\r", "", -1)
-	log.Printf(escapedInput)
 	return escapedInput
 }
 

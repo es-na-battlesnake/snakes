@@ -12,7 +12,7 @@
 ### Codespaces
 
 1. Run `script/server` to launch all snakes
-2. Make port public as needed to access from outside
+2. [Make port public](https://docs.github.com/en/codespaces/developing-in-codespaces/forwarding-ports-in-your-codespace#sharing-a-port) as needed to access from outside
 
 ### Docker
 

@@ -1,18 +1,87 @@
-# go install github.com/BattlesnakeOfficial/rules/cli/battlesnake@latest
+#!/bin/bash
+#
+# Script to simulate games
+# Arguments:
+#   --help: show this help
+#   --mode: mode to run (default: "royale")
+#   --runs: number of runs (default: 1)
+#   --verbose | -v: verbose mode
+#
+# Examples:
+#   ./simulate_royale.sh --mode=royale --runs=10
+#   ./simulate_royale.sh --mode=wrapped --runs=42
+#   ./simulate_royale.sh --mode=wrapped --runs=42 --verbose
+#   ./simulate_royale.sh -v
+#
+
+# Parse arguments to variables
+while [[ $# -gt 0 ]]; do
+    key="$1"
+    case $key in
+        --help)
+            echo "Usage: ./simulate_royale.sh [--mode=<mode>] [--runs=<runs>]"
+            exit 0
+            ;;
+        --mode)
+            mode="$2"
+            shift
+            ;;
+        --runs)
+            runs="$2"
+            shift
+            ;;
+        --verbose|-v)
+            verbose=true
+            ;;
+        *)
+            echo "Unknown argument: $key"
+            exit 1
+            ;;
+    esac
+    shift
+done
+
+# default runs to 1
+runs=${runs:-1}
+
+# default mode to "royale"
+mode=${mode:-royale}
+
+# if verbose mode is enabled, set verbose flag
+if [[ $verbose ]]; then
+    verbose_flag="-v"
+fi
+
+# If /root/go/bin/battlesnake does not exist, then install it
+if [ ! -f /root/go/bin/battlesnake ]; then
+    echo "Installing battlesnake"
+    go install github.com/BattlesnakeOfficial/rules/cli/battlesnake@latest
+    chmod +x /root/go/bin/battlesnake
+fi
+
 #battlesnake play -W 11 -H 11 --name ruby-danger-noodle --url http://code-snek:4567/ --name code-snake --url http://code-snek:4568/  --name bevns --url http://code-snek:4569/ --name wilsonwong1990 --url http://code-snek:4570/ -g royale -v
 
 # Run the simulation battlesnake play 10 times, recording who the winner was each time from the output.
 # Example winner output line: "2021/10/02 05:32:05 [DONE]: Game completed after 96 turns. <winner> is the winner."
 
-rm winner.txt
-# Run command 7 times and record "is the winner" line of output to a file.
-for i in {1..15}
-do
-    echo "Simulation $i"
-    /root/go/bin/battlesnake play -W 11 -H 11 --name ruby-danger-noodle --url http://code-snek:4567/ --name code-snake --url http://code-snek:4568/  --name bevns --url http://code-snek:4569/ --name wilsonwong1990 --url http://code-snek:4570/ -g royale 2>&1 | grep "is the winner" | tee -a winner.txt
-done
+# If winner.txt exists, then delete it
+if [ -f winner.txt ]; then
+    rm winner.txt
+fi
 
-# Run with xargs parallel 50 times
+# Run command $runs times and record "is the winner" line of output to a file.
+for i in $(seq 1 $runs); do
+    echo "Running battlesnake $i of $runs"
+    echo "Simulation $i"
+    /root/go/bin/battlesnake play -W 11 -H 11 --name ruby-danger-noodle --url http://code-snek:4567/ \
+    --name go-snake --url http://code-snek:8080/ \
+    --name ruby-danger-noodle --url http://code-snek:4567/ \
+    --name code-snake --url http://code-snek:4568/ \
+    --name bevns --url http://code-snek:4569/ \
+    --name wilsonwong1990 --url http://code-snek:4570/ \
+    -g $mode \
+    $verbose_flag 2>&1 | grep "is the winner" | tee -a winner.txt
+done
 
 # Output the most winning player from the file.
 cat winner.txt | cut -d " " -f 9 | sort | uniq -c | sort -nr 

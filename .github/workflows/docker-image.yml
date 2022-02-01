@@ -1,4 +1,4 @@
-name: Docker Image build + push - main branch
+name: Docker Image build + push + deploy - main branch
 
 on:
   push:
@@ -12,14 +12,21 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+
+    - name: Get changed files
+      id: changed-files
+      uses: tj-actions/changed-files@v14.1
+
     - name: Build the Docker image
       run: docker build . --file Dockerfile --tag ghcr.io/es-na-battlesnake/code-snake:latest
+
     - name: Login to GitHub Container Registry
       uses: docker/login-action@v1
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Push Docker image
       run: docker push ghcr.io/es-na-battlesnake/code-snake:latest
     
@@ -27,6 +34,16 @@ jobs:
       uses: azure/login@v1
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Delete existing deployment if deployment workflow changes
+      run: |
+        for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
+          echo "$file was changed"
+          # If .github/workflows/docker-image.yml workflow was changed, check if code-snake is deployed
+          if [[ "$file" == ".github/workflows/docker-image.yml" ]]; then
+            az container list | grep code-snake && az container delete --name code-snake
+          fi
+        done
     
     - name: 'Deploy to Azure Container Instances'
       uses: 'azure/aci-deploy@v1'

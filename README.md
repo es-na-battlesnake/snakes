@@ -32,9 +32,8 @@ Beyond language and snake-specific testing, we also run simulated games to get q
 ## Infrastructure
 
 Development environment:
-- GitHub Codespaces
-- GitHub Copilot
-- Docker
+- [GitHub Codespaces](https://github.com/features/codespaces)
+- [GitHub Copilot](https://copilot.github.com/)
 
 Deployment environment:
 - [Azure Container Instances](https://github.com/es-na-battlesnake/snakes/blob/main/.github/workflows/docker-image.yml#L31)
@@ -42,4 +41,4 @@ Deployment environment:
 - Azure Log Analytics
 
 CI/CD:
-- GitHub Actions[https://github.com/es-na-battlesnake/snakes/tree/main/.github/workflows]
+- [GitHub Actions](https://github.com/es-na-battlesnake/snakes/tree/main/.github/workflows)

@@ -43,7 +43,7 @@ jobs:
           echo "$file was changed"
           # If .github/workflows/docker-image.yml workflow was changed, check if code-snake is deployed
           if [[ "$file" == ".github/workflows/docker-image.yml" ]]; then
-            az container list | grep code-snake && az container delete --yes --name code-snake --ids "/subscriptions/***/resourceGroups/snekResourceGroup/providers/Microsoft.ContainerInstance/containerGroups/code-snake"
+            az container list | grep code-snake && az container delete --yes --name code-snake --ids "/subscriptions/${{ secrets.AZURE_SUBID }}/resourceGroups/snekResourceGroup/providers/Microsoft.ContainerInstance/containerGroups/code-snake"
           fi
         done
     

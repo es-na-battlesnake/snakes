@@ -58,5 +58,3 @@ jobs:
         ports: '4567 4568 4569 4570 4571 8080 8081'
         memory: 2
         cpu: 2
-        log-analytics-workspace: ${{ secrets.AZURE_LOG_WORKSPACE }}
-        log-analytics-workspace-key: ${{ secrets.AZURE_LOG_WORKSPACE_KEY }}

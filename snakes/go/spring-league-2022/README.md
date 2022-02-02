@@ -24,6 +24,24 @@ Whenever you update these values, go to the team page for the Battlesnake and se
 
 This snakes logic lives in `logic.go`. Possible moves are "up", "down", "left", or "right".  The board data is available in the `GameState` struct found in `main.go`. 
 
+## Development (Codespaces)
+
+The following assumes you are developing in Codespaces. The development environment for codespaces has been setup to use [cosmtrek/Air](https://github.com/cosmtrek/air). Air will live reload your code as you make changes. This can save you a lot of time starting and stopping the Battlesnake via `go run`.
+
+To use Air, all you need to do is navigate to the directory where the snake code lives (`/workspaces/starter-snake-ruby/snakes/go/spring-league-2022`) and run the following command:
+
+```shell
+air
+```
+
+If you'd like more control over the `air` configuration. For example if you only want to live reload specific files you can initialize the `.air.toml` configuration file to the current directory with the default settings running the following command.
+
+```shell
+air init
+```
+
+After this make any changes you wish to the `.air.toml` file. You can then just run the `air` command without additional arguments and it will use the `.air.toml` file for configuration.
+
 ## (Optional) Running without Supervisord
 
 You might want to run this without supervisord for faster testing and debugging. You can do this by running:

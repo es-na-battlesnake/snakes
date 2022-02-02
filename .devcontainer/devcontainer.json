@@ -19,7 +19,9 @@
 	"forwardPorts": [4567],
 
 	// Uncomment the next line to run commands after the container is created - for example installing curl.
-	"postCreateCommand": "bundle config set with 'dev' && bundle install && echo '127.0.0.1 code-snek' >> /etc/hosts",
+	"postCreateCommand": "bundle config set with 'dev' && bundle install && echo '127.0.0.1 code-snek' >> /etc/hosts && export PATH=$PATH:/usr/local/go/bin",
+	"postStartCommand": "curl -sSfL https://raw.githubusercontent.com/cosmtrek/air/master/install.sh | sh -s -- -b $(go env GOPATH)/bin && export PATH=$PATH:/root/go/bin",
+	
 
 	// Uncomment when using a ptrace-based debugger like C++, Go, and Rust
 	// "runArgs": [ "--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined" ],

@@ -16,6 +16,8 @@ jobs:
   build:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
+    outputs:
+      result: ${{ steps.safe-deploy.outputs.result }}
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -38,16 +40,16 @@ jobs:
             fi
           done
           
-      # Use the output from the `changed-files` step
-      - name: Get the changed-files output
-        run: echo "${{ steps.changed-files.outputs.result }}"
+      # Use the output from the `safe-deploy step
+      - name: Get the safe-deploy output
+        run: echo "${{ steps.safe-deploy.outputs.result }}"
       - name: Post comment
         uses: mshick/add-pr-comment@v1
-        if: ${{ steps.changed-files.outputs.result }}
+        if: ${{ steps.safe-deploy.outputs.result }}
         with:
           message: |
             :warning: Hello snake charmer! Please tread carefully:
-            ${{ steps.write-good.outputs.result }}
+            ${{ steps.safe-deploy.outputs.result }}
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           repo-token-user-login: 'github-actions[bot]' # The user.login for temporary GitHub tokens
           allow-repeats: false # This is the default

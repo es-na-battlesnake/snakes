@@ -3,6 +3,13 @@ name: Docker Image build + push + deploy - main branch
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      delete:
+        description: 'Delete and redeploy'     
+        required: true
+        default: 'false' 
+        type: boolean
 
 jobs:
 
@@ -38,8 +45,15 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    - name: Delete existing deployment if deployment workflow changes
+    - name: Delete existing deployment if deployment workflow changes or delete is true
       run: |
+        # if ${{ github.event.inputs.delete }} = true then 
+        if [ "${{ github.event.inputs.delete }}" = "true" ]; then
+          echo "Deleting existing deployment due to true flag
+          az container list | grep code-snake && az container delete --yes --name code-snake --ids "/subscriptions/${{ secrets.AZURE_SUBID }}/resourceGroups/snekResourceGroup/providers/Microsoft.ContainerInstance/containerGroups/code-snake"
+          exit 0
+        fi
+        # File based detection
         for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
           echo "$file was changed"
           # If .github/workflows/docker-image.yml workflow was changed, check if code-snake is deployed

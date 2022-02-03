@@ -3,6 +3,13 @@ name: Docker Image build + push + deploy - main branch
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      delete:
+        description: 'Delete and redeploy'     
+        required: true
+        default: 'false' 
+        type: boolean
 
 jobs:
 
@@ -44,7 +51,14 @@ jobs:
           echo "$file was changed"
           # If .github/workflows/docker-image.yml workflow was changed, check if code-snake is deployed
           if [[ "$file" == ".github/workflows/docker-image.yml" ]]; then
-            az container list | grep code-snake && az container delete --yes --name code-snake --ids "/subscriptions/${{ secrets.AZURE_SUBID }}/resourceGroups/snekResourceGroup/providers/Microsoft.ContainerInstance/containerGroups/code-snake"
+
+            # if ${{ github.event.inputs.delete }} = false, else delete deployment
+            if [[ ${{ github.event.inputs.delete }} == false ]]; then
+              echo "Deployment not deleted due to override"
+            else
+              echo "Deployment will be deleted"
+              az container list | grep code-snake && az container delete --yes --name code-snake --ids "/subscriptions/${{ secrets.AZURE_SUBID }}/resourceGroups/snekResourceGroup/providers/Microsoft.ContainerInstance/containerGroups/code-snake"
+            fi
           fi
         done
     

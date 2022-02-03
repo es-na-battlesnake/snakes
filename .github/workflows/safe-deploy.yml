@@ -36,7 +36,7 @@ jobs:
           for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
             # If .github/workflows/docker-image.yml workflow was changed, warn.
             if [[ "$file" == ".github/workflows/docker-image.yml" ]]; then
-              echo "::set-output name=result::Your PR modifies `$file` which will trigger a full delete and redeploy on merge. Do not merge during the spring league game window starting 1:00 am ET / 10:00 pm PT and the following 8 hours. See issue #100"
+              echo "::set-output name=result::Your PR modifies <code>$file</code> which will trigger a full delete and redeploy on merge. Do not merge during the spring league game window starting 1:00 am ET / 10:00 pm PT and the following 8 hours. See issue #100"
             fi
           done
           

@@ -18,6 +18,8 @@ jobs:
       with:
           go-version: '^1.17.1'
     
+    - name: Pull the latest Docker image
+      run: docker pull ghcr.io/es-na-battlesnake/code-snake:latest
     - name: Build the Docker image
       run: docker build . --file Dockerfile --tag code-snek:pr
     - name: Setup Docker network

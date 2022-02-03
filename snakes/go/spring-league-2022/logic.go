@@ -108,7 +108,7 @@ func move(state GameState) BattlesnakeMoveResponse {
 	boardHeight := state.Board.Height
 	gameMode := state.Game.Ruleset.Name
 	// Print the game mode to the console for debugging purposes.
-	log.Println(gameMode)
+	log.Println(sanatizeInput(gameMode))
 	// Move away from edge of board if we are not in wrapped game mode.
 	if gameMode != "wrapped" {
 		if myHead.X == 0 {

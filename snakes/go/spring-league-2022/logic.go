@@ -39,6 +39,46 @@ func end(state GameState) {
 	log.Printf("%s END\n\n", sanatizeInput(state.Game.ID))
 }
 
+// This function is used to check if a coordinate is in hazards.
+func isHazard(x int, y int, hazards []Coord) bool {
+	for _, hazard := range hazards {
+		if hazard.X == x && hazard.Y == y {
+			return true
+		}
+	}
+	return false
+}
+
+//This function is used to check if a coordinate is in your snake body.
+func isBody(x int, y int, body []Coord) bool {
+	for _, coord := range body {
+		if coord.X == x && coord.Y == y {
+			return true
+		}
+	}
+	return false
+}
+
+// This function is used to check if another snake is in the coordiantes.
+func isSnake(x int, y int, snakes []Battlesnake) bool {
+	for _, snake := range snakes {
+		for _, coord := range snake.Body {
+			if coord.X == x && coord.Y == y {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// This function is used to check if our head x,y coord is on the edge of the board.
+func onEdge(x int, y int, width int, height int) bool {
+	if x == 0 || x == width-1 || y == 0 || y == height-1 {
+		return true
+	}
+	return false
+}
+
 // This function is called on every turn of a game. Use the provided GameState to decide
 // where to move -- valid moves are "up", "down", "left", or "right".
 // We've provided some code and comments to get you started.
@@ -50,7 +90,7 @@ func move(state GameState) BattlesnakeMoveResponse {
 		"right": true,
 	}
 
-	// Step 0: Don't let your Battlesnake move back in on it's own neck
+	// Don't move back on our own neck
 	myHead := state.You.Body[0] // Coordinates of your head
 	myNeck := state.You.Body[1] // Coordinates of body piece directly behind your head (your "neck")
 	if myNeck.X < myHead.X {
@@ -63,106 +103,155 @@ func move(state GameState) BattlesnakeMoveResponse {
 		possibleMoves["up"] = false
 	}
 
-	// TODO: Step 1 - Wrap through walls.
-	// Use information in GameState to prevent your Battlesnake from wrapping through a wall and hitting another snake.
-	// We essentially need to look ahead here if we are going to be moving through a wall.
-	// boardWidth := state.Board.Width
-	// boardHeight := state.Board.Height
-
-	// TODO: Step 2 - Don't hit yourself.
-	// Use information in GameState to prevent your Battlesnake from colliding with itself.
-	mybody := state.You.Body
-	// If a body part is immediately to the right or left of your head, you can't move right or left.
-	// Check to see if body part is to the right of head.
-	for i := 0; i < len(mybody); i++ {
-		if mybody[i].X == myHead.X+1 && mybody[i].Y == myHead.Y {
-			log.Printf("Going to hit right body part")
-			possibleMoves["right"] = false
-		}
-		if mybody[i].X == myHead.X-1 && mybody[i].Y == myHead.Y {
-			log.Printf("Going to hit left body part")
+	// Avoid walls if we are in a game mode that doesn't allow wrapping.
+	boardWidth := state.Board.Width
+	boardHeight := state.Board.Height
+	gameMode := state.Game.Ruleset.Name
+	// Print the game mode to the console for debugging purposes.
+	log.Println(gameMode)
+	// Move away from edge of board if we are not in wrapped game mode.
+	if gameMode != "wrapped" {
+		if myHead.X == 0 {
+			log.Println("We are at the left edge of the board")
 			possibleMoves["left"] = false
 		}
-		if mybody[i].Y == myHead.Y+1 && mybody[i].X == myHead.X {
-			log.Printf("Going to hit up body part")
-			possibleMoves["up"] = false
+		if myHead.X == boardWidth-1 {
+			log.Println("We are at the right edge of the board")
+			possibleMoves["right"] = false
 		}
-		if mybody[i].Y == myHead.Y-1 && mybody[i].X == myHead.X {
-			log.Printf("Going to hit down body part")
+		if myHead.Y == 0 {
+			log.Println("We are at the top edge of the board")
 			possibleMoves["down"] = false
 		}
-		// Avoid body parts on opposite side of the board after wrapping through a wall.
-		// If body part is at x = 0, and head is at x = boardWidth - 1, and same y you can't move right.
-		if mybody[i].X == 0 && myHead.X == state.Board.Width-1 && mybody[i].Y == myHead.Y {
-			log.Printf("Going to hit right body part by wrapping")
-			possibleMoves["right"] = false
-		}
-		// If body part is at x = boardWidth - 1, and head is at x = 0, and same y you can't move left.
-		if mybody[i].X == state.Board.Width-1 && myHead.X == 0 && mybody[i].Y == myHead.Y {
-			log.Printf("Going to hit left body part by wrapping")
-			possibleMoves["left"] = false
-		}
-		// If body part is at y = 0, and head is at y = boardHeight - 1, and same x you can't move down.
-		if mybody[i].Y == 0 && myHead.Y == state.Board.Height-1 && mybody[i].X == myHead.X {
-			log.Printf("Going to hit up body part by wrapping")
+		if myHead.Y == boardHeight-1 {
+			log.Println("We are at the bottom edge of the board")
 			possibleMoves["up"] = false
 		}
-		// If body part is at y = boardHeight - 1, and head is at y = 0, and same x you can't move up.
-		if mybody[i].Y == state.Board.Height-1 && myHead.Y == 0 && mybody[i].X == myHead.X {
-			log.Printf("Going to hit down body part by wrapping")
+	}
+
+	// Don't hit yourself.
+	mybody := state.You.Body
+	// If a body part is immediately to the right or left of your head, you can't move right or left.
+	// Check if a body part is to the right of head. If it is, then we can't move right.
+	if isBody(myHead.X+1, myHead.Y, mybody) {
+		possibleMoves["right"] = false
+	}
+	// Check to see if body part is to the left of head. If it is, then we can't move left.
+	if isBody(myHead.X-1, myHead.Y, mybody) {
+		possibleMoves["left"] = false
+	}
+	// If a body part is immediately above or below your head, you can't move up or down.
+	// Check to see if body part is above head. If it is, then we can't move up.
+	if isBody(myHead.X, myHead.Y+1, mybody) {
+		possibleMoves["up"] = false
+	}
+	// Check to see if body part is below head. If it is, then we can't move down.
+	if isBody(myHead.X, myHead.Y-1, mybody) {
+		possibleMoves["down"] = false
+	}
+	// If we are in the wrapped game mode and we are on the edge of the board, we need to avoid wrapping into our own body.
+	if gameMode == "wrapped" && onEdge(myHead.X, myHead.Y, boardWidth, boardHeight) {
+		// Print that we are in this section of the code for debugging purposes.
+		log.Println("We are in wrapped game mode and don't want to wrap into our own body")
+		// If our head is at x = boardWidth - 1 then check if isBody(0, y) is true.
+		if myHead.X == boardWidth-1 && isBody(0, myHead.Y, mybody) {
+			possibleMoves["right"] = false
+		}
+		// If our head is at x = 0 then check if isBody(boardWidth-1, y) is true.
+		if myHead.X == 0 && isBody(boardWidth-1, myHead.Y, mybody) {
+			possibleMoves["left"] = false
+		}
+		// If our head is at y = boardHeight - 1 then check if isBody(x, 0) is true.
+		if myHead.Y == boardHeight-1 && isBody(myHead.X, 0, mybody) {
+			possibleMoves["up"] = false
+		}
+		// If our head is at y = 0 then check if isBody(x, boardHeight-1) is true.
+		if myHead.Y == 0 && isBody(myHead.X, boardHeight-1, mybody) {
 			possibleMoves["down"] = false
 		}
 	}
-	// TODO: Step 3 - Don't collide with others.
-	// Use information in GameState to prevent your Battlesnake from colliding with others.
+
+	// TODO: Look ahead further than one cell to help with avoiding snakes.
+	// Don't collide with others snakes.
 	// If another snake is immediately to the right or left of your head, you can't move right or left.
 	// Check to see if other snake is to the right of head.
-	for i := 0; i < len(state.Board.Snakes); i++ {
-		otherSnake := state.Board.Snakes[i]
-		if otherSnake.ID != state.You.ID {
-			for j := 0; j < len(otherSnake.Body); j++ {
-				if otherSnake.Body[j].X == myHead.X+1 && otherSnake.Body[j].Y == myHead.Y {
-					log.Printf("Going to hit a snake to the right")
-					possibleMoves["right"] = false
-				}
-				if otherSnake.Body[j].X == myHead.X-1 && otherSnake.Body[j].Y == myHead.Y {
-					log.Printf("Going to hit a snake to the left")
-					possibleMoves["left"] = false
-				}
-				if otherSnake.Body[j].Y == myHead.Y+1 && otherSnake.Body[j].X == myHead.X {
-					log.Printf("Going to hit a snake above")
-					possibleMoves["up"] = false
-				}
-				if otherSnake.Body[j].Y == myHead.Y-1 && otherSnake.Body[j].X == myHead.X {
-					log.Printf("Going to hit a snake below")
-					possibleMoves["down"] = false
-				}
-				// Avoid body parts on opposite side of the board after wrapping through a wall.
-				// If body part is at x = 0, and head is at x = boardWidth - 1, and same y you can't move right.
-				if otherSnake.Body[j].X == 0 && myHead.X == state.Board.Width-1 && otherSnake.Body[j].Y == myHead.Y {
-					log.Printf("Going to hit a snake to the right by wrapping")
-					possibleMoves["right"] = false
-				}
-				// If body part is at x = boardWidth - 1, and head is at x = 0, and same y you can't move left.
-				if otherSnake.Body[j].X == state.Board.Width-1 && myHead.X == 0 && otherSnake.Body[j].Y == myHead.Y {
-					log.Printf("Going to hit a snake to the left by wrapping")
-					possibleMoves["left"] = false
-				}
-				// If body part is at y = 0, and head is at y = boardHeight - 1, and same x you can't move down.
-				if otherSnake.Body[j].Y == 0 && myHead.Y == state.Board.Height-1 && otherSnake.Body[j].X == myHead.X {
-					log.Printf("Going to hit a snake above by wrapping")
-					possibleMoves["up"] = false
-				}
-				// If body part is at y = boardHeight - 1, and head is at y = 0, and same x you can't move up.
-				if otherSnake.Body[j].Y == state.Board.Height-1 && myHead.Y == 0 && otherSnake.Body[j].X == myHead.X {
-					log.Printf("Going to hit a snake below by wrapping")
-					possibleMoves["down"] = false
-				}
+	if isSnake(myHead.X+1, myHead.Y, state.Board.Snakes) {
+		possibleMoves["right"] = false
+	}
+	// Check to see if other snake is to the left of head.
+	if isSnake(myHead.X-1, myHead.Y, state.Board.Snakes) {
+		possibleMoves["left"] = false
+	}
+	// If another snake is immediately above or below your head, you can't move up or down.
+	// Check to see if other snake is above head.
+	if isSnake(myHead.X, myHead.Y+1, state.Board.Snakes) {
+		possibleMoves["up"] = false
+	}
+	// Check to see if other snake is below head.
+	if isSnake(myHead.X, myHead.Y-1, state.Board.Snakes) {
+		possibleMoves["down"] = false
+	}
+	// If we are in the wrapped game mode and we are on the edge of the board, we need to avoid wrapping into another snake.
+	if gameMode == "wrapped" && onEdge(myHead.X, myHead.Y, state.Board.Width, state.Board.Height) {
+		// Print that we are in this section of the code for debugging purposes.
+		log.Println("We are in wrapped game mode and don't want to wrap into another snake")
+		// If our head is at x = boardWidth - 1 then check if isSnake(0, y) is true.
+		if myHead.X == boardWidth-1 && isSnake(0, myHead.Y, state.Board.Snakes) {
+			possibleMoves["right"] = false
+		}
+		// If our head is at x = 0 then check if isSnake(boardWidth-1, y) is true.
+		if myHead.X == 0 && isSnake(boardWidth-1, myHead.Y, state.Board.Snakes) {
+			possibleMoves["left"] = false
+		}
+		// If our head is at y = boardHeight - 1 then check if isSnake(x, 0) is true.
+		if myHead.Y == boardHeight-1 && isSnake(myHead.X, 0, state.Board.Snakes) {
+			possibleMoves["up"] = false
+		}
+		// If our head is at y = 0 then check if isSnake(x, boardHeight-1) is true.
+		if myHead.Y == 0 && isSnake(myHead.X, boardHeight-1, state.Board.Snakes) {
+			possibleMoves["down"] = false
+		}
+	}
+
+	// TODO: Only Avoid a harzard if there are other possible moves.
+	// Avoid Hazards.
+	// Hazards are represented as a list of coordinates.
+	hazards := state.Board.Hazards
+	// Only run this code if we are in royale game mode.
+	if gameMode == "royale" {
+		// Check if neighboring cells are in the list of hazards.
+		// If so, you can't move in that direction.
+		// Check to see if a hazard is to the left of our head.
+		if myHead.X-1 >= 0 {
+			if isHazard(myHead.X-1, myHead.Y, hazards) {
+				log.Printf("Going to hit a hazard to the left")
+				possibleMoves["left"] = false
+			}
+		}
+		// Check to see if hazard is to the right of our head.
+		if myHead.X+1 <= state.Board.Width-1 {
+			if isHazard(myHead.X+1, myHead.Y, hazards) {
+				log.Printf("Going to hit a hazard to the right")
+				possibleMoves["right"] = false
+			}
+		}
+		// Check to see if hazard is to below our head.
+		if myHead.Y-1 >= 0 {
+			if isHazard(myHead.X, myHead.Y-1, hazards) {
+				log.Printf("Going to hit a hazard below")
+				possibleMoves["down"] = false
+			}
+		}
+		// Check to see if hazard is above our head.
+		if myHead.Y+1 < state.Board.Height-1 {
+			if isHazard(myHead.X, myHead.Y+1, hazards) {
+				log.Printf("Going to hit a hazard above")
+				possibleMoves["up"] = false
 			}
 		}
 	}
 
-	// TODO: Step 4 - Find food.
+	// TODO: Find food.
 	// Use information in GameState to seek out and find food.
 
 	// Finally, choose a move from the available safe moves.

@@ -8,6 +8,7 @@ package main
 import (
 	"log"
 	"math/rand"
+	"sort"
 )
 
 // This function is called when you register your Battlesnake on play.battlesnake.com
@@ -79,6 +80,39 @@ func onEdge(x int, y int, width int, height int) bool {
 	return false
 }
 
+// Function that takes in possibleMoves and tells us the currently available safe moves.
+func safeMoves(possibleMoves map[string]bool) []string {
+	var moves []string
+	for move, isSafe := range possibleMoves {
+		if isSafe {
+			moves = append(moves, move)
+		}
+	}
+	return moves
+}
+
+// create abs to use with sort.
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
+// Sort the food coordinates by manhattan distance from the head.
+func sortFood(state GameState) []Coord {
+	var food []Coord
+	for _, f := range state.Board.Food {
+		food = append(food, f)
+	}
+	sort.Slice(food, func(i, j int) bool {
+		dist1 := abs(food[i].X-state.You.Body[0].X) + abs(food[i].Y-state.You.Body[0].Y)
+		dist2 := abs(food[j].X-state.You.Body[0].X) + abs(food[j].Y-state.You.Body[0].Y)
+		return dist1 < dist2
+	})
+	return food
+}
+
 // This function is called on every turn of a game. Use the provided GameState to decide
 // where to move -- valid moves are "up", "down", "left", or "right".
 // We've provided some code and comments to get you started.
@@ -107,8 +141,6 @@ func move(state GameState) BattlesnakeMoveResponse {
 	boardWidth := state.Board.Width
 	boardHeight := state.Board.Height
 	gameMode := state.Game.Ruleset.Name
-	// Print the game mode to the console for debugging purposes.
-	log.Println(sanatizeInput(gameMode))
 	// Move away from edge of board if we are not in wrapped game mode.
 	if gameMode != "wrapped" {
 		if myHead.X == 0 {
@@ -213,8 +245,8 @@ func move(state GameState) BattlesnakeMoveResponse {
 		}
 	}
 
-	// TODO: Only Avoid a harzard if there are other possible moves.
-	// Avoid Hazards.
+
+	// Avoid Hazards if possible. If the only move is into a hazard, then we will take it.
 	// Hazards are represented as a list of coordinates.
 	hazards := state.Board.Hazards
 	// Only run this code if we are in royale game mode.
@@ -225,51 +257,93 @@ func move(state GameState) BattlesnakeMoveResponse {
 		if myHead.X-1 >= 0 {
 			if isHazard(myHead.X-1, myHead.Y, hazards) {
 				log.Printf("Going to hit a hazard to the left")
-				possibleMoves["left"] = false
+				// If two or more safe moves are available, then set left to false.
+				if len(safeMoves(possibleMoves)) > 1 {	
+					possibleMoves["left"] = false
+				}
 			}
 		}
 		// Check to see if hazard is to the right of our head.
 		if myHead.X+1 <= state.Board.Width-1 {
 			if isHazard(myHead.X+1, myHead.Y, hazards) {
 				log.Printf("Going to hit a hazard to the right")
-				possibleMoves["right"] = false
+				// If two or more safe moves are available, then set right to false.
+				if len(safeMoves(possibleMoves)) > 1 {
+					possibleMoves["right"] = false
+				}
 			}
 		}
 		// Check to see if hazard is to below our head.
 		if myHead.Y-1 >= 0 {
 			if isHazard(myHead.X, myHead.Y-1, hazards) {
 				log.Printf("Going to hit a hazard below")
-				possibleMoves["down"] = false
+				// If two or more safe moves are available, then set down to false.
+				if len(safeMoves(possibleMoves)) > 1 {
+					possibleMoves["down"] = false
+				}
 			}
 		}
 		// Check to see if hazard is above our head.
 		if myHead.Y+1 < state.Board.Height-1 {
 			if isHazard(myHead.X, myHead.Y+1, hazards) {
 				log.Printf("Going to hit a hazard above")
-				possibleMoves["up"] = false
+				// If two or more safe moves are available, then set up to false.
+				if len(safeMoves(possibleMoves)) > 1 {
+					possibleMoves["up"] = false
+				}
 			}
 		}
 	}
 
-	// TODO: Find food.
-	// Use information in GameState to seek out and find food.
-
-	// Finally, choose a move from the available safe moves.
-	// TODO: Step 5 - Select a move to make based on strategy, rather than random.
-	var nextMove string
-
-	safeMoves := []string{}
-	for move, isSafe := range possibleMoves {
-		if isSafe {
-			safeMoves = append(safeMoves, move)
+	// Find food if we are low on health
+	// If we are low on health, we want to find food.
+	// log the sorted food list
+	sortedFood := sortFood(state)
+	// If we are low on health, we want to find food.
+	if state.Board.Snakes[0].Health < 40 {
+	// Go through the sorted food list if we can move there then move there.
+		for _, food := range sortedFood {
+			if food.X < myHead.X && possibleMoves["left"] {
+				log.Printf("Going to eat food to the left")
+				// set other moves to false
+				possibleMoves["right"] = false
+				possibleMoves["up"] = false
+				possibleMoves["down"] = false
+				break
+			} else if food.X > myHead.X && possibleMoves["right"] {
+				log.Printf("Going to eat food to the right")
+				// set other moves to false
+				possibleMoves["left"] = false
+				possibleMoves["up"] = false
+				possibleMoves["down"] = false
+				break
+			} else if food.Y < myHead.Y && possibleMoves["down"] {
+				log.Printf("Going to eat food below")
+				// set other moves to false
+				possibleMoves["left"] = false
+				possibleMoves["right"] = false
+				possibleMoves["up"] = false
+				break
+			} else if food.Y > myHead.Y && possibleMoves["up"] {
+				log.Printf("Going to eat food above")
+				// set other moves to false
+				possibleMoves["left"] = false
+				possibleMoves["right"] = false
+				possibleMoves["down"] = false
+				break
+			}
 		}
 	}
 
-	if len(safeMoves) == 0 {
+	// Finally, choose a move from the available safe moves.
+	// TODO: Select a move to make based on strategy, rather than random.
+	var nextMove string
+
+	if len(safeMoves(possibleMoves)) == 0 {
 		nextMove = "down"
 		log.Printf("%s MOVE %d: No safe moves detected! Moving %s\n", sanatizeInput(state.Game.ID), isNumber(state.Turn), nextMove)
 	} else {
-		nextMove = safeMoves[rand.Intn(len(safeMoves))]
+		nextMove = safeMoves(possibleMoves)[rand.Intn(len(safeMoves(possibleMoves)))]
 		log.Printf("%s MOVE %d: %s\n", sanatizeInput(state.Game.ID), isNumber(state.Turn), nextMove)
 	}
 	return BattlesnakeMoveResponse{

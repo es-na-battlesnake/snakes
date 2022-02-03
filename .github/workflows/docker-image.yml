@@ -49,7 +49,7 @@ jobs:
       run: |
         # if ${{ github.event.inputs.delete }} = true then 
         if [ "${{ github.event.inputs.delete }}" = "true" ]; then
-          echo "Deleting existing deployment due to true flag
+          echo "Deleting existing deployment due to true flag"
           az container list | grep code-snake && az container delete --yes --name code-snake --ids "/subscriptions/${{ secrets.AZURE_SUBID }}/resourceGroups/snekResourceGroup/providers/Microsoft.ContainerInstance/containerGroups/code-snake"
           exit 0
         fi

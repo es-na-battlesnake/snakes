@@ -345,13 +345,10 @@ func move(state GameState) BattlesnakeMoveResponse {
 		// If so, then set that move to false.
 		// if possible move left
 		if possibleMoves["left"] {
-			// If gameMode is not wrapped.
-			if gameMode != "wrapped" {
-				// Check to see if the cell to the left of our head isSurrounded by a snake body.
-				if isSurrounded(myHead.X-1, myHead.Y, "left", state.Board.Snakes) {
-					if len(safeMoves(possibleMoves)) > 1 {
-						possibleMoves["left"] = false
-					}
+			// Check to see if the cell to the left of our head isSurrounded by a snake body.
+			if isSurrounded(myHead.X-1, myHead.Y, "left", state.Board.Snakes) {
+				if len(safeMoves(possibleMoves)) > 1 {
+					possibleMoves["left"] = false
 				}
 			}
 			// If gameMode is wrapped.
@@ -369,13 +366,10 @@ func move(state GameState) BattlesnakeMoveResponse {
 		}
 		// Check to see if the move is to the right of our head.
 		if possibleMoves["right"] {
-			// If gameMode is not wrapped.
-			if gameMode != "wrapped" {
-				// Check to see if the cell to the right of our head isSurrounded by a snake body.
-				if isSurrounded(myHead.X+1, myHead.Y, "right", state.Board.Snakes) {
-					if len(safeMoves(possibleMoves)) > 1 {
-						possibleMoves["right"] = false
-					}
+			// Check to see if the cell to the right of our head isSurrounded by a snake body.
+			if isSurrounded(myHead.X+1, myHead.Y, "right", state.Board.Snakes) {
+				if len(safeMoves(possibleMoves)) > 1 {
+					possibleMoves["right"] = false
 				}
 			}
 			// If gameMode is wrapped.
@@ -393,13 +387,10 @@ func move(state GameState) BattlesnakeMoveResponse {
 		}
 		// Check to see if the move is below our head.
 		if possibleMoves["down"] {
-			// If gameMode is not wrapped.
-			if gameMode != "wrapped" {
-				// Check to see if the cell below our head isSurrounded by a snake body.
-				if isSurrounded(myHead.X, myHead.Y-1, "down", state.Board.Snakes) {
-					if len(safeMoves(possibleMoves)) > 1 {
-						possibleMoves["down"] = false
-					}
+			// Check to see if the cell below our head isSurrounded by a snake body.
+			if isSurrounded(myHead.X, myHead.Y-1, "down", state.Board.Snakes) {
+				if len(safeMoves(possibleMoves)) > 1 {
+					possibleMoves["down"] = false
 				}
 			}
 			// If gameMode is wrapped.
@@ -417,13 +408,10 @@ func move(state GameState) BattlesnakeMoveResponse {
 		}
 		// Check to see if the move is above our head.
 		if possibleMoves["up"] {
-			// If gameMode is not wrapped.
-			if gameMode != "wrapped" {
-				// Check to see if the cell above our head isSurrounded by a snake body.
-				if isSurrounded(myHead.X, myHead.Y+1, "up", state.Board.Snakes) {
-					if len(safeMoves(possibleMoves)) > 1 {
-						possibleMoves["up"] = false
-					}
+			// Check to see if the cell above our head isSurrounded by a snake body.
+			if isSurrounded(myHead.X, myHead.Y+1, "up", state.Board.Snakes) {
+				if len(safeMoves(possibleMoves)) > 1 {
+					possibleMoves["up"] = false
 				}
 			}
 			// If gameMode is wrapped.

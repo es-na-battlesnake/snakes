@@ -71,7 +71,7 @@ func TestFoodEating(t *testing.T) {
 	// Act 1000x (this isn't a great way to test, but it's okay for starting out)
 	for i := 0; i < 1000; i++ {
 		nextMove := move(state)
-		// Assert never move right
+		// Assert never move left
 		if nextMove.Move != "left" {
 			t.Errorf("snake didn't move towards closest food, %s", nextMove.Move)
 		}
@@ -100,7 +100,7 @@ func TestFoodEating2(t *testing.T) {
 	// Act 1000x (this isn't a great way to test, but it's okay for starting out)
 	for i := 0; i < 1000; i++ {
 		nextMove := move(state)
-		// Assert never move right
+		// Assert never move left
 		if nextMove.Move == "left" {
 			t.Errorf("snake didn't move towards second closest food, %s", nextMove.Move)
 		}
@@ -215,7 +215,7 @@ func TestBodyTrap(t *testing.T) {
 	// Act 1000x (this isn't a great way to test, but it's okay for starting out)
 	for i := 0; i < 1000; i++ {
 		nextMove := move(state)
-		// Assert never move right
+		// Assert never move left
 		if nextMove.Move == "left" {
 			t.Errorf("snake trapped in own body, %s", nextMove.Move)
 		}
@@ -248,6 +248,56 @@ func TestBodyTrap2(t *testing.T) {
 		// Assert never move right
 		if nextMove.Move == "right" {
 			t.Errorf("snake trapped in another snake body, %s", nextMove.Move)
+		}
+	}
+}
+
+// Test that we avoid traping ourselves in a corner.
+func TestCornerTrap(t *testing.T) {
+	// Arrange
+	me := Battlesnake{
+		Head: Coord{X: 0, Y: 1},
+		Body: []Coord{{X: 0, Y: 1}, {X: 1, Y: 1}, {X: 1, Y: 0}, {X: 2, Y: 0}, {X: 3, Y: 0}},
+	}
+	state := GameState{
+		Board: Board{
+			Snakes: []Battlesnake{me},
+			Height: 11,
+			Width:  11,
+		},
+		You: me,
+	}
+	// Act 1000x (this isn't a great way to test, but it's okay for starting out)
+	for i := 0; i < 1000; i++ {
+		nextMove := move(state)
+		// Assert never move down
+		if nextMove.Move == "down" {
+			t.Errorf("snake trapped in corner, %s", nextMove.Move)
+		}
+	}
+}
+
+// Test that we avoid traping ourselves in a corner. Just another variation of the previous test.
+func TestCornerTrap2(t *testing.T) {
+	// Arrange
+	me := Battlesnake{
+		Head: Coord{X: 0, Y: 9},
+		Body: []Coord{{X: 0, Y: 9}, {X: 1, Y: 9}, {X: 1, Y: 10}, {X: 2, Y: 10}, {X: 3, Y: 10}},
+	}
+	state := GameState{
+		Board: Board{
+			Snakes: []Battlesnake{me},
+			Height: 11,
+			Width:  11,
+		},
+		You: me,
+	}
+	// Act 1000x (this isn't a great way to test, but it's okay for starting out)
+	for i := 0; i < 1000; i++ {
+		nextMove := move(state)
+		// Assert never move up
+		if nextMove.Move == "up" {
+			t.Errorf("snake trapped in corner, %s", nextMove.Move)
 		}
 	}
 }

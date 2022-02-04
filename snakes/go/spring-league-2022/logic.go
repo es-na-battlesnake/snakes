@@ -136,6 +136,29 @@ func isSurrounded(x int, y int, move string, snakes []Battlesnake) bool {
 	return false
 }
 
+// This function takes in an x,y coordinate and tells us if it is a corner that is surrounded by another snake.
+// Possible corners are: (0,0), (0,state.Board.Height-1), (state.Board.Width-1,0), (state.Board.Width-1,state.Board.Height-1)
+func isUnsafeCorner(x int, y int, state GameState, snakes []Battlesnake) bool {
+	if x == 0 && y == 0 {
+		if isSnake(x+1, y, snakes) && isSnake(x, y+1, snakes) {
+			return true
+		}
+	} else if x == 0 && y == state.Board.Height-1 {
+		if isSnake(x+1, y, snakes) && isSnake(x, y-1, snakes) {
+			return true
+		}
+	} else if x == state.Board.Width-1 && y == 0 {
+		if isSnake(x-1, y, snakes) && isSnake(x, y+1, snakes) {
+			return true
+		}
+	} else if x == state.Board.Width-1 && y == state.Board.Height-1 {
+		if isSnake(x-1, y, snakes) && isSnake(x, y-1, snakes) {
+			return true
+		}
+	}
+	return false
+}
+
 // This function is called on every turn of a game. Use the provided GameState to decide
 // where to move -- valid moves are "up", "down", "left", or "right".
 // We've provided some code and comments to get you started.
@@ -356,6 +379,51 @@ func move(state GameState) BattlesnakeMoveResponse {
 			if isSurrounded(myHead.X, myHead.Y+1, "up", state.Board.Snakes) {
 				if len(safeMoves(possibleMoves)) > 1 {
 					possibleMoves["up"] = false
+				}
+			}
+		}
+	}
+	
+	// TODO: See if we can update this so that we don't trap ourselves in corner when wrapping.
+	// Don't trap ourselves in a corner when not in wrapped mode.
+	// If there are more than one safe moves, then pick one that doesn't trap us in a corner.
+	// Check to see if there are more than one safe moves.
+	if gameMode != "wrapped" {
+		if len(safeMoves(possibleMoves)) > 1 {
+			// Look at each safe move and see if it is a corner and surrounded by a snake.
+			// If so, then set that move to false.
+			// if possible move left
+			if possibleMoves["left"] {
+				// Check to see if the cell to the left of our head is a corner and surrounded by a snake.
+				if isUnsafeCorner(myHead.X-1, myHead.Y, state, state.Board.Snakes) {
+					if len(safeMoves(possibleMoves)) > 1 {
+						possibleMoves["left"] = false
+					}
+				}
+
+			}
+			if possibleMoves["right"] {
+				// Check to see if the cell to the right of our head is a corner and surrounded by a snake.
+				if isUnsafeCorner(myHead.X+1, myHead.Y, state, state.Board.Snakes) {
+					if len(safeMoves(possibleMoves)) > 1 {
+						possibleMoves["right"] = false
+					}
+				}
+			}
+			if possibleMoves["down"] {
+				// Check to see if the cell below our head is a corner and surrounded by a snake.
+				if isUnsafeCorner(myHead.X, myHead.Y-1, state, state.Board.Snakes) {
+					if len(safeMoves(possibleMoves)) > 1 {
+						possibleMoves["down"] = false
+					}
+				}
+			}
+			if possibleMoves["up"] {
+				// Check to see if the cell above our head is a corner and surrounded by a snake.
+				if isUnsafeCorner(myHead.X, myHead.Y+1, state, state.Board.Snakes) {
+					if len(safeMoves(possibleMoves)) > 1 {
+						possibleMoves["up"] = false
+					}
 				}
 			}
 		}

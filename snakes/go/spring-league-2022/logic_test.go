@@ -195,3 +195,59 @@ func TestWallAvoidance(t *testing.T) {
 		}
 	}
 }
+
+// Test that we avoid traping ourselves in our own body.
+func TestBodyTrap(t *testing.T) {
+	// Arrange
+	me := Battlesnake{
+		Head: Coord{X: 2, Y: 1},
+		Body: []Coord{{X: 2, Y: 1}, {X: 2, Y: 0}, {X: 1, Y: 0}, {X: 0, Y: 0}, 
+		{X: 0, Y: 1}, {X: 0, Y: 2}, {X: 1, Y: 2}, {X: 2, Y: 2}},
+	}
+	state := GameState{
+		Board: Board{
+			Snakes: []Battlesnake{me},
+			Height: 11,
+			Width:  11,
+		},
+		You: me,
+	}
+	// Act 1000x (this isn't a great way to test, but it's okay for starting out)
+	for i := 0; i < 1000; i++ {
+		nextMove := move(state)
+		// Assert never move right
+		if nextMove.Move == "left" {
+			t.Errorf("snake trapped in own body, %s", nextMove.Move)
+		}
+	}
+}
+
+// Test that we avoid traping ourselves in another snakes body.
+func TestBodyTrap2(t *testing.T) {
+	// Arrange
+	me := Battlesnake{
+		Head: Coord{X: 0, Y: 2},
+		Body: []Coord{{X: 0, Y: 2}, {X: 0, Y: 1}, {X: 0, Y: 0}},
+
+	}
+	other := Battlesnake{
+		Head: Coord{X: 1, Y: 0},
+		Body: []Coord{{X: 1, Y: 0}, {X: 1, Y: 1}, {X: 2, Y: 1}, {X: 2, Y: 2}, {X: 2, Y: 3}, {X: 1, Y: 3}},
+	}
+	state := GameState{
+		Board: Board{
+			Snakes: []Battlesnake{me, other},
+			Height: 11,
+			Width:  11,
+		},
+		You: me,
+	}
+	// Act 1000x (this isn't a great way to test, but it's okay for starting out)
+	for i := 0; i < 1000; i++ {
+		nextMove := move(state)
+		// Assert never move right
+		if nextMove.Move == "right" {
+			t.Errorf("snake trapped in another snake body, %s", nextMove.Move)
+		}
+	}
+}

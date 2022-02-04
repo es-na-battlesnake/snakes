@@ -102,9 +102,7 @@ func abs(x int) int {
 // Sort the food coordinates by manhattan distance from the head.
 func sortFood(state GameState) []Coord {
 	var food []Coord
-	for _, f := range state.Board.Food {
-		food = append(food, f)
-	}
+	food = append(food, state.Board.Food...)
 	sort.Slice(food, func(i, j int) bool {
 		dist1 := abs(food[i].X-state.You.Body[0].X) + abs(food[i].Y-state.You.Body[0].Y)
 		dist2 := abs(food[j].X-state.You.Body[0].X) + abs(food[j].Y-state.You.Body[0].Y)

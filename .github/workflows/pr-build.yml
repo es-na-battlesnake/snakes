@@ -32,7 +32,7 @@ jobs:
 
     - name: Simulate a game
       run: |
-            docker build . --file test/Dockerfile.go --tag code-snek-sim:pr
+            docker build . --file test/Dockerfile-go --tag code-snek-sim:pr
             docker run --network test --name code-snek-sim code-snek-sim:pr
         
     - name: Rspec test djdefi snake

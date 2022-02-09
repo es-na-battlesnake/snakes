@@ -1,6 +1,6 @@
-# ES Team Snake for Spring Leauge 2022 (https://play.battlesnake.com/league/spring-league-2022/)
+# ES Team Snake for Spring Leauge 2022 (Pathing Edition) (https://play.battlesnake.com/league/spring-league-2022/)
 
-### This is team snake. Use this README for anything that might be worth noting about the Snake or things to consider when developing it. 
+### This is a team snake. Use this README for anything that might be worth noting about the Snake or things to consider when developing it. 
 
 ## Customizing the Snake 
 
@@ -22,7 +22,7 @@ Whenever you update these values, go to the team page for the Battlesnake and se
 
 ## Changing Behavior
 
-This snakes logic lives in `logic.go`. Possible moves are "up", "down", "left", or "right".  The board data is available in the `GameState` struct found in `main.go`. 
+This snakes logic lives in `logic.go` and `pathing.go`. Possible moves are "up", "down", "left", or "right".  The board data is available in the `GameState` struct found in `main.go`. 
 
 ## Development (Codespaces)
 
@@ -47,7 +47,7 @@ After this make any changes you wish to the `.air.toml` file. You can then just 
 You might want to run this without supervisord for faster testing and debugging. You can do this by running:
 
 ```shell
-go run main.go logic.go helpers.go
+go run main.go logic.go helpers.go paths.go pathing.go
 ```
 
 This will build and run your most recently edited version of the code without supervisord.
@@ -58,7 +58,7 @@ This will build and run your most recently edited version of the code without su
 
 Located in `logic_test.go`
 
-For now you can run the test by navigating into the `/snakes/go/spring-league-2022` directory and running:
+For now you can run the test by navigating into the `/snakes/go/pathy-snake` directory and running:
 
 ```shell
 go test

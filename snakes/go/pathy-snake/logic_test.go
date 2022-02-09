@@ -115,7 +115,6 @@ func TestFoodEating2(t *testing.T) {
 	}
 }
 
-// The Pathing Snake does not yet know how to wrap around the board. So this test shouldn't ever fail (yet).
 // Test that we do not wrap around into our own body.
 func TestBodyWrap1(t *testing.T) {
 	// Arrange
@@ -146,7 +145,6 @@ func TestBodyWrap1(t *testing.T) {
 	}
 }
 
-// The Pathing Snake does not yet know how to wrap around the board. So this test shouldn't ever fail (yet).
 // Test that we do not wrap around the board into another snake.
 func TestBodyWrap2(t *testing.T) {
 	// Arrange
@@ -181,7 +179,7 @@ func TestBodyWrap2(t *testing.T) {
 	}
 }
 
-// Test that will force a snake to wrap around the board.
+// Test that will force a snake to wrap around the board. It is basically testing that wrapping works.
 func TestBodyWrap3(t *testing.T) {
 	// Arrange
 	me := Battlesnake{

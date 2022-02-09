@@ -31,7 +31,7 @@ func start(state GameState) {
 // It's purely for informational purposes, we don't have to make any decisions here.
 func end(state GameState) {
 	log.Printf("%s END\n\n", sanatizeInput(state.Game.ID))
-	log.Printf("%s WINNER: %s\n", sanatizeInput(state.Game.ID), state.Board.Snakes[0].Name)
+	log.Printf("%s WINNER: %s\n", sanatizeInput(state.Game.ID), sanatizeInput(state.Board.Snakes[0].Name))
 }
 
 func move(state GameState) BattlesnakeMoveResponse {

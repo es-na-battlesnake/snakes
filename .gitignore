@@ -3,5 +3,5 @@
 battlesnake
 .idea
 .vscode
-/snakes/go/spring-league-2022/tmp/
+/snakes/go/*/tmp/
 .air.toml

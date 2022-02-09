@@ -34,7 +34,7 @@ jobs:
       
     - name: Simulate games
       run: |
-            bash simulate_royale.sh --mode=wrapped --runs=5
+            bash script/simulate_royale.sh --mode=wrapped --runs=5
             
     - name: Rspec test djdefi snake
       run: docker exec code-snek bundle config set with 'dev' && docker exec code-snek bundle config unset frozen && docker exec code-snek bundle update && docker exec code-snek /bin/bash -c 'script/test djdefi'

@@ -28,13 +28,14 @@ jobs:
     - name: Test snake1 app response
       run: docker run --rm --network test curlimages/curl:latest --connect-timeout 10 --retry 5 --retry-delay 2 --retry-connrefused http://code-snek:4567/ 
     - name: Test snake2 app response
-      run: docker run --rm --network test curlimages/curl:latest --connect-timeout 10 --retry 5 --retry-delay 2 --retry-connrefused http://code-snek:4568/ 
-
-    - name: Simulate a game
+      run: docker run --rm --network test curlimages/curl:latest --connect-timeout 10 --retry 5 --retry-delay 2 --retry-connrefused http://code-snek:4568/
+    - name: Test GoSnek app response
+      run: docker run --rm --network test curlimages/curl:latest --connect-timeout 10 --retry 5 --retry-delay 2 --retry-connrefused http://code-snek:8080/
+      
+    - name: Simulate games
       run: |
-            docker build . --file test/Dockerfile-go --tag code-snek-sim:pr
-            docker run --network test --name code-snek-sim code-snek-sim:pr
-        
+            bash simulate_royale.sh --mode=wrapped --runs=5
+            
     - name: Rspec test djdefi snake
       run: docker exec code-snek bundle config set with 'dev' && docker exec code-snek bundle config unset frozen && docker exec code-snek bundle update && docker exec code-snek /bin/bash -c 'script/test djdefi'
     

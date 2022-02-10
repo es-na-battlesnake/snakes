@@ -35,9 +35,11 @@ jobs:
     - name: Simulate games
       id: simulate-games
       run: |
-           docker run --rm --network test code-snek:pr script/simulate_royale --mode wrapped --runs 5 | tee -a simulate_royale.log
-           output="$(cat simulate_royale.log)"
-           echo "::set-output name=result::Simulated games complete with output: $output"
+          content=$(docker run --rm --network test code-snek:pr script/simulate_royale --mode wrapped --runs 5 | tee -a simulate_royale.log)
+          content="${content//'%'/'%25'}"
+          content="${content//$'\n'/'%0A'}"
+          content="${content//$'\r'/'%0D'}"
+          echo "::set-output name=result::$content"
       
     # Use the output from the simulate-games step
     - name: Get the simulate-games output
@@ -45,7 +47,6 @@ jobs:
 
     - name: Post comment
       uses: mshick/add-pr-comment@v1
-      if: ${{ steps.simulate-games.outputs.result }}
       with:
         message: |
             🤖 🐍:

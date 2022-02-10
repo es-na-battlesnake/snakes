@@ -34,6 +34,7 @@ jobs:
       
     - name: Simulate games
       id: simulate-games
+      # Crazy escaping here ref: https://github.community/t/set-output-truncates-multiline-strings/16852/2
       run: |
           content=$(docker run --rm --network test code-snek:pr script/simulate_royale --mode wrapped --runs 5 | tee -a simulate_royale.log)
           content="${content//'%'/'%25'}"

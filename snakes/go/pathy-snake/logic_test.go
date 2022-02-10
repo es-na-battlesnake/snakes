@@ -343,6 +343,76 @@ func TestCornerTrap2(t *testing.T) {
 	}
 }
 
+// Test that we avoid traping ourselves in a corner when we wrap.
+func TestCornerTrap3(t *testing.T) {
+	// Arrange
+	me := Battlesnake{
+		Head: Coord{X: 0, Y: 0},
+		Body: []Coord{{X: 0, Y: 0}, {X: 1, Y: 0}, {X: 2, Y: 0}, {X: 3, Y: 0}, {X: 9, Y: 0}, {X: 9, Y: 1}, {X: 10, Y: 1}, {X: 10, Y: 2}},
+		Health: 100,
+	}
+	other := Battlesnake{
+		Head: Coord{X: 10, Y: 10},
+		Body: []Coord{{X: 10, Y: 10}, {X: 9, Y: 10}, {X: 8, Y: 10}, {X: 7, Y: 10}},
+	}
+	state := GameState{
+		Board: Board{
+			Snakes: []Battlesnake{me, other},
+			Height: 11,
+			Width:  11,
+		},
+		You: me,
+		Game: Game{
+			Ruleset: Ruleset{
+				Name: "wrapped",
+			},
+		},
+	}
+	// Act 1000x (this isn't a great way to test, but it's okay for starting out)
+	for i := 0; i < 1000; i++ {
+		nextMove := move(state)
+		// Assert never move left
+		if nextMove.Move == "left" {
+			t.Errorf("snake trapped in corner while wrapping, %s", nextMove.Move)
+		}
+	}
+}
+
+// Test that we avoid traping ourselves in a corner when we wrap.
+// Same test as previous test, but testing that we don't trap in another snake.
+func TestCornerTrap4(t *testing.T) {
+	// Arrange
+	me := Battlesnake{
+		Head: Coord{X: 0, Y: 0},
+		Body: []Coord{{X: 0, Y: 0}, {X: 1, Y: 0}, {X: 2, Y: 0}, {X: 3, Y: 0}},
+	}
+	other := Battlesnake{
+		Head: Coord{X: 8, Y: 0},
+		Body: []Coord{{X: 8, Y: 0}, {X: 9, Y: 0}, {X: 9, Y: 1}, {X: 10, Y: 1}, {X: 10, Y: 2}, {X: 10, Y: 10}},
+	}
+	state := GameState{
+		Board: Board{
+			Snakes: []Battlesnake{me, other},
+			Height: 11,
+			Width:  11,
+		},
+		You: me,
+		Game: Game{
+			Ruleset: Ruleset{
+				Name: "wrapped",
+			},
+		},
+	}
+	// Act 1000x (this isn't a great way to test, but it's okay for starting out)
+	for i := 0; i < 1000; i++ {
+		nextMove := move(state)
+		// Assert never move left
+		if nextMove.Move == "left" {
+			t.Errorf("snake trapped in corner while wrapping, %s", nextMove.Move)
+		}
+	}
+}
+
 // Test that we are setting our own tail as walkable.
 func TestTailWalkable(t *testing.T) {
 	// Arrange

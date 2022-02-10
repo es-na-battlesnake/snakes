@@ -35,7 +35,9 @@ jobs:
     - name: Simulate games
       id: simulate-games
       run: |
-           docker run --rm --network test code-snek:pr script/simulate_royale --mode wrapped --runs 5
+           docker run --rm --network test code-snek:pr script/simulate_royale --mode wrapped --runs 5 | tee -a simulate_royale.log
+           output="$(cat simulate_royale.log)"
+           echo "::set-output name=result::Simulated games complete with output: $output"
       
     # Use the output from the simulate-games step
     - name: Get the simulate-games output
@@ -46,7 +48,7 @@ jobs:
       if: ${{ steps.simulate-games.outputs.result }}
       with:
         message: |
-            Simulation results:
+            🤖 🐍:
             "${{ steps.simulate-games.outputs.result }}"
         repo-token: ${{ secrets.GITHUB_TOKEN }}
         repo-token-user-login: 'github-actions[bot]' # The user.login for temporary GitHub tokens

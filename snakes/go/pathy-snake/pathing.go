@@ -110,7 +110,11 @@ func addSnakesToGrid(state GameState, grid *Grid) {
 	}
 	// Make sure our own head is walkable. We need to do this because the getPath function
 	// would not find a path if our head was not walkable.
-	grid.Get(state.You.Head.X, state.You.Head.Y).Walkable = true
+	
+	// If we are size is 3 or more.
+	if state.You.Length > 2 {
+		grid.Get(state.You.Head.X, state.You.Head.Y).Walkable = true
+	}
 
 	// If we did not eat food on the previous turn, we can make our tail walkable.
 	if !checkIfAteFood(state) {

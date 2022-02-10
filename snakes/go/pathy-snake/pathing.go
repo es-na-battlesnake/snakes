@@ -141,7 +141,11 @@ func getPath(state GameState, grid *Grid) *Path {
 					}
 				}
 			}
-		 targetCell = walkableCells[rand.Intn(len(walkableCells))]
+			if len(walkableCells) > 0 {
+				targetCell = walkableCells[rand.Intn(len(walkableCells))]
+			} else {
+				log.Printf("No walkable cells in top half of board.\n")
+			}
 		}		
 	} else {
 		// Create a list of walkable cells in the bottom half of the board.
@@ -158,8 +162,11 @@ func getPath(state GameState, grid *Grid) *Path {
 				}
 			}
 		}
-		// Get a random cell from avaiable walkableCells and set it to targetCell.
-		targetCell = walkableCells[rand.Intn(len(walkableCells))]
+		if len(walkableCells) > 0 {
+			targetCell = walkableCells[rand.Intn(len(walkableCells))]
+		} else {
+			log.Printf("No walkable cells in bottom half of board.\n")
+		}
 	}
 	
 	// If we are in the middle of the grid then pick a target cell that is not the opposite of the head.

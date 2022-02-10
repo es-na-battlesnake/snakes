@@ -36,7 +36,7 @@ func TestBodyAvoidance(t *testing.T) {
 	me := Battlesnake{
 		// Length 4, facing up (U shapped)
 		Head: Coord{X: 2, Y: 1},
-		Body: []Coord{{X: 2, Y: 1}, {X: 2, Y: 0}, {X: 3, Y: 0}, {X: 3, Y: 1}},
+		Body: []Coord{{X: 2, Y: 1}, {X: 2, Y: 0}, {X: 3, Y: 0}, {X: 3, Y: 1}, {X: 3, Y: 2}},
 	}
 	state := GameState{
 		Board: Board{
@@ -120,7 +120,7 @@ func TestBodyWrap1(t *testing.T) {
 	// Arrange
 	me := Battlesnake{
 		Head: Coord{X: 10, Y: 5},
-		Body: []Coord{{X: 10, Y: 5}, {X: 9, Y: 5}, {X: 8, Y: 5}, {X: 0, Y: 5}},
+		Body: []Coord{{X: 10, Y: 5}, {X: 9, Y: 5}, {X: 8, Y: 5}, {X: 0, Y: 5}, {X: 1, Y: 5}},
 	}
 	state := GameState{
 		Board: Board{
@@ -184,7 +184,7 @@ func TestBodyWrap3(t *testing.T) {
 	// Arrange
 	me := Battlesnake{
 		Head: Coord{X: 10, Y: 5},
-		Body: []Coord{{X: 10, Y: 5}, {X: 10, Y: 6}, {X: 9, Y: 6}, {X: 9, Y: 5}, {X: 9, Y: 4}, {X: 10, Y: 4}},
+		Body: []Coord{{X: 10, Y: 5}, {X: 10, Y: 6}, {X: 9, Y: 6}, {X: 9, Y: 5}, {X: 9, Y: 4}, {X: 10, Y: 4}, {X: 10, Y: 3}},
 		Health: 100,
 	}
 	state := GameState{
@@ -201,7 +201,7 @@ func TestBodyWrap3(t *testing.T) {
 		},
 	}
 	// Act 1000x (this isn't a great way to test, but it's okay for starting out)
-	for i := 0; i < 1; i++ {
+	for i := 0; i < 1000; i++ {
 		nextMove := move(state)
 		// Assert never move right
 		if nextMove.Move != "right" {

@@ -45,3 +45,11 @@ func abs(x int) int {
 	}
 	return x
 }
+
+// This function is used to check if a snake head x,y coord is on the edge of the board.
+func onEdge(x int, y int, width int, height int) bool {
+	if x == 0 || x == width-1 || y == 0 || y == height-1 {
+		return true
+	}
+	return false
+}

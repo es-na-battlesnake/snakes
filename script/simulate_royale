@@ -69,6 +69,13 @@ if [ -f winner.txt ]; then
     rm winner.txt
 fi
 
+# test response of http://code-snek:4567/ and exit if it fails
+curl -s http://code-snek:4567/ &> /dev/null
+if [ $? -ne 0 ]; then
+    echo "code-snek:4567 is not responding"
+    exit 1
+fi
+
 # Run command $runs times and record "is the winner" line of output to a file.
 for i in $(seq 1 $runs); do
     echo "Running battlesnake $i of $runs"
@@ -86,3 +93,4 @@ done
 
 # Output the most winning player from the file.
 cat winner.txt | cut -d " " -f 9 | sort | uniq -c | sort -nr 
+rm winner.txt

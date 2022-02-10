@@ -420,6 +420,7 @@ func TestTailWalkable(t *testing.T) {
 		Head: Coord{X: 4, Y: 4},
 		Body: []Coord{{X: 4, Y: 4}, {X: 4, Y: 5}, {X: 3, Y: 5}, {X: 3, Y: 4}, {X: 3, Y: 3}, {X: 4, Y: 3}},
 		Health: 100,
+		Length: 6,
 	}
 	other := Battlesnake{
 		Head: Coord{X: 5, Y: 4},
@@ -443,3 +444,4 @@ func TestTailWalkable(t *testing.T) {
 		}
 	}
 }
+

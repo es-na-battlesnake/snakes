@@ -54,9 +54,15 @@ fi
 
 # If /root/go/bin/battlesnake does not exist, then install it
 if [ ! -f /root/go/bin/battlesnake ]; then
-    echo "Installing battlesnake"
-    go install github.com/BattlesnakeOfficial/rules/cli/battlesnake@latest
-    chmod +x /root/go/bin/battlesnake
+    export PATH=$PATH:/usr/local/go/bin
+    # Install and redirect all output to /dev/null unless verbose mode is enabled
+    if [[ $verbose ]]; then
+        echo "Installing battlesnake"
+        go install github.com/BattlesnakeOfficial/rules/cli/battlesnake@latest
+    else
+        go install github.com/BattlesnakeOfficial/rules/cli/battlesnake@latest > /dev/null
+    fi
+    
 fi
 
 #battlesnake play -W 11 -H 11 --name ruby-danger-noodle --url http://code-snek:4567/ --name code-snake --url http://code-snek:4568/  --name bevns --url http://code-snek:4569/ --name wilsonwong1990 --url http://code-snek:4570/ -g royale -v
@@ -69,12 +75,19 @@ if [ -f winner.txt ]; then
     rm winner.txt
 fi
 
+# test response of http://code-snek:4567/ and exit if it fails
+curl -s http://code-snek:4567/ &> /dev/null
+if [ $? -ne 0 ]; then
+    echo "code-snek:4567 is not responding"
+    exit 1
+fi
+
 # Run command $runs times and record "is the winner" line of output to a file.
 for i in $(seq 1 $runs); do
-    echo "Running battlesnake $i of $runs"
-    echo "Simulation $i"
+    echo "Running battlesnake $i of $runs - mode: $mode"
     /root/go/bin/battlesnake play -W 11 -H 11 --name ruby-danger-noodle --url http://code-snek:4567/ \
     --name go-snake --url http://code-snek:8080/ \
+    --name pathy --url http://code-snek:8081/ \
     --name ruby-danger-noodle --url http://code-snek:4567/ \
     --name code-snake --url http://code-snek:4568/ \
     --name bevns --url http://code-snek:4569/ \
@@ -85,3 +98,4 @@ done
 
 # Output the most winning player from the file.
 cat winner.txt | cut -d " " -f 9 | sort | uniq -c | sort -nr 
+rm winner.txt

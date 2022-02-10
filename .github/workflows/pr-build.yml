@@ -35,7 +35,7 @@ jobs:
     - name: Simulate games
       id: simulate-games
       run: |
-            sim_cmd=$(docker run --rm --network test code-snek:pr script/simulate_royale --mode wrapped --runs 5)
+            sim_cmd="$(docker run --rm --network test code-snek:pr script/simulate_royale --mode wrapped --runs 5)"
             echo "::set-output name=result::$sim_cmd"
       
     # Use the output from the simulate-games step

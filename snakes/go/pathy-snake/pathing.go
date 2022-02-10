@@ -5,10 +5,8 @@ import (
 	"math/rand"
 )
 
-// TODO: Make our tail walkable unless we eat food.
-// TODO: Make it so we don't pick a destination cell that is in a hazard.
-// TODO: Add some aggressive snake logic. i.e. adjust the cost of cells next to snake heads differently if they are smaller than us.
-// TODO: Add some defensive snake logic. i.e. adjust the cost of cells next to snake heads differently if they are larger than us.
+// TODO: #121 Make it so we don't pick a destination cell that is in a hazard.
+// TODO: #122 Add some aggressive snake logic. i.e. adjust the cost of cells next to snake heads differently if they are smaller than us.
 // TODO: Move the targetCell logic into its own function.
 // TODO: I notice errors/panics sometimes when we can't decide on a targetCell. We need to account for those cases.
 
@@ -48,22 +46,45 @@ func addSnakesToGrid(state GameState, grid *Grid) {
 			// Added to avoid panics (out of bounds) when the head is at the edge of the board.
 			// Then set the cost of the cells next to the head to higher cost.
 			if otherSnake.Head.X - 1 >= 0 {
-				grid.Get(otherSnake.Head.X - 1, otherSnake.Head.Y).Cost = 1.5
+				// If the snake is longer than us, then we want to make the cells next to the head cost higher.
+				if otherSnake.Length >= state.You.Length {
+					grid.Get(otherSnake.Head.X - 1, otherSnake.Head.Y).Cost = 10
+				} else {
+					grid.Get(otherSnake.Head.X - 1, otherSnake.Head.Y).Cost = 1.5
+				}
 			}
 			if otherSnake.Head.X + 1 <= state.Board.Width - 1 {
-				grid.Get(otherSnake.Head.X + 1, otherSnake.Head.Y).Cost = 1.5
+				if otherSnake.Length >= state.You.Length {
+					grid.Get(otherSnake.Head.X + 1, otherSnake.Head.Y).Cost = 10
+				} else {
+					grid.Get(otherSnake.Head.X + 1, otherSnake.Head.Y).Cost = 1.5
+				}
 			}
 			if otherSnake.Head.Y - 1 >= 0 {
-				grid.Get(otherSnake.Head.X, otherSnake.Head.Y - 1).Cost = 1.5
+				if otherSnake.Length >= state.You.Length {
+					grid.Get(otherSnake.Head.X, otherSnake.Head.Y - 1).Cost = 10
+				} else {
+					grid.Get(otherSnake.Head.X, otherSnake.Head.Y - 1).Cost = 1.5
+				}
 			}
 			if otherSnake.Head.Y + 1 <= state.Board.Height - 1 {
-				grid.Get(otherSnake.Head.X, otherSnake.Head.Y + 1).Cost = 1.5
+				if otherSnake.Length >= state.You.Length {
+					grid.Get(otherSnake.Head.X, otherSnake.Head.Y + 1).Cost = 10
+				} else {
+					grid.Get(otherSnake.Head.X, otherSnake.Head.Y + 1).Cost = 1.5
+				}
 			}
 		}
 	}
 	// Make sure our own head is walkable. I need to do this because the getPath function 
 	// would not find a path if our head was not walkable.
 	grid.Get(state.You.Head.X, state.You.Head.Y).Walkable = true
+
+	// If we did not eat food on the previous turn, we can make our tail walkable.
+	if !checkIfAteFood(state) {
+		// Make sure our tail is walkable.
+		grid.Get(state.You.Body[len(state.You.Body)-1].X, state.You.Body[len(state.You.Body)-1].Y).Walkable = true
+	}
 }
 
 // Add food to the grid as walkable but with lower cost.
@@ -240,4 +261,25 @@ func getNextDirection(state GameState,path *Path) BattlesnakeMoveResponse {
 	return BattlesnakeMoveResponse{
 		Move: nextMove,
 	}
+}
+
+// Keep track of our size between turns. We want to use this to determine if we ate food or not.
+var prevLength int
+
+// Function that determines if we ate food on the previous turn.
+func checkIfAteFood(state GameState) bool {
+	// If the snakes body size is greater than the previous turn size, we ate food.
+	var ate bool
+	if len(state.You.Body) > prevLength && prevLength != 0 {
+		ate = true
+	} else {
+		ate = false
+	}
+	// If PrevLength is 0, then we are on our first turn.
+	if prevLength == 0 {
+		ate = false
+	}
+	// Set prevLength to current snakes body size for use in next turn.
+	prevLength = len(state.You.Body)
+	return ate
 }

@@ -343,16 +343,21 @@ func TestCornerTrap2(t *testing.T) {
 	}
 }
 
-// Test that we avoid traping ourselves in a corner. Just another variation of the previous test.
-func TestCornerTrap3(t *testing.T) {
+// Test that we are setting our own tail as walkable.
+func TestTailWalkable(t *testing.T) {
 	// Arrange
 	me := Battlesnake{
-		Head: Coord{X: 0, Y: 9},
-		Body: []Coord{{X: 0, Y: 9}},
+		Head: Coord{X: 4, Y: 4},
+		Body: []Coord{{X: 4, Y: 4}, {X: 4, Y: 5}, {X: 3, Y: 5}, {X: 3, Y: 4}, {X: 3, Y: 3}, {X: 4, Y: 3}},
+		Health: 100,
+	}
+	other := Battlesnake{
+		Head: Coord{X: 5, Y: 4},
+		Body: []Coord{{X: 5, Y: 4}, {X: 5, Y: 3}, {X: 5, Y: 2}},
 	}
 	state := GameState{
 		Board: Board{
-			Snakes: []Battlesnake{me},
+			Snakes: []Battlesnake{me, other},
 			Height: 11,
 			Width:  11,
 			Food:   []Coord{{X: 3, Y: 10}},
@@ -363,8 +368,8 @@ func TestCornerTrap3(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		nextMove := move(state)
 		// Assert never move up
-		if nextMove.Move == "up" {
-			t.Errorf("snake trapped in corner, %s", nextMove.Move)
+		if nextMove.Move != "down" {
+			t.Errorf("Tail is not getting set as walkable, %s", nextMove.Move)
 		}
 	}
 }

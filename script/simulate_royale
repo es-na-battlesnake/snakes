@@ -84,7 +84,7 @@ fi
 
 # Run command $runs times and record "is the winner" line of output to a file.
 for i in $(seq 1 $runs); do
-    echo "Running battlesnake $i of $runs"
+    echo "Running battlesnake $i of $runs - mode: $mode"
     echo "Simulation $i"
     /root/go/bin/battlesnake play -W 11 -H 11 --name ruby-danger-noodle --url http://code-snek:4567/ \
     --name go-snake --url http://code-snek:8080/ \

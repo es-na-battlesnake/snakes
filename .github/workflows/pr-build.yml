@@ -35,15 +35,20 @@ jobs:
     - name: Simulate games
       id: simulate-games
       run: |
-            docker run --rm --network test code-snek:pr script/simulate_royale --mode wrapped --runs 5
+            sim_cmd=$(docker run --rm --network test code-snek:pr script/simulate_royale --mode wrapped --runs 5)
+            echo "::set-output name=result::$sim_cmd"
+      
+    # Use the output from the simulate-games step
+    - name: Get the simulate-games output
+      run: echo "${{ steps.simulate-games.outputs.result }}"
 
     - name: Post comment
       uses: mshick/add-pr-comment@v1
-        if: ${{ steps.simulate-games.outputs }}
+        if: ${{ steps.simulate-games.outputs.result }}
         with:
           message: |
             Simulation results:
-            ${{ steps.simulate-games.outputs }}
+            ${{ steps.simulate-games.outputs.result }}
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           repo-token-user-login: 'github-actions[bot]' # The user.login for temporary GitHub tokens
           allow-repeats: false # This is the default

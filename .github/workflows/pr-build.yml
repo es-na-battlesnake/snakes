@@ -44,14 +44,14 @@ jobs:
 
     - name: Post comment
       uses: mshick/add-pr-comment@v1
-        if: ${{ steps.simulate-games.outputs.result }}
-        with:
-          message: |
+      if: ${{ steps.simulate-games.outputs.result }}
+      with:
+        message: |
             Simulation results:
             ${{ steps.simulate-games.outputs.result }}
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          repo-token-user-login: 'github-actions[bot]' # The user.login for temporary GitHub tokens
-          allow-repeats: false # This is the default
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        repo-token-user-login: 'github-actions[bot]' # The user.login for temporary GitHub tokens
+        allow-repeats: false # This is the default
             
     - name: Rspec test djdefi snake
       run: docker exec code-snek bundle config set with 'dev' && docker exec code-snek bundle config unset frozen && docker exec code-snek bundle update && docker exec code-snek /bin/bash -c 'script/test djdefi'

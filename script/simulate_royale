@@ -55,6 +55,7 @@ fi
 # If /root/go/bin/battlesnake does not exist, then install it
 if [ ! -f /root/go/bin/battlesnake ]; then
     echo "Installing battlesnake"
+    export PATH=$PATH:/usr/local/go/bin
     go install github.com/BattlesnakeOfficial/rules/cli/battlesnake@latest
     chmod +x /root/go/bin/battlesnake
 fi

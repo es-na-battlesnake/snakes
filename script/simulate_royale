@@ -54,13 +54,13 @@ fi
 
 # If /root/go/bin/battlesnake does not exist, then install it
 if [ ! -f /root/go/bin/battlesnake ]; then
-    echo "Installing battlesnake"
     export PATH=$PATH:/usr/local/go/bin
     # Install and redirect all output to /dev/null unless verbose mode is enabled
     if [[ $verbose ]]; then
+        echo "Installing battlesnake"
         go install github.com/BattlesnakeOfficial/rules/cli/battlesnake@latest
     else
-       go install github.com/BattlesnakeOfficial/rules/cli/battlesnake@latest > /dev/null
+        go install github.com/BattlesnakeOfficial/rules/cli/battlesnake@latest > /dev/null
     fi
     
 fi

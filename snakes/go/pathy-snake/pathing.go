@@ -168,7 +168,7 @@ func getPath(state GameState, grid *Grid) *Path {
 			log.Printf("No walkable cells in bottom half of board.\n")
 		}
 	}
-	
+
 	// If we are in the middle of the grid then pick a target cell that is not the opposite of the head.
 	if state.You.Head.X == state.Board.Height / 2 && state.You.Head.Y == state.Board.Width / 2 {
 		// Set targetCell X and Y to be the bottom left corner of the grid.
@@ -203,6 +203,28 @@ func getPath(state GameState, grid *Grid) *Path {
 				}
 				// Set the target cell to be the closest food cell.
 				targetCell = closestFoodCell
+		}
+	}
+
+	// If we don't have a target cell, we can't get a path.
+	// Attempt to get a targetCell from anywhere on the board.
+	var walkableCells []*Cell
+	if targetCell == nil {
+		for x := 0; x < state.Board.Width; x++ {
+			for y := 0; y < state.Board.Height; y++ {
+				if grid.Get(x, y).Walkable {
+					// If we can create a path to the cell, add it to the list.
+					// If GetPathFromCells returns an error, then don't add the cell to the list.
+					if grid.GetPathFromCells(grid.Get(state.You.Head.X, state.You.Head.Y), grid.Get(x,y), false, false, wrapped).Next() != nil {
+						walkableCells = append(walkableCells, grid.Get(x, y))
+					}
+				}
+			}
+		}
+		if len(walkableCells) > 0 {
+			targetCell = walkableCells[rand.Intn(len(walkableCells))]
+		} else {
+			log.Printf("No walkable cells or paths anywhere on board.\n")
 		}
 	}
 

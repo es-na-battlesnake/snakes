@@ -113,7 +113,7 @@ func addSnakesToGrid(state GameState, grid *Grid) {
 	grid.Get(state.You.Head.X, state.You.Head.Y).Walkable = true
 
 	// If we did not eat food on the previous turn, we can make our tail walkable.
-	if state.You.Length > 2 {
+	if state.Turn > 3 {
 		if !checkIfAteFood(state) {
 			// Make sure our tail is walkable.
 			grid.Get(state.You.Body[len(state.You.Body)-1].X, state.You.Body[len(state.You.Body)-1].Y).Walkable = true

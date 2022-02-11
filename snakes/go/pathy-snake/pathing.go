@@ -227,6 +227,10 @@ func getPath(state GameState, grid *Grid) *Path {
 			var closestFoodCell *Cell
 			var closestDistance int
 			for _, food := range state.Board.Food {
+				// Skip the food if it is isNextToLarger.
+				if isNextToLarger(food.X, food.Y, state) {
+					continue
+				}
 				// Get the manhattan distance between the head and the food.
 				distance := abs(food.X-state.You.Head.X) + abs(food.Y-state.You.Head.Y)
 				// If the distance is less than the closest distance, then set the food to be the closest food.

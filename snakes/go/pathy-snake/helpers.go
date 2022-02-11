@@ -53,3 +53,34 @@ func onEdge(x int, y int, width int, height int) bool {
 	}
 	return false
 }
+
+// This function takes and x,y coord and tells us if there is a snake next to it larger than us. 
+func isNextToLarger(x int, y int, state GameState) bool {
+	// check if there is a snake next to us that is larger than us.
+	for _, snake := range state.Board.Snakes {
+		// if the snake is us, skip it.
+		if snake.ID == state.You.ID {
+			continue
+		}
+		// if the snake is smaller than us, skip it.
+		if snake.Length < state.You.Length {
+			continue
+		}
+		// Check if the snake is to the left, right, above, or below us.
+		if snake.Head.X == x-1 && snake.Head.Y == y {
+			return true
+		}
+		if snake.Head.X == x+1 && snake.Head.Y == y {
+			return true
+		}
+		if snake.Head.X == x && snake.Head.Y == y-1 {
+			return true
+		}
+		if snake.Head.X == x && snake.Head.Y == y+1 {
+			return true
+		}
+	}
+	return false
+}
+
+

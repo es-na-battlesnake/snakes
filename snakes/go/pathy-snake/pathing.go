@@ -332,7 +332,7 @@ var prevLength int
 func checkIfAteFood(state GameState) bool {
 	// If the snakes body size is greater than the previous turn size, we ate food.
 	var ate bool
-	if len(state.You.Body) > prevLength && state.Turn != 0 {
+	if len(state.You.Body) > prevLength && prevLength != 0 {
 		ate = true
 	} else {
 		ate = false

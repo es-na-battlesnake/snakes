@@ -210,8 +210,8 @@ func getPath(state GameState, grid *Grid) *Path {
 		targetCell.Y = state.Board.Width - 1
 	}
 
-	// If our health is less than 25 we want to set our target cell to be the coordinates of the closest food.
-	if state.You.Health < 25 {
+	// If our health is less than 85 we want to set our target cell to be the coordinates of the closest food.
+	if state.You.Health < 85 {
 		// Iterate over all the food in the game state.
 		var targetFoodCell []*Cell
 		for _, food := range state.Board.Food {

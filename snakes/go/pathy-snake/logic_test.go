@@ -115,6 +115,41 @@ func TestFoodEating2(t *testing.T) {
 	}
 }
 
+// Test that we go towards the closest food not next to large snake.
+func TestFoodEating3(t *testing.T) {
+	// Arrange
+	me := Battlesnake{
+		Head:   Coord{X: 5, Y: 5},
+		Body:   []Coord{{X: 5, Y: 5}, {X: 5, Y: 4}, {X: 5, Y: 3}},
+		Health: 20,
+		Length: 3,
+		ID:    "me",
+	}
+	other := Battlesnake{
+		Head: Coord{X: 8, Y: 5},
+		Body: []Coord{{X: 8, Y: 5}, {X: 8, Y: 4}, {X: 8, Y: 3}, {X: 8, Y: 2}},
+		Length: 4,
+		ID:    "other",
+	}
+	state := GameState{
+		Board: Board{
+			Snakes: []Battlesnake{me, other},
+			Food:   []Coord{{X: 7, Y: 5}, {X: 5, Y: 9}},
+			Height: 11,
+			Width:  11,
+		},
+		You: me,
+	}
+	// Act 1000x (this isn't a great way to test, but it's okay for starting out)
+	for i := 0; i < 1000; i++ {
+		nextMove := move(state)
+		// Assert never move left
+		if nextMove.Move != "up" {
+			t.Errorf("snake moved to a food next to bigger snake, %s", nextMove.Move)
+		}
+	}
+}
+		
 // Test that we do not wrap around into our own body.
 func TestBodyWrap1(t *testing.T) {
 	// Arrange

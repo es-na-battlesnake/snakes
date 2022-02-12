@@ -88,8 +88,7 @@ func isNextToLarger(x int, y int, state GameState) bool {
 		}
 		if snake.Head.X == x && snake.Head.Y == y+1 {
 			return true
-		}
-		//TODO: Add statements to check other side of board in wrapped mode. 
+		}		
 		if state.Game.Ruleset.Name == "wrapped" {
 			if onEdge(x, y, state.Board.Width, state.Board.Height) {
 				if x == 0 && snake.Head.X == state.Board.Width-1 && snake.Head.Y == y {

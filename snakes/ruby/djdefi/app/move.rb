@@ -269,6 +269,20 @@ def move(board)
     end
   end
 
+  # Invert directions
+  def invert_direction(direction)
+    case direction
+    when 'up'
+      'down'
+    when 'down'
+      'up'
+    when 'left'
+      'right'
+    when 'right'
+      'left'
+    end
+  end
+
 
   # Given an x,y coordinate on the edge of the board, return the x,y coordinates of the cell on the opposite side of the board
   def opposite_edge_cell(x, y)
@@ -501,28 +515,28 @@ def move(board)
       opposite_edge = opposite_edge_cell(@head[:x], @head[:y])
       @turn_score_array.select { |cell| cell[:x] == opposite_edge[:x] && cell[:y] == opposite_edge[:y] && (cell[:score]).positive? }.each do |cell|
         # invert the direction of the cell
-        cell[:direction] = opposite_direction(cell[:direction])
+        cell[:direction] = invert_direction(cell[:direction])
         @possible_turns << cell
       end
     elsif @head[:x] == @width - 1
       opposite_edge = opposite_edge_cell(@head[:x], @head[:y])
       @turn_score_array.select { |cell| cell[:x] == opposite_edge[:x] && cell[:y] == opposite_edge[:y] && (cell[:score]).positive? }.each do |cell|
         # invert the direction of the cell
-        cell[:direction] = opposite_direction(cell[:direction])
+        cell[:direction] = invert_direction(cell[:direction])
         @possible_turns << cell
       end
     elsif @head[:y] == 0
       opposite_edge = opposite_edge_cell(@head[:x], @head[:y])
       @turn_score_array.select { |cell| cell[:x] == opposite_edge[:x] && cell[:y] == opposite_edge[:y] && (cell[:score]).positive? }.each do |cell|
         # invert the direction of the cell
-        cell[:direction] = opposite_direction(cell[:direction])
+        cell[:direction] = invert_direction(cell[:direction])
         @possible_turns << cell
       end
     elsif @head[:y] == @height - 1
       opposite_edge = opposite_edge_cell(@head[:x], @head[:y])
       @turn_score_array.select { |cell| cell[:x] == opposite_edge[:x] && cell[:y] == opposite_edge[:y] && (cell[:score]).positive? }.each do |cell|
         # invert the direction of the cell
-        cell[:direction] = opposite_direction(cell[:direction])
+        cell[:direction] = invert_direction(cell[:direction])
         @possible_turns << cell
       end
     end

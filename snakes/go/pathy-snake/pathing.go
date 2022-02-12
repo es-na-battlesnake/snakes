@@ -46,61 +46,61 @@ func addSnakesToGrid(state GameState, grid *Grid) {
 			// Added to avoid panics (out of bounds) when the head is at the edge of the board.
 			// Then set the cost of the cells next to the head to higher cost.
 			if otherSnake.Head.X-1 >= 0 {
-				// If the snake is longer than us, then we want to make the cells next to the head cost higher.
+				// If the snake is longer than us, then we want to avoid walking on cells next to their heads.
 				if otherSnake.Length >= state.You.Length {
-					grid.Get(otherSnake.Head.X-1, otherSnake.Head.Y).Cost = 10
+					grid.Get(otherSnake.Head.X-1, otherSnake.Head.Y).Walkable = false
 				} else {
 					grid.Get(otherSnake.Head.X-1, otherSnake.Head.Y).Cost = 1.5
 				}
 			}
 			if otherSnake.Head.X+1 <= state.Board.Width-1 {
 				if otherSnake.Length >= state.You.Length {
-					grid.Get(otherSnake.Head.X+1, otherSnake.Head.Y).Cost = 10
+					grid.Get(otherSnake.Head.X+1, otherSnake.Head.Y).Walkable = false
 				} else {
 					grid.Get(otherSnake.Head.X+1, otherSnake.Head.Y).Cost = 1.5
 				}
 			}
 			if otherSnake.Head.Y-1 >= 0 {
 				if otherSnake.Length >= state.You.Length {
-					grid.Get(otherSnake.Head.X, otherSnake.Head.Y-1).Cost = 10
+					grid.Get(otherSnake.Head.X, otherSnake.Head.Y-1).Walkable = false
 				} else {
 					grid.Get(otherSnake.Head.X, otherSnake.Head.Y-1).Cost = 1.5
 				}
 			}
 			if otherSnake.Head.Y+1 <= state.Board.Height-1 {
 				if otherSnake.Length >= state.You.Length {
-					grid.Get(otherSnake.Head.X, otherSnake.Head.Y+1).Cost = 10
+					grid.Get(otherSnake.Head.X, otherSnake.Head.Y+1).Walkable = false
 				} else {
 					grid.Get(otherSnake.Head.X, otherSnake.Head.Y+1).Cost = 1.5
 				}
 			}
 			// If the snakes head is on the edge of the board.
-			// We want to set the cells opposite to the head to a higher cost.
+			// We want to set the cells opposite to the head to not be walkable.
 			if onEdge(otherSnake.Head.X, otherSnake.Head.Y, state.Board.Width, state.Board.Height) {
 				if otherSnake.Head.X == 0 {
 					if otherSnake.Length >= state.You.Length {
-						grid.Get(state.Board.Width-1, otherSnake.Head.Y).Cost = 10
+						grid.Get(state.Board.Width-1, otherSnake.Head.Y).Walkable = false
 					} else {
 						grid.Get(state.Board.Width-1, otherSnake.Head.Y).Cost = 1.5
 					}
 				}
 				if otherSnake.Head.X == state.Board.Width-1 {
 					if otherSnake.Length >= state.You.Length {
-						grid.Get(0, otherSnake.Head.Y).Cost = 10
+						grid.Get(0, otherSnake.Head.Y).Walkable = false
 					} else {
 						grid.Get(0, otherSnake.Head.Y).Cost = 1.5
 					}
 				}
 				if otherSnake.Head.Y == 0 {
 					if otherSnake.Length >= state.You.Length {
-						grid.Get(otherSnake.Head.X, state.Board.Height-1).Cost = 10
+						grid.Get(otherSnake.Head.X, state.Board.Height-1).Walkable = false
 					} else {
 						grid.Get(otherSnake.Head.X, state.Board.Height-1).Cost = 1.5
 					}
 				}
 				if otherSnake.Head.Y == state.Board.Height-1 {
 					if otherSnake.Length >= state.You.Length {
-						grid.Get(otherSnake.Head.X, 0).Cost = 10
+						grid.Get(otherSnake.Head.X, 0).Walkable = false
 					} else {
 						grid.Get(otherSnake.Head.X, 0).Cost = 1.5
 					}
@@ -211,24 +211,28 @@ func getPath(state GameState, grid *Grid) *Path {
 	}
 
 	// If our health is less than 85 we want to set our target cell to be the coordinates of the closest food.
-	if state.You.Health < 85 {
+	if state.You.Health < 85 && len(state.Board.Food) > 0 {
 		// Iterate over all the food in the game state.
 		var targetFoodCell []*Cell
 		for _, food := range state.Board.Food {
+			// Continue if food not walkable.
+			if !grid.Get(food.X, food.Y).Walkable {
+				continue
+			}
 			// Find the cell closest to our head and set it to targetCell.
 			if grid.GetPathFromCells(grid.Get(state.You.Head.X, state.You.Head.Y), grid.Get(food.X, food.Y), false, false, wrapped).Next() != nil {
 				targetFoodCell = append(targetFoodCell, grid.Get(food.X, food.Y))
 			}
 		}
 		// If we have more than one food, then pick the closest food to our head via manhattan distance.
-		if len(targetFoodCell) > 1 {
+		if len(targetFoodCell) >= 1 {
 			// Iterate over all the food in the game state.
 			// Keep track of the one that is closest to our head.
 			var closestFoodCell *Cell
 			var closestDistance int
 			for _, food := range state.Board.Food {
 				// Skip the food if it is isNextToLarger.
-				if isNextToLarger(food.X, food.Y, state) {
+				if isNextToLarger(food.X, food.Y, state) || isSurrounded(food.X, food.Y, state) {
 					continue
 				}
 				// Get the manhattan distance between the head and the food.

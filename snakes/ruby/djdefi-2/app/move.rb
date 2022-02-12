@@ -180,9 +180,9 @@ def move(board)
                       direction: direction_between(@head[:x], @head[:y], cell[:x], cell[:y]), score: 10 }
     end
   end
-  puts "Turn array is: #{turn_array}"
+  #puts "Turn array is: #{turn_array}"
 
-  puts "My neigbors are: #{@head_neighbors}"
+  #puts "My neigbors are: #{@head_neighbors}"
 
   @possible_turns = []
   # For each head_neighbor, inspect the corresponding cell in turn_array and output the results
@@ -219,7 +219,7 @@ def move(board)
     end
   end
 
-  puts "possible_turns are: #{@possible_turns}"
+  #puts "possible_turns are: #{@possible_turns}"
 
   # If head is at edge of board, then remove the direction from @possible_moves
   @possible_moves.delete('left') if (@head[:x]).zero?

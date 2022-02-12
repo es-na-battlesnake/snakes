@@ -115,6 +115,148 @@ func TestFoodEating2(t *testing.T) {
 	}
 }
 
+// Test that we go towards the closest food not next to large snake.
+func TestFoodEating3(t *testing.T) {
+	// Arrange
+	me := Battlesnake{
+		Head:   Coord{X: 5, Y: 5},
+		Body:   []Coord{{X: 5, Y: 5}, {X: 5, Y: 4}, {X: 5, Y: 3}},
+		Health: 20,
+		Length: 3,
+		ID:    "me",
+	}
+	other := Battlesnake{
+		Head: Coord{X: 8, Y: 5},
+		Body: []Coord{{X: 8, Y: 5}, {X: 8, Y: 4}, {X: 8, Y: 3}, {X: 8, Y: 2}},
+		Length: 4,
+		ID:    "other",
+	}
+	state := GameState{
+		Board: Board{
+			Snakes: []Battlesnake{me, other},
+			Food:   []Coord{{X: 7, Y: 5}, {X: 5, Y: 9}},
+			Height: 11,
+			Width:  11,
+		},
+		You: me,
+	}
+	// Act 1000x (this isn't a great way to test, but it's okay for starting out)
+	for i := 0; i < 1000; i++ {
+		nextMove := move(state)
+		// Assert never move left
+		if nextMove.Move != "up" {
+			t.Errorf("snake moved to a food next to bigger snake, %s", nextMove.Move)
+		}
+	}
+}
+
+// Test that we do not trap ourselves going after food.
+func TestFoodEating4(t *testing.T) {
+	// Arrange
+	me := Battlesnake{
+		Head:   Coord{X: 3, Y: 2},
+		Body:   []Coord{{X: 3, Y: 2}, {X: 3, Y: 1}, {X: 2, Y: 1}, {X: 1, Y: 1}, {X: 1, Y: 2}, {X: 1, Y: 3}, {X: 2, Y: 3}, {X: 2, Y: 4}},
+		Health: 20,
+	}
+	state := GameState{
+		Board: Board{
+			Snakes: []Battlesnake{me},
+			Food:   []Coord{{X: 2, Y: 2}, {X: 0, Y: 10}, {X: 10, Y: 10}},
+			Height: 11,
+			Width:  11,
+		},
+		You: me,
+	}
+	// Act 1000x (this isn't a great way to test, but it's okay for starting out)
+	for i := 0; i < 1000; i++ {
+		nextMove := move(state)
+		// Assert never move left
+		if nextMove.Move == "left" {
+			t.Errorf("snake trapped itself trying to eat food, %s", nextMove.Move)
+		}
+	}
+}
+
+// Test that we go towards the closest food not next to large snake.
+func TestFoodEating5(t *testing.T) {
+	// Arrange
+	me := Battlesnake{
+		Head:   Coord{X: 2, Y: 0},
+		Body:   []Coord{{X: 2, Y: 0}, {X: 1, Y: 0}, {X: 0, Y: 0}},
+		Health: 20,
+		Length: 3,
+		ID:    "me",
+	}
+	other := Battlesnake{
+		Head: Coord{X: 4, Y: 10},
+		Body: []Coord{{X: 4, Y: 10}, {X: 5, Y: 10}, {X: 6, Y: 10}, {X: 7, Y: 10}},
+		Length: 4,
+		ID:    "other",
+	}
+	state := GameState{
+		Board: Board{
+			Snakes: []Battlesnake{me, other},
+			Food:   []Coord{{X: 4, Y: 0}, {X: 2, Y: 7}},
+			Height: 11,
+			Width:  11,
+		},
+		You: me,
+		Game: Game{
+			Ruleset: Ruleset{
+				Name: "wrapped",
+			},
+		},
+	}
+	// Act 1000x (this isn't a great way to test, but it's okay for starting out)
+	for i := 0; i < 1000; i++ {
+		nextMove := move(state)
+		// Assert never move left
+		if nextMove.Move == "right" {
+			t.Errorf("snake moved to a food next to bigger snake, %s", nextMove.Move)
+		}
+	}
+}
+
+// Test that we go towards the closest food not next to large snake.
+func TestFoodEating6(t *testing.T) {
+	// Arrange
+	me := Battlesnake{
+		Head:   Coord{X: 2, Y: 0},
+		Body:   []Coord{{X: 2, Y: 0}, {X: 3, Y: 0}, {X: 4, Y: 0}},
+		Health: 20,
+		Length: 3,
+		ID:    "me",
+	}
+	other := Battlesnake{
+		Head: Coord{X: 10, Y: 0},
+		Body: []Coord{{X: 10, Y: 0}, {X: 10, Y: 1}, {X: 10, Y: 2}, {X: 10, Y: 3}},
+		Length: 4,
+		ID:    "other",
+	}
+	state := GameState{
+		Board: Board{
+			Snakes: []Battlesnake{me, other},
+			Food:   []Coord{{X: 0, Y: 0}, {X: 2, Y: 7}},
+			Height: 11,
+			Width:  11,
+		},
+		You: me,
+		Game: Game{
+			Ruleset: Ruleset{
+				Name: "wrapped",
+			},
+		},
+	}
+	// Act 1000x (this isn't a great way to test, but it's okay for starting out)
+	for i := 0; i < 1000; i++ {
+		nextMove := move(state)
+		// Assert never move left
+		if nextMove.Move == "left" {
+			t.Errorf("snake moved to a food next to bigger snake, %s", nextMove.Move)
+		}
+	}
+}
+		
 // Test that we do not wrap around into our own body.
 func TestBodyWrap1(t *testing.T) {
 	// Arrange
@@ -343,6 +485,77 @@ func TestCornerTrap2(t *testing.T) {
 	}
 }
 
+
+// Test that we avoid traping ourselves in a corner when we wrap.
+func TestCornerTrap3(t *testing.T) {
+	// Arrange
+	me := Battlesnake{
+		Head: Coord{X: 0, Y: 0},
+		Body: []Coord{{X: 0, Y: 0}, {X: 1, Y: 0}, {X: 2, Y: 0}, {X: 3, Y: 0}, {X: 9, Y: 0}, {X: 9, Y: 1}, {X: 10, Y: 1}, {X: 10, Y: 2}},
+		Health: 100,
+	}
+	other := Battlesnake{
+		Head: Coord{X: 10, Y: 10},
+		Body: []Coord{{X: 10, Y: 10}, {X: 9, Y: 10}, {X: 8, Y: 10}, {X: 7, Y: 10}},
+	}
+	state := GameState{
+		Board: Board{
+			Snakes: []Battlesnake{me, other},
+			Height: 11,
+			Width:  11,
+		},
+		You: me,
+		Game: Game{
+			Ruleset: Ruleset{
+				Name: "wrapped",
+			},
+		},
+	}
+	// Act 1000x (this isn't a great way to test, but it's okay for starting out)
+	for i := 0; i < 1000; i++ {
+		nextMove := move(state)
+		// Assert never move left
+		if nextMove.Move == "left" {
+			t.Errorf("snake trapped in corner while wrapping, %s", nextMove.Move)
+		}
+	}
+}
+
+// Test that we avoid traping ourselves in a corner when we wrap.
+// Same test as previous test, but testing that we don't trap in another snake.
+func TestCornerTrap4(t *testing.T) {
+	// Arrange
+	me := Battlesnake{
+		Head: Coord{X: 0, Y: 0},
+		Body: []Coord{{X: 0, Y: 0}, {X: 1, Y: 0}, {X: 2, Y: 0}, {X: 3, Y: 0}},
+	}
+	other := Battlesnake{
+		Head: Coord{X: 8, Y: 0},
+		Body: []Coord{{X: 8, Y: 0}, {X: 9, Y: 0}, {X: 9, Y: 1}, {X: 10, Y: 1}, {X: 10, Y: 2}, {X: 10, Y: 10}},
+	}
+	state := GameState{
+		Board: Board{
+			Snakes: []Battlesnake{me, other},
+			Height: 11,
+			Width:  11,
+		},
+		You: me,
+		Game: Game{
+			Ruleset: Ruleset{
+				Name: "wrapped",
+			},
+		},
+	}
+	// Act 1000x (this isn't a great way to test, but it's okay for starting out)
+	for i := 0; i < 1000; i++ {
+		nextMove := move(state)
+		// Assert never move left
+		if nextMove.Move == "left" {
+			t.Errorf("snake trapped in corner while wrapping, %s", nextMove.Move)
+		}
+	}
+}
+
 // Test that we are setting our own tail as walkable.
 func TestTailWalkable(t *testing.T) {
 	// Arrange
@@ -362,6 +575,7 @@ func TestTailWalkable(t *testing.T) {
 			Width:  11,
 			Food:   []Coord{{X: 3, Y: 10}},
 		},
+		Turn: 9999999,
 		You: me,
 	}
 	// Act 1000x (this isn't a great way to test, but it's okay for starting out)
@@ -373,3 +587,4 @@ func TestTailWalkable(t *testing.T) {
 		}
 	}
 }
+

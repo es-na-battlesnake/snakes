@@ -211,7 +211,7 @@ func getPath(state GameState, grid *Grid) *Path {
 	}
 
 	// If our health is less than 85 we want to set our target cell to be the coordinates of the closest food.
-	if state.You.Health < 85 {
+	if state.You.Health < 85 && len(state.Board.Food) > 0 {
 		// Iterate over all the food in the game state.
 		var targetFoodCell []*Cell
 		for _, food := range state.Board.Food {
@@ -225,7 +225,7 @@ func getPath(state GameState, grid *Grid) *Path {
 			}
 		}
 		// If we have more than one food, then pick the closest food to our head via manhattan distance.
-		if len(targetFoodCell) > 1 {
+		if len(targetFoodCell) >= 1 {
 			// Iterate over all the food in the game state.
 			// Keep track of the one that is closest to our head.
 			var closestFoodCell *Cell

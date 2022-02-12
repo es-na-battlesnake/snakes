@@ -499,28 +499,28 @@ def move(board)
   if @game_mode == 'wrapped'
     if @head[:x] == 0
       opposite_edge = opposite_edge_cell(@head[:x], @head[:y])
-      @turn_score_array.select { |cell| cell[:x] == opposite_edge[:x] && cell[:y] == opposite_edge[:y] }.each do |cell|
+      @turn_score_array.select { |cell| cell[:x] == opposite_edge[:x] && cell[:y] == opposite_edge[:y] && (cell[:score]).positive? }.each do |cell|
         # invert the direction of the cell
         cell[:direction] = opposite_direction(cell[:direction])
         @possible_turns << cell
       end
     elsif @head[:x] == @width - 1
       opposite_edge = opposite_edge_cell(@head[:x], @head[:y])
-      @turn_score_array.select { |cell| cell[:x] == opposite_edge[:x] && cell[:y] == opposite_edge[:y] }.each do |cell|
+      @turn_score_array.select { |cell| cell[:x] == opposite_edge[:x] && cell[:y] == opposite_edge[:y] && (cell[:score]).positive? }.each do |cell|
         # invert the direction of the cell
         cell[:direction] = opposite_direction(cell[:direction])
         @possible_turns << cell
       end
     elsif @head[:y] == 0
       opposite_edge = opposite_edge_cell(@head[:x], @head[:y])
-      @turn_score_array.select { |cell| cell[:x] == opposite_edge[:x] && cell[:y] == opposite_edge[:y] }.each do |cell|
+      @turn_score_array.select { |cell| cell[:x] == opposite_edge[:x] && cell[:y] == opposite_edge[:y] && (cell[:score]).positive? }.each do |cell|
         # invert the direction of the cell
         cell[:direction] = opposite_direction(cell[:direction])
         @possible_turns << cell
       end
     elsif @head[:y] == @height - 1
       opposite_edge = opposite_edge_cell(@head[:x], @head[:y])
-      @turn_score_array.select { |cell| cell[:x] == opposite_edge[:x] && cell[:y] == opposite_edge[:y] }.each do |cell|
+      @turn_score_array.select { |cell| cell[:x] == opposite_edge[:x] && cell[:y] == opposite_edge[:y] && (cell[:score]).positive? }.each do |cell|
         # invert the direction of the cell
         cell[:direction] = opposite_direction(cell[:direction])
         @possible_turns << cell

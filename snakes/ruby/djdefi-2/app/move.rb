@@ -78,6 +78,11 @@ def move(board)
 
   # Function to check if a cell is a wall
   def is_wall?(x, y)
+    # if game mode = wrapped, set to false
+    if board[:game][:mode] == 'wrapped'
+      return false
+    end
+    # if x or y is less than 0 or greater than width or height, return true
     if x.negative? || y.negative? || x > @width || y > @height
       true
     else

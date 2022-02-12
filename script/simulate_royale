@@ -8,9 +8,9 @@
 #   --verbose | -v: verbose mode
 #
 # Examples:
-#   ./simulate_royale.sh --mode=royale --runs=10
-#   ./simulate_royale.sh --mode=wrapped --runs=42
-#   ./simulate_royale.sh --mode=wrapped --runs=42 --verbose
+#   ./simulate_royale --mode=royale --runs=10
+#   ./simulate_royale --mode=wrapped --runs=42
+#   ./simulate_royale --mode wrapped --runs 42 --verbose
 #   ./simulate_royale.sh -v
 #
 

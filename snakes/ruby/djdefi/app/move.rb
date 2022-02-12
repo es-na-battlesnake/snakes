@@ -42,6 +42,8 @@ def move(board)
   @length = board[:you][:length].to_i
   # puts "My length is: #{@length}"
 
+  # Puts the ruleset name
+  @game_mode = board[:game][:ruleset][:name]
 
   # Puts the tail cells of all the snakes
   @snake_tails = []
@@ -162,10 +164,15 @@ def move(board)
 
   # Function to check if a cell is a wall
   def is_wall?(x, y)
-    if x.negative? || y.negative? || x > @width || y > @height
-      true
-    else
+    # If game mode is wrapped, set false, else perform wall check
+    if @game_mode == 'wrapped'
       false
+    else
+      if x.negative? || y.negative? || x > @width || y > @height
+        true
+      else
+        false
+      end
     end
   end
 
@@ -262,6 +269,37 @@ def move(board)
     end
   end
 
+  # Invert directions
+  def invert_direction(direction)
+    case direction
+    when 'up'
+      'down'
+    when 'down'
+      'up'
+    when 'left'
+      'right'
+    when 'right'
+      'left'
+    end
+  end
+
+
+  # Given an x,y coordinate on the edge of the board, return the x,y coordinates of the cell on the opposite side of the board
+  def opposite_edge_cell(x, y)
+    # Set values to_i
+    x = x.to_i
+    y = y.to_i
+    if x == 0
+      { x: @width - 1, y: y }
+    elsif x == @width - 1
+      { x: 0, y: y }
+    elsif y == 0
+      { x: x, y: @height - 1 }
+    elsif y == @height - 1
+      { x: x, y: 0 }
+    end
+  end
+
   # Function to find the neighbors of a given cell x,y coordinates
   def neighbors_of(x, y)
     adjacent_cells(x, y)
@@ -303,6 +341,39 @@ def move(board)
     'head_neighbor' => 0,
     'three_head_neighbor' => -2
   }
+
+  # If game mode is wrapped, use the following score multiplier array
+  if @game_mode == 'wrapped'
+    @score_multiplier_wrapped = {
+      'wall' => 0,
+      'hazard' => -5,
+      'hazard_adjacent' => -1,
+      'food' => 15,
+      'food_hazard' => 2,
+      'food_adjacent' => 2,
+      'shared_neighbor' => 0,
+      'shared_shorter_snake' => 15,
+      'shared_longer_snake' => -50,
+      'shared_same_length_snake' => -15,
+      'empty' => 8,
+      'snake_head' => -2,
+      'snake_body' => -2,
+      'snake_body_neighbor' => -10,
+      'corner' => -1,
+      'other_snake_head' => -2,
+      'other_snake_body' => -130,
+      'other_snake_head_neighbor' => -0,
+      'body' => -5,
+      'head' => -4,
+      'tail' => 2,
+      'my_tail' => 6,
+      'my_tail_neighbor' => 12,
+      'edge' => 15,
+      'edge_adjacent' => 5,
+      'head_neighbor' => 0,
+      'three_head_neighbor' => -2
+    }
+  end
 
   # Create an array of all of this turn's cells. Each cell is a hash with x and y coordinates, a set of types, and the direction of the cell realative to the snake's head.
   # A cell may have multiple types, such as a wall, a hazard, a food, a food_hazard, a shared_neighbor, a snake body, or a snake head.
@@ -437,15 +508,60 @@ def move(board)
     @possible_turns << cell
   end
     
+  
+  # If game mode is 'wrapped', if our head is on the edge of the map, find the cell on the opposite side of the map and add it to the @possible_turns
+  if @game_mode == 'wrapped'
+    if @head[:x] == 0
+      opposite_edge = opposite_edge_cell(@head[:x], @head[:y])
+      @turn_score_array.select { |cell| cell[:x] == opposite_edge[:x] && cell[:y] == opposite_edge[:y] && (cell[:score]).positive? }.each do |cell|
+        # invert the direction of the cell
+        cell[:direction] = invert_direction(cell[:direction])
+        @possible_turns << cell
+      end
+    elsif @head[:x] == @width - 1
+      opposite_edge = opposite_edge_cell(@head[:x], @head[:y])
+      @turn_score_array.select { |cell| cell[:x] == opposite_edge[:x] && cell[:y] == opposite_edge[:y] && (cell[:score]).positive? }.each do |cell|
+        # invert the direction of the cell
+        cell[:direction] = invert_direction(cell[:direction])
+        @possible_turns << cell
+      end
+    elsif @head[:y] == 0
+      opposite_edge = opposite_edge_cell(@head[:x], @head[:y])
+      @turn_score_array.select { |cell| cell[:x] == opposite_edge[:x] && cell[:y] == opposite_edge[:y] && (cell[:score]).positive? }.each do |cell|
+        # invert the direction of the cell
+        cell[:direction] = invert_direction(cell[:direction])
+        @possible_turns << cell
+      end
+    elsif @head[:y] == @height - 1
+      opposite_edge = opposite_edge_cell(@head[:x], @head[:y])
+      @turn_score_array.select { |cell| cell[:x] == opposite_edge[:x] && cell[:y] == opposite_edge[:y] && (cell[:score]).positive? }.each do |cell|
+        # invert the direction of the cell
+        cell[:direction] = invert_direction(cell[:direction])
+        @possible_turns << cell
+      end
+    end
+  end
+
+
   # Load directions in @possible_turns into @possible_moves
   @possible_moves = @possible_turns.map { |cell| cell[:direction] }
 
   # @possible_moves = ['up', 'down', 'left', 'right']
   # If head is at edge of board, then remove the direction from @possible_moves
-  @possible_moves.delete('left') if (@head[:x]).zero?
-  @possible_moves.delete('right') if @head[:x] == @width
-  @possible_moves.delete('down') if (@head[:y]).zero?
-  @possible_moves.delete('up') if @head[:y] == @height
+  if @game_mode != 'wrapped'
+    @possible_moves.delete('left') if (@head[:x]).zero?
+    @possible_moves.delete('right') if @head[:x] == @width
+    @possible_moves.delete('down') if (@head[:y]).zero?
+    @possible_moves.delete('up') if @head[:y] == @height
+  end
+
+  # If game mode is 'wrapped', and head is at edge of board, then add the direction off the edge of the board to @possible_moves
+  if @game_mode == 'wrapped'
+    @possible_moves.push('left') if (@head[:x]).zero?
+    @possible_moves.push('right') if @head[:x] == @width
+    @possible_moves.push('down') if (@head[:y]).zero?
+    @possible_moves.push('up') if @head[:y] == @height
+  end
 
   # Once our snake's length is greater than that of any other snake.
   # then we need to find the direction of the nearest snake's head and set @move_direction to that direction if it is in @possible_moves

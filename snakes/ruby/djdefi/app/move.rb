@@ -447,10 +447,13 @@ def move(board)
 
   # @possible_moves = ['up', 'down', 'left', 'right']
   # If head is at edge of board, then remove the direction from @possible_moves
-  @possible_moves.delete('left') if (@head[:x]).zero?
-  @possible_moves.delete('right') if @head[:x] == @width
-  @possible_moves.delete('down') if (@head[:y]).zero?
-  @possible_moves.delete('up') if @head[:y] == @height
+  # If game mode is wrapped then skip this
+  if @game_mode != 'wrapped'
+    @possible_moves.delete('left') if (@head[:x]).zero?
+    @possible_moves.delete('right') if @head[:x] == @width
+    @possible_moves.delete('down') if (@head[:y]).zero?
+    @possible_moves.delete('up') if @head[:y] == @height
+  end
 
   # Once our snake's length is greater than that of any other snake.
   # then we need to find the direction of the nearest snake's head and set @move_direction to that direction if it is in @possible_moves

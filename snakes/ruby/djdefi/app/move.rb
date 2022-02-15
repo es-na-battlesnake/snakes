@@ -328,8 +328,8 @@ def move(board)
       'wall' => 0,
       'hazard' => -10,
       'hazard_adjacent' => -1,
-      'food' => 145,
-      'food_hazard' => 2,
+      'food' => 245,
+      'food_hazard' => -100,
       'food_adjacent' => 20,
       'shared_neighbor' => 0,
       'shared_shorter_snake' => 355,
@@ -610,11 +610,17 @@ def move(board)
 
   # Puts the turn_score_array for the highest score cell on the board
 
-  puts "possible_turns are: #{@possible_turns}"
+  puts "possible_turns are: 
+  #{@possible_turns}"
 
-  puts "Possible moves are: #{@possible_moves}"
+  puts "Possible moves are: 
+  #{@possible_moves}"
 
   puts "Move direction is: #{@move_direction} - highest score is: #{@highest_score[:score]} - turn is: #{@highest_score[:types]} to the #{@highest_score[:direction]}"
+
+  #TODO Function to use A* to find the safest path to food
+  # A safe path is one that stays away from longer snakes, bodies, and hazards
+  
 
   # Output the end time in ms
   end_time = Time.now

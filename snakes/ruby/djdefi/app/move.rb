@@ -376,11 +376,11 @@ def move(board)
       'head' => -4,
       'tail' => 2,
       'my_tail' => 76,
-      'my_tail_neighbor' => 1,
+      'my_tail_neighbor' => 12,
       'edge' => -4,
       'edge_adjacent' => -1,
       'head_neighbor' => 0,
-      'three_head_neighbor' => -2,
+      'three_head_neighbor' => -2
       'shorter_snake_heads' => 1
     }
   end

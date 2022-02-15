@@ -344,7 +344,7 @@ def move(board)
       'head' => -4,
       'tail' => 2,
       'my_tail' => 6,
-      'my_tail_neighbor' => 2,
+      'my_tail_neighbor' => 20,
       'edge' => 15,
       'edge_adjacent' => 5,
       'head_neighbor' => 0,
@@ -361,9 +361,9 @@ def move(board)
       'food_hazard' => 2,
       'food_adjacent' => 2,
       'shared_neighbor' => 0,
-      'shared_shorter_snake' => 5,
+      'shared_shorter_snake' => 15,
       'shared_longer_snake' => -50,
-      'shared_same_length_snake' => -5,
+      'shared_same_length_snake' => -15,
       'empty' => 8,
       'snake_head' => -2,
       'snake_body' => -2,
@@ -375,12 +375,12 @@ def move(board)
       'body' => -5,
       'head' => -4,
       'tail' => 2,
-      'my_tail' => 76,
+      'my_tail' => 6,
       'my_tail_neighbor' => 12,
-      'edge' => -4,
-      'edge_adjacent' => -1,
+      'edge' => 15,
+      'edge_adjacent' => 5,
       'head_neighbor' => 0,
-      'three_head_neighbor' => -2
+      'three_head_neighbor' => -2,
       'shorter_snake_heads' => 1
     }
   end

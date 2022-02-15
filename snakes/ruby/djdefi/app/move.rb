@@ -11,7 +11,7 @@ def move(board)
   start_time = Time.now
 
   # Health find threshold variable clamped to 0-100
-  @@health_threshold = 100
+  @@health_threshold = 99
   @@health_threshold.clamp(0, 100)
 
   #puts board
@@ -143,6 +143,9 @@ def move(board)
     end
   end
 
+  # My snake id
+  @id = board[:you][:id]
+
   # @shared_longer_snakes are cells which are in both @head_neighbors and @other_snakes_head_neighbors and where the length of the neighboring snake is longer than my snake
   @shared_longer_snakes = @shared_neighbors.select do |s|
     @snakes_info.any? do |snake|
@@ -195,7 +198,7 @@ def move(board)
   @all_occupied_cells = (@snakes_heads + @snakes_bodies + @head.to_a + @body).flatten
 
   # x, y coordinates hash of all empty cells on the board
-  @empty_cells = @board_hash - @all_occupied_cells
+  @empty_cells = @board_hash - @all_occupied_cells + @food
 
   # x, y coordinates of each corner cell
   @corners = [{ x: 0, y: 0 }, { x: @width - 1, y: 0 }, { x: 0, y: @height - 1 },
@@ -343,7 +346,7 @@ def move(board)
       'body' => -1000,
       'head' => -4,
       'tail' => 2,
-      'my_tail' => 6,
+      'my_tail' => 26,
       'my_tail_neighbor' => 20,
       'edge' => 15,
       'edge_adjacent' => 5,
@@ -355,11 +358,11 @@ def move(board)
     # Set score multiplier for each type of cell
     @score_multiplier = {
       'wall' => -5,
-      'hazard' => -5,
-      'hazard_adjacent' => -7,
+      'hazard' => -25,
+      'hazard_adjacent' => -27,
       'food' => 15,
       'food_hazard' => 2,
-      'food_adjacent' => 2,
+      'food_adjacent' => 12,
       'shared_neighbor' => 0,
       'shared_shorter_snake' => 15,
       'shared_longer_snake' => -50,
@@ -368,20 +371,20 @@ def move(board)
       'snake_head' => -2,
       'snake_body' => -2,
       'snake_body_neighbor' => -10,
-      'corner' => -2,
+      'corner' => -1,
       'other_snake_head' => -2,
       'other_snake_body' => -130,
       'other_snake_head_neighbor' => -0,
       'body' => -5,
       'head' => -4,
       'tail' => 2,
-      'my_tail' => 6,
-      'my_tail_neighbor' => 12,
-      'edge' => 15,
+      'my_tail' => 166,
+      'my_tail_neighbor' => 2,
+      'edge' => -15,
       'edge_adjacent' => 5,
       'head_neighbor' => 0,
       'three_head_neighbor' => -2,
-      'shorter_snake_heads' => 1
+      'shorter_snake_heads' => 0
     }
   end
 
@@ -589,7 +592,7 @@ def move(board)
     end
 
     # If we are the longest by at least 2 cells, reduce our @@health_threshold by 1
-    if @length - snake[:length] >= 1
+    if @length - snake[:length] >= 5
       @@health_threshold -= 1
       # Clamp the health threshold to a minimum of 55
       @@health_threshold = 55 if @@health_threshold < 55

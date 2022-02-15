@@ -318,51 +318,20 @@ def move(board)
   # Cell base score
   @cell_base_score = 1000
 
-  # Set score multiplier for each type of cell
-  @score_multiplier = {
-    'wall' => -5,
-    'hazard' => -5,
-    'hazard_adjacent' => -7,
-    'food' => 15,
-    'food_hazard' => 2,
-    'food_adjacent' => 2,
-    'shared_neighbor' => 0,
-    'shared_shorter_snake' => 5,
-    'shared_longer_snake' => -50,
-    'shared_same_length_snake' => -5,
-    'empty' => 8,
-    'snake_head' => -2,
-    'snake_body' => -2,
-    'snake_body_neighbor' => -10,
-    'corner' => -2,
-    'other_snake_head' => -2,
-    'other_snake_body' => -130,
-    'other_snake_head_neighbor' => -0,
-    'body' => -5,
-    'head' => -4,
-    'tail' => 2,
-    'my_tail' => 76,
-    'my_tail_neighbor' => 1,
-    'edge' => -4,
-    'edge_adjacent' => -1,
-    'head_neighbor' => 0,
-    'three_head_neighbor' => -2,
-    'shorter_snake_heads' => 1
-  }
-
   # If game mode is wrapped, use the following score multiplier array
   if @game_mode == 'wrapped'
-    @score_multiplier_wrapped = {
+    puts '@@@ Using wrapped game mode score multiplier'
+    @score_multiplier = {
       'wall' => 0,
       'hazard' => -10,
       'hazard_adjacent' => -1,
-      'food' => 245,
+      'food' => 145,
       'food_hazard' => 2,
-      'food_adjacent' => 2,
+      'food_adjacent' => 20,
       'shared_neighbor' => 0,
       'shared_shorter_snake' => 355,
-      'shared_longer_snake' => -60,
-      'shared_same_length_snake' => -155,
+      'shared_longer_snake' => -800,
+      'shared_same_length_snake' => -755,
       'empty' => 50,
       'snake_head' => -2,
       'snake_body' => -2,
@@ -371,7 +340,7 @@ def move(board)
       'other_snake_head' => -2,
       'other_snake_body' => -130,
       'other_snake_head_neighbor' => -0,
-      'body' => -5,
+      'body' => -500,
       'head' => -4,
       'tail' => 2,
       'my_tail' => 6,
@@ -381,6 +350,38 @@ def move(board)
       'head_neighbor' => 0,
       'three_head_neighbor' => -2,
       'shorter_snake_heads' => 4
+    }
+  else
+    # Set score multiplier for each type of cell
+    @score_multiplier = {
+      'wall' => -5,
+      'hazard' => -5,
+      'hazard_adjacent' => -7,
+      'food' => 15,
+      'food_hazard' => 2,
+      'food_adjacent' => 2,
+      'shared_neighbor' => 0,
+      'shared_shorter_snake' => 5,
+      'shared_longer_snake' => -50,
+      'shared_same_length_snake' => -5,
+      'empty' => 8,
+      'snake_head' => -2,
+      'snake_body' => -2,
+      'snake_body_neighbor' => -10,
+      'corner' => -2,
+      'other_snake_head' => -2,
+      'other_snake_body' => -130,
+      'other_snake_head_neighbor' => -0,
+      'body' => -5,
+      'head' => -4,
+      'tail' => 2,
+      'my_tail' => 76,
+      'my_tail_neighbor' => 1,
+      'edge' => -4,
+      'edge_adjacent' => -1,
+      'head_neighbor' => 0,
+      'three_head_neighbor' => -2,
+      'shorter_snake_heads' => 1
     }
   end
 
@@ -588,7 +589,7 @@ def move(board)
     end
 
     # If we are the longest by at least 2 cells, reduce our @@health_threshold by 1
-    if @length - snake[:length] >= 5
+    if @length - snake[:length] >= 1
       @@health_threshold -= 1
       # Clamp the health threshold to a minimum of 55
       @@health_threshold = 55 if @@health_threshold < 55

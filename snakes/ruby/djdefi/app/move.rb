@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+
 $VERBOSE = nil
 $stdout.sync = true
 
@@ -29,7 +30,7 @@ def move(board)
 
   # Puts all the food in an array
   @food = board[:board][:food] || []
-  # puts "There is food at: #{@food}"
+   puts "There is food at: #{@food}"
 
   # Our health
   @health = board[:you][:health].to_i
@@ -91,6 +92,13 @@ def move(board)
   @food_hazards = @food.select do |f|
     @hazards.any? do |h|
       f[:x] == h[:x] && f[:y] == h[:y]
+    end
+  end
+
+  # Puts where all heads of shorter snakes are
+  @shorter_snake_heads = board[:board][:snakes].map { |s| s[:head] }.flatten.select do |h|
+    @snakes.any? do |s|
+      s[:length] < @length && h[:x] == s[:head][:x] && h[:y] == s[:head][:y]
     end
   end
 
@@ -185,7 +193,7 @@ def move(board)
                   end.empty?
   end
 
-  @all_occupied_cells = (@snakes_heads + @snakes_bodies + @head.to_a + @body + @food).flatten
+  @all_occupied_cells = (@snakes_heads + @snakes_bodies + @head.to_a + @body).flatten
 
   # x, y coordinates hash of all empty cells on the board
   @empty_cells = @board_hash - @all_occupied_cells
@@ -335,27 +343,28 @@ def move(board)
     'head' => -4,
     'tail' => 2,
     'my_tail' => 76,
-    'my_tail_neighbor' => 12,
+    'my_tail_neighbor' => 1,
     'edge' => -4,
     'edge_adjacent' => -1,
     'head_neighbor' => 0,
-    'three_head_neighbor' => -2
+    'three_head_neighbor' => -2,
+    'shorter_snake_heads' => 14
   }
 
   # If game mode is wrapped, use the following score multiplier array
   if @game_mode == 'wrapped'
     @score_multiplier_wrapped = {
       'wall' => 0,
-      'hazard' => -5,
+      'hazard' => -10,
       'hazard_adjacent' => -1,
-      'food' => 15,
+      'food' => 245,
       'food_hazard' => 2,
       'food_adjacent' => 2,
       'shared_neighbor' => 0,
-      'shared_shorter_snake' => 15,
-      'shared_longer_snake' => -50,
-      'shared_same_length_snake' => -15,
-      'empty' => 8,
+      'shared_shorter_snake' => 155,
+      'shared_longer_snake' => -60,
+      'shared_same_length_snake' => -155,
+      'empty' => 50,
       'snake_head' => -2,
       'snake_body' => -2,
       'snake_body_neighbor' => -10,
@@ -367,11 +376,12 @@ def move(board)
       'head' => -4,
       'tail' => 2,
       'my_tail' => 6,
-      'my_tail_neighbor' => 12,
+      'my_tail_neighbor' => 2,
       'edge' => 15,
       'edge_adjacent' => 5,
       'head_neighbor' => 0,
-      'three_head_neighbor' => -2
+      'three_head_neighbor' => -2,
+      'shorter_snake_heads' => 444
     }
   end
 
@@ -412,6 +422,7 @@ def move(board)
     types << 'hazard_adjacent' if @hazard_adjacent_cells.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
     types << 'edge_adjacent' if @edge_adjacent_cells.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
     types << 'three_head_neighbor' if @three_head_neighbors.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
+    types << 'shorter_snake_heads' if @shorter_snake_heads.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
     
 
     # Determine the direction between this cell and the snake's head

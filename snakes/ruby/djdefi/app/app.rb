@@ -3,6 +3,13 @@
 require 'rack'
 require 'rack/contrib'
 require 'sinatra'
+require 'sinatra/reloader'
+also_reload './move.rb'
+
+after_reload do
+  puts 'reloaded'
+end
+
 require_relative './util'
 require_relative './move'
 
@@ -15,9 +22,9 @@ get '/' do
   appearance = {
     apiversion: '1',
     author: 'djdefi',
-    color: '#48ffa8', 
-    head: 'gamer', 
-    tail: 'virus' 
+    color: '#ff33fa',
+    head: 'gamer',
+    tail: 'virus'
   }
 
   camelcase(appearance).to_json

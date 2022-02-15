@@ -6,7 +6,7 @@ gem 'activesupport'
 gem 'json'
 gem 'rack-contrib'
 gem 'sinatra'
-gem 'thin'
+gem 'puma'
 
 group :dev do
     gem 'rubocop'

@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-
 $VERBOSE = nil
 $stdout.sync = true
 
@@ -12,7 +11,7 @@ def move(board)
   start_time = Time.now
 
   # Health find threshold variable clamped to 0-100
-  @@health_threshold = 99
+  @@health_threshold = 100
   @@health_threshold.clamp(0, 100)
 
   #puts board

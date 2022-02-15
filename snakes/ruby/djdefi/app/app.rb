@@ -4,6 +4,14 @@ require 'rack'
 require 'rack/contrib'
 require 'sinatra'
 
+require 'sinatra/reloader'
+also_reload './move.rb'
+also_reload './app.rb'
+
+after_reload do
+  puts 'Sinatra reloaded'
+end
+
 require_relative './util'
 require_relative './move'
 
@@ -16,7 +24,7 @@ get '/' do
   appearance = {
     apiversion: '1',
     author: 'djdefi',
-    color: '#ff33fa',
+    color: '#ff33fb',
     head: 'gamer',
     tail: 'virus'
   }

@@ -149,8 +149,6 @@ def move(board)
   # @shared_longer_snakes are cells which are in both @head_neighbors and @other_snakes_head_neighbors and where the length of the neighboring snake is longer than my snake
   @shared_longer_snakes = @shared_neighbors.select do |s|
     @snakes_info.any? do |snake|
-      # Skip over my snake
-      next if snake[:id] == @id
       snake[:head_neighbors].include?(s) && snake[:length] > @length
     end
   end
@@ -604,7 +602,7 @@ def move(board)
   @highest_score = @possible_turns.max_by { |turn| turn[:score] }
 
   # Set @move_direction to the direction of the highest score object
-  @move_direction = @highest_score[:direction]
+  @move_direction = @highest_score[:direction] || 'up'
 
   puts "Move direction is: #{@move_direction} - highest score is: #{@highest_score[:score]} - turn is: #{@highest_score[:types]} to the #{@highest_score[:direction]}"
 
@@ -671,6 +669,6 @@ end
   
 
 
-  puts "MOVE: #{@move_direction}"
+  puts "MOVE: #{@move_direction} - TURN: #{board[:turn]}"
   { "move": @move_direction }
 end

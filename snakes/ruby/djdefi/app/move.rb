@@ -94,13 +94,6 @@ def move(board)
     end
   end
 
-  # Puts where all heads of shorter snakes are
-  @shorter_snake_heads = board[:board][:snakes].map { |s| s[:head] }.flatten.select do |h|
-    @snakes.any? do |s|
-      s[:length] < @length && h[:x] == s[:head][:x] && h[:y] == s[:head][:y]
-    end
-  end
-
   # Function to determine x,y coordinate pair hash of each cell adjacent to the head
   def adjacent_cells(x, y)
     # Set x and y coordinates to_i
@@ -136,29 +129,35 @@ def move(board)
       head_neighbors: adjacent_cells(s[:head][:x], s[:head][:y]) }
   end
 
-  # @shared_shorter_snakes are cells which are in both @head_neighbors and @other_snakes_head_neighbors and where the length of the neighboring snake is shorter than my snake
-  @shared_shorter_snakes = @snakes_info.select do |s|
-    s[:head_neighbors].any? do |h|
-      @shared_neighbors.include?(h) && s[:length] < @length
-    end
-  end
-
   # My snake id
   @id = board[:you][:id]
 
+  # Puts where all heads of shorter snakes are
+  @shorter_snake_heads = board[:board][:snakes].map { |s| s[:head] }.flatten.select do |h|
+    @snakes.any? do |s|
+      s[:length] < @length && h[:x] == s[:head][:x] && h[:y] == s[:head][:y]
+    end
+  end
+
+
   # @shared_longer_snakes are cells which are in both @head_neighbors and @other_snakes_head_neighbors and where the length of the neighboring snake is longer than my snake
   @shared_longer_snakes = @shared_neighbors.select do |s|
-    @snakes_info.any? do |snake|
-      snake[:head_neighbors].include?(s) && snake[:length] > @length
+    @snakes.any? do |s|
+      s[:length] > @length && s[:head][:x] == s[:head][:x] && s[:head][:y] == s[:head][:y]
+    end
+  end
+
+  # @shared_shorter_snakes are cells which are in both @head_neighbors and @other_snakes_head_neighbors and where the length of the neighboring snake is shorter than my snake
+  @shared_shorter_snakes = @shared_neighbors.select do |s|
+    @snakes.any? do |s|
+      s[:length] < @length && s[:head][:x] == s[:head][:x] && s[:head][:y] == s[:head][:y]
     end
   end
 
   # @shared_same_length_snakes are cells which are in both @head_neighbors and @other_snakes_head_neighbors and where the length of the neighboring snake is the same as my snake
   @shared_same_length_snakes = @shared_neighbors.select do |s|
-    @snakes_info.any? do |snake|
-      # Skip over my snake
-      next if snake[:id] == @id
-      snake[:head_neighbors].include?(s) && snake[:length] == @length
+    @snakes.any? do |s|
+      s[:length] == @length && s[:head][:x] == s[:head][:x] && s[:head][:y] == s[:head][:y]
     end
   end
 
@@ -602,9 +601,13 @@ def move(board)
   @highest_score = @possible_turns.max_by { |turn| turn[:score] }
 
   # Set @move_direction to the direction of the highest score object
-  @move_direction = @highest_score[:direction] || 'up'
+  if @highest_score.nil?
+    @move_direction = 'up'
+  else
+    @move_direction = @highest_score[:direction]
+  end
 
-  puts "Move direction is: #{@move_direction} - highest score is: #{@highest_score[:score]} - turn is: #{@highest_score[:types]} to the #{@highest_score[:direction]}"
+  #puts "Move direction is: #{@move_direction} - highest score is: #{@highest_score[:score]} - turn is: #{@highest_score[:types]} to the #{@highest_score[:direction]}"
 
   #TODO Function to use A* to find the safest path to food
   # A safe path is one that stays away from longer snakes, bodies, and hazards

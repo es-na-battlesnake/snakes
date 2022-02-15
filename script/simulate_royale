@@ -93,7 +93,7 @@ for i in $(seq 1 $runs); do
     --name bevns --url http://code-snek:4569/ \
     --name wilsonwong1990 --url http://code-snek:4570/ \
     -g $mode \
-    $verbose_flag 2>&1 | grep "is the winner" | tee -a winner.txt
+    $verbose_flag 2>&1 | grep "DONE" | tee -a winner.txt
 done
 
 # Output the most winning player from the file.

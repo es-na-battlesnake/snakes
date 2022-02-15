@@ -3,12 +3,6 @@
 require 'rack'
 require 'rack/contrib'
 require 'sinatra'
-require 'sinatra/reloader'
-also_reload './move.rb'
-
-after_reload do
-  puts 'reloaded'
-end
 
 require_relative './util'
 require_relative './move'

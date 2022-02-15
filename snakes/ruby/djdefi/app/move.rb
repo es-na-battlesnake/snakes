@@ -29,7 +29,7 @@ def move(board)
 
   # Puts all the food in an array
   @food = board[:board][:food] || []
-   puts "There is food at: #{@food}"
+   #puts "There is food at: #{@food}"
 
   # Our health
   @health = board[:you][:health].to_i
@@ -53,7 +53,7 @@ def move(board)
 
   # My tail coordinates
   @my_tail = [{:x => board[:you][:body][-1][:x], :y => board[:you][:body][-1][:y]}]
-  puts "My tail is: #{@my_tail}"
+  #puts "My tail is: #{@my_tail}"
 
   # Puts x, y coordinates hash of all cells on the board
   @board_hash = board[:board][:height].to_i.times.map do |i|
@@ -323,7 +323,7 @@ def move(board)
 
   # If game mode is wrapped, use the following score multiplier array
   if @game_mode == 'wrapped'
-    puts '@@@ Using wrapped game mode score multiplier'
+    #puts '@@@ Using wrapped game mode score multiplier'
     @score_multiplier = {
       'wall' => 0,
       'hazard' => -10,
@@ -603,18 +603,8 @@ def move(board)
   # Get highest score in @possible_turns
   @highest_score = @possible_turns.max_by { |turn| turn[:score] }
 
-  puts "Highest score is #{@highest_score}"
-
   # Set @move_direction to the direction of the highest score object
   @move_direction = @highest_score[:direction]
-
-  # Puts the turn_score_array for the highest score cell on the board
-
-  puts "possible_turns are: 
-  #{@possible_turns}"
-
-  puts "Possible moves are: 
-  #{@possible_moves}"
 
   puts "Move direction is: #{@move_direction} - highest score is: #{@highest_score[:score]} - turn is: #{@highest_score[:types]} to the #{@highest_score[:direction]}"
 
@@ -629,6 +619,14 @@ def move(board)
   debug = false
 # Debug output, only if debug is true
   if debug
+
+  puts "Possible moves are: 
+  #{@possible_moves}"
+
+  puts "possible_turns are: 
+  #{@possible_turns}"
+
+  puts "Highest score is #{@highest_score}"
 
   # Most common cell types from @turn_score_array and their counts and scores
   @turn_score_array.group_by { |cell| cell[:types] }.map { |types, cells| [types, cells.count] }.sort_by { |types, count| count }.reverse.each do |types, count|

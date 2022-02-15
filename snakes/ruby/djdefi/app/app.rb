@@ -39,7 +39,7 @@ end
 # TODO: Use the information in rack.request.form_hash to decide your next move.
 post '/move' do
     # Puts raw request body
-    puts request.body.read
+    #puts request.body.read
   request = underscore(env['rack.request.form_hash'])
 
   # Implement move logic in app/move.rb
@@ -57,7 +57,7 @@ post '/end' do
 
   # Output the last request form_hash to the terminal for debugging purposes
   request = underscore(env['rack.request.form_hash'])
-  puts request
+  #puts request
 
   # Output the game id, ruleset name, turn number, your health, all snakes names + health (if any).
   puts "Game ID: https://play.battlesnake.com/g/#{request[:game][:id]}/"

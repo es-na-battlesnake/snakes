@@ -347,7 +347,7 @@ def move(board)
     'edge_adjacent' => -1,
     'head_neighbor' => 0,
     'three_head_neighbor' => -2,
-    'shorter_snake_heads' => 14
+    'shorter_snake_heads' => 1
   }
 
   # If game mode is wrapped, use the following score multiplier array
@@ -360,7 +360,7 @@ def move(board)
       'food_hazard' => 2,
       'food_adjacent' => 2,
       'shared_neighbor' => 0,
-      'shared_shorter_snake' => 155,
+      'shared_shorter_snake' => 355,
       'shared_longer_snake' => -60,
       'shared_same_length_snake' => -155,
       'empty' => 50,
@@ -380,7 +380,7 @@ def move(board)
       'edge_adjacent' => 5,
       'head_neighbor' => 0,
       'three_head_neighbor' => -2,
-      'shorter_snake_heads' => 444
+      'shorter_snake_heads' => 4
     }
   end
 

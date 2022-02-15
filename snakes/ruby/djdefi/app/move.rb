@@ -29,7 +29,7 @@ def move(board)
 
   # Puts all the food in an array
   @food = board[:board][:food] || []
-  # puts "There is food at: #{@food}"
+   #puts "There is food at: #{@food}"
 
   # Our health
   @health = board[:you][:health].to_i
@@ -53,7 +53,7 @@ def move(board)
 
   # My tail coordinates
   @my_tail = [{:x => board[:you][:body][-1][:x], :y => board[:you][:body][-1][:y]}]
-  puts "My tail is: #{@my_tail}"
+  #puts "My tail is: #{@my_tail}"
 
   # Puts x, y coordinates hash of all cells on the board
   @board_hash = board[:board][:height].to_i.times.map do |i|
@@ -129,28 +129,35 @@ def move(board)
       head_neighbors: adjacent_cells(s[:head][:x], s[:head][:y]) }
   end
 
-  # @shared_shorter_snakes are cells which are in both @head_neighbors and @other_snakes_head_neighbors and where the length of the neighboring snake is shorter than my snake
-  @shared_shorter_snakes = @snakes_info.select do |s|
-    s[:head_neighbors].any? do |h|
-      @shared_neighbors.include?(h) && s[:length] < @length
+  # My snake id
+  @id = board[:you][:id]
+
+  # Puts where all heads of shorter snakes are
+  @shorter_snake_heads = board[:board][:snakes].map { |s| s[:head] }.flatten.select do |h|
+    @snakes.any? do |s|
+      s[:length] < @length && h[:x] == s[:head][:x] && h[:y] == s[:head][:y]
     end
   end
 
+
   # @shared_longer_snakes are cells which are in both @head_neighbors and @other_snakes_head_neighbors and where the length of the neighboring snake is longer than my snake
   @shared_longer_snakes = @shared_neighbors.select do |s|
-    @snakes_info.any? do |snake|
-      # Skip over my snake
-      next if snake[:id] == @id
-      snake[:head_neighbors].include?(s) && snake[:length] > @length
+    @snakes.any? do |s|
+      s[:length] > @length && s[:head][:x] == s[:head][:x] && s[:head][:y] == s[:head][:y]
+    end
+  end
+
+  # @shared_shorter_snakes are cells which are in both @head_neighbors and @other_snakes_head_neighbors and where the length of the neighboring snake is shorter than my snake
+  @shared_shorter_snakes = @shared_neighbors.select do |s|
+    @snakes.any? do |s|
+      s[:length] < @length && s[:head][:x] == s[:head][:x] && s[:head][:y] == s[:head][:y]
     end
   end
 
   # @shared_same_length_snakes are cells which are in both @head_neighbors and @other_snakes_head_neighbors and where the length of the neighboring snake is the same as my snake
   @shared_same_length_snakes = @shared_neighbors.select do |s|
-    @snakes_info.any? do |snake|
-      # Skip over my snake
-      next if snake[:id] == @id
-      snake[:head_neighbors].include?(s) && snake[:length] == @length
+    @snakes.any? do |s|
+      s[:length] == @length && s[:head][:x] == s[:head][:x] && s[:head][:y] == s[:head][:y]
     end
   end
 
@@ -185,10 +192,10 @@ def move(board)
                   end.empty?
   end
 
-  @all_occupied_cells = (@snakes_heads + @snakes_bodies + @head.to_a + @body + @food).flatten
+  @all_occupied_cells = (@snakes_heads + @snakes_bodies + @head.to_a + @body).flatten
 
   # x, y coordinates hash of all empty cells on the board
-  @empty_cells = @board_hash - @all_occupied_cells
+  @empty_cells = @board_hash - @all_occupied_cells + @food
 
   # x, y coordinates of each corner cell
   @corners = [{ x: 0, y: 0 }, { x: @width - 1, y: 0 }, { x: 0, y: @height - 1 },
@@ -311,46 +318,48 @@ def move(board)
   # Cell base score
   @cell_base_score = 1000
 
-  # Set score multiplier for each type of cell
-  @score_multiplier = {
-    'wall' => -5,
-    'hazard' => -5,
-    'hazard_adjacent' => -7,
-    'food' => 15,
-    'food_hazard' => 2,
-    'food_adjacent' => 2,
-    'shared_neighbor' => 0,
-    'shared_shorter_snake' => 5,
-    'shared_longer_snake' => -50,
-    'shared_same_length_snake' => -5,
-    'empty' => 8,
-    'snake_head' => -2,
-    'snake_body' => -2,
-    'snake_body_neighbor' => -10,
-    'corner' => -2,
-    'other_snake_head' => -2,
-    'other_snake_body' => -130,
-    'other_snake_head_neighbor' => -0,
-    'body' => -5,
-    'head' => -4,
-    'tail' => 2,
-    'my_tail' => 76,
-    'my_tail_neighbor' => 12,
-    'edge' => -4,
-    'edge_adjacent' => -1,
-    'head_neighbor' => 0,
-    'three_head_neighbor' => -2
-  }
-
   # If game mode is wrapped, use the following score multiplier array
   if @game_mode == 'wrapped'
-    @score_multiplier_wrapped = {
+    #puts '@@@ Using wrapped game mode score multiplier'
+    @score_multiplier = {
       'wall' => 0,
-      'hazard' => -5,
+      'hazard' => -10,
       'hazard_adjacent' => -1,
+      'food' => 245,
+      'food_hazard' => -100,
+      'food_adjacent' => 20,
+      'shared_neighbor' => 0,
+      'shared_shorter_snake' => 355,
+      'shared_longer_snake' => -800,
+      'shared_same_length_snake' => -755,
+      'empty' => 50,
+      'snake_head' => -2,
+      'snake_body' => -2,
+      'snake_body_neighbor' => -200,
+      'corner' => -1,
+      'other_snake_head' => -2,
+      'other_snake_body' => -130,
+      'other_snake_head_neighbor' => -0,
+      'body' => -1000,
+      'head' => -4,
+      'tail' => 2,
+      'my_tail' => 26,
+      'my_tail_neighbor' => 20,
+      'edge' => 15,
+      'edge_adjacent' => 5,
+      'head_neighbor' => 0,
+      'three_head_neighbor' => -2,
+      'shorter_snake_heads' => 4
+    }
+  else
+    # Set score multiplier for each type of cell
+    @score_multiplier = {
+      'wall' => -5,
+      'hazard' => -25,
+      'hazard_adjacent' => -27,
       'food' => 15,
       'food_hazard' => 2,
-      'food_adjacent' => 2,
+      'food_adjacent' => 12,
       'shared_neighbor' => 0,
       'shared_shorter_snake' => 15,
       'shared_longer_snake' => -50,
@@ -366,12 +375,13 @@ def move(board)
       'body' => -5,
       'head' => -4,
       'tail' => 2,
-      'my_tail' => 6,
-      'my_tail_neighbor' => 12,
-      'edge' => 15,
+      'my_tail' => 166,
+      'my_tail_neighbor' => 2,
+      'edge' => -15,
       'edge_adjacent' => 5,
       'head_neighbor' => 0,
-      'three_head_neighbor' => -2
+      'three_head_neighbor' => -2,
+      'shorter_snake_heads' => 0
     }
   end
 
@@ -412,6 +422,7 @@ def move(board)
     types << 'hazard_adjacent' if @hazard_adjacent_cells.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
     types << 'edge_adjacent' if @edge_adjacent_cells.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
     types << 'three_head_neighbor' if @three_head_neighbors.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
+    types << 'shorter_snake_heads' if @shorter_snake_heads.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
     
 
     # Determine the direction between this cell and the snake's head
@@ -589,18 +600,18 @@ def move(board)
   # Get highest score in @possible_turns
   @highest_score = @possible_turns.max_by { |turn| turn[:score] }
 
-  puts "Highest score is #{@highest_score}"
-
   # Set @move_direction to the direction of the highest score object
-  @move_direction = @highest_score[:direction]
+  if @highest_score.nil?
+    @move_direction = 'up'
+  else
+    @move_direction = @highest_score[:direction]
+  end
 
-  # Puts the turn_score_array for the highest score cell on the board
+  #puts "Move direction is: #{@move_direction} - highest score is: #{@highest_score[:score]} - turn is: #{@highest_score[:types]} to the #{@highest_score[:direction]}"
 
-  puts "possible_turns are: #{@possible_turns}"
-
-  puts "Possible moves are: #{@possible_moves}"
-
-  puts "Move direction is: #{@move_direction} - highest score is: #{@highest_score[:score]} - turn is: #{@highest_score[:types]} to the #{@highest_score[:direction]}"
+  #TODO Function to use A* to find the safest path to food
+  # A safe path is one that stays away from longer snakes, bodies, and hazards
+  
 
   # Output the end time in ms
   end_time = Time.now
@@ -609,6 +620,14 @@ def move(board)
   debug = false
 # Debug output, only if debug is true
   if debug
+
+  puts "Possible moves are: 
+  #{@possible_moves}"
+
+  puts "possible_turns are: 
+  #{@possible_turns}"
+
+  puts "Highest score is #{@highest_score}"
 
   # Most common cell types from @turn_score_array and their counts and scores
   @turn_score_array.group_by { |cell| cell[:types] }.map { |types, cells| [types, cells.count] }.sort_by { |types, count| count }.reverse.each do |types, count|
@@ -653,6 +672,6 @@ end
   
 
 
-  puts "MOVE: #{@move_direction}"
+  puts "MOVE: #{@move_direction} - TURN: #{board[:turn]}"
   { "move": @move_direction }
 end

@@ -577,7 +577,7 @@ def move(board)
   # Once our snake's length is greater than that of any other snake.
   # then we need to find the direction of the nearest snake's head and set @move_direction to that direction if it is in @possible_moves
   @snakes_info.each do |snake|
-    next unless snake[:length] < @length - 10
+    next unless snake[:length] < @length - 3
 
     puts "Snake named #{snake[:name]} is shorter than me. It's length is #{snake[:length]} and mine is #{@length}"
     # Find the direction between our head and any shorter snake's head

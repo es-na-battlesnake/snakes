@@ -332,7 +332,7 @@ def move(board)
       'shared_shorter_snake' => 355,
       'shared_longer_snake' => -800,
       'shared_same_length_snake' => -755,
-      'empty' => 50,
+      'empty' => 55,
       'snake_head' => -2,
       'snake_body' => -2,
       'snake_body_neighbor' => -200,
@@ -355,7 +355,7 @@ def move(board)
     # Set score multiplier for each type of cell
     @score_multiplier = {
       'wall' => -5,
-      'hazard' => -5,
+      'hazard' => -15,
       'hazard_adjacent' => -7,
       'food' => 15,
       'food_hazard' => 2,

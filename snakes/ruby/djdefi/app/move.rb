@@ -332,18 +332,18 @@ def move(board)
       'shared_shorter_snake' => 355,
       'shared_longer_snake' => -800,
       'shared_same_length_snake' => -755,
-      'empty' => 50,
+      'empty' => 55,
       'snake_head' => -2,
       'snake_body' => -2,
       'snake_body_neighbor' => -200,
-      'corner' => -1,
+      'corner' => 0,
       'other_snake_head' => -2,
       'other_snake_body' => -130,
       'other_snake_head_neighbor' => -0,
       'body' => -1000,
       'head' => -4,
       'tail' => 2,
-      'my_tail' => 26,
+      'my_tail' => 6,
       'my_tail_neighbor' => 20,
       'edge' => 15,
       'edge_adjacent' => 5,
@@ -355,15 +355,15 @@ def move(board)
     # Set score multiplier for each type of cell
     @score_multiplier = {
       'wall' => -5,
-      'hazard' => -25,
-      'hazard_adjacent' => -27,
+      'hazard' => -15,
+      'hazard_adjacent' => -7,
       'food' => 15,
       'food_hazard' => 2,
-      'food_adjacent' => 12,
+      'food_adjacent' => 2,
       'shared_neighbor' => 0,
-      'shared_shorter_snake' => 15,
+      'shared_shorter_snake' => 5,
       'shared_longer_snake' => -50,
-      'shared_same_length_snake' => -15,
+      'shared_same_length_snake' => -5,
       'empty' => 8,
       'snake_head' => -2,
       'snake_body' => -2,
@@ -375,10 +375,10 @@ def move(board)
       'body' => -5,
       'head' => -4,
       'tail' => 2,
-      'my_tail' => 166,
-      'my_tail_neighbor' => 2,
-      'edge' => -15,
-      'edge_adjacent' => 5,
+      'my_tail' => 76,
+      'my_tail_neighbor' => 12,
+      'edge' => -4,
+      'edge_adjacent' => -1,
       'head_neighbor' => 0,
       'three_head_neighbor' => -2,
       'shorter_snake_heads' => 0
@@ -577,7 +577,7 @@ def move(board)
   # Once our snake's length is greater than that of any other snake.
   # then we need to find the direction of the nearest snake's head and set @move_direction to that direction if it is in @possible_moves
   @snakes_info.each do |snake|
-    next unless snake[:length] < @length - 10
+    next unless snake[:length] < @length - 3
 
     puts "Snake named #{snake[:name]} is shorter than me. It's length is #{snake[:length]} and mine is #{@length}"
     # Find the direction between our head and any shorter snake's head

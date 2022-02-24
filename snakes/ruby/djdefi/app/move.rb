@@ -329,7 +329,7 @@ def move(board)
       'food_hazard' => -100,
       'food_adjacent' => 20,
       'shared_neighbor' => 0,
-      'shared_shorter_snake' => 355,
+      'shared_shorter_snake' => 455,
       'shared_longer_snake' => -800,
       'shared_same_length_snake' => -755,
       'empty' => 55,

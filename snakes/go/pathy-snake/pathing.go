@@ -149,7 +149,6 @@ func printGrid(state GameState, grid *Grid) {
 // There is or may be quite a lot of logic in this function that we use to determine the best path.
 // In most cases we pick a destination cell that is walkable and reachable.
 // If we are low on health we want to move towards food.
-// If we are in the center of the board we want to move towards the bottom left corner.
 // The tragetCell logic should probably be moved to a different function.
 func getPath(state GameState, grid *Grid) *Path {
 	// Get the path from the grid using the GetPath function.
@@ -201,13 +200,6 @@ func getPath(state GameState, grid *Grid) *Path {
 		} else {
 			log.Printf("No walkable cells in bottom half of board.\n")
 		}
-	}
-
-	// If we are in the middle of the grid then pick a target cell that is not the opposite of the head.
-	if state.You.Head.X == state.Board.Height/2 && state.You.Head.Y == state.Board.Width/2 {
-		// Set targetCell X and Y to be the bottom left corner of the grid.
-		targetCell.X = state.Board.Height - 1
-		targetCell.Y = state.Board.Width - 1
 	}
 
 	// If our health is less than 85 we want to set our target cell to be the coordinates of the closest food.

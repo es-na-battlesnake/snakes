@@ -3,6 +3,7 @@
 require 'rack'
 require 'rack/contrib'
 require 'sinatra'
+
 require_relative './util'
 require_relative './move'
 
@@ -15,9 +16,9 @@ get '/' do
   appearance = {
     apiversion: '1',
     author: 'djdefi',
-    color: '#48ffa8', 
-    head: 'gamer', 
-    tail: 'virus' 
+    color: '#ff33fb',
+    head: 'gamer',
+    tail: 'virus'
   }
 
   camelcase(appearance).to_json
@@ -38,7 +39,7 @@ end
 # TODO: Use the information in rack.request.form_hash to decide your next move.
 post '/move' do
     # Puts raw request body
-    puts request.body.read
+  puts request.body.read
   request = underscore(env['rack.request.form_hash'])
 
   # Implement move logic in app/move.rb

@@ -31,6 +31,7 @@ func start(state GameState) {
 // It's purely for informational purposes, we don't have to make any decisions here.
 func end(state GameState) {
 	log.Printf("%s END\n\n", sanatizeInput(state.Game.ID))
+	log.Printf("%s After %d turns\n", sanatizeInput(state.Game.ID), isNumber(state.Turn))
 	log.Printf("%s WINNER: %s\n", sanatizeInput(state.Game.ID), sanatizeInput(state.Board.Snakes[0].Name))
 }
 

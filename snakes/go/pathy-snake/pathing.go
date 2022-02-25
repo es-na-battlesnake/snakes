@@ -112,12 +112,22 @@ func addSnakesToGrid(state GameState, grid *Grid) {
 	// would not find a path if our head was not walkable.
 	grid.Get(state.You.Head.X, state.You.Head.Y).Walkable = true
 
-	// If we did not eat food on the previous turn, we can make our tail walkable.
+	// Clear any map that might exist between games.
+	// Note: 9999999 is used for testing purposes.
+	if state.Turn <= 3 || state.Turn == 9999999 {
+		snakeHealths = make(map[string]int)
+		updateSnakeHealth(state)
+	}
+	// If a snake did not eat food on the previous turn, we can make their tail walkable.
 	if state.Turn > 3 {
-		if !checkIfAteFood(state) {
-			// Make sure our tail is walkable.
-			grid.Get(state.You.Body[len(state.You.Body)-1].X, state.You.Body[len(state.You.Body)-1].Y).Walkable = true
+		for _, otherSnake := range state.Board.Snakes {
+			if !didSnakeEatFood(otherSnake, state) {
+				// Make sure their tail is walkable.
+				grid.Get(otherSnake.Body[len(otherSnake.Body)-1].X, otherSnake.Body[len(otherSnake.Body)-1].Y).Walkable = true
+			}
 		}
+	// Update each snakes health with the health from this turn. 
+	 updateSnakeHealth(state)
 	}
 }
 
@@ -149,7 +159,6 @@ func printGrid(state GameState, grid *Grid) {
 // There is or may be quite a lot of logic in this function that we use to determine the best path.
 // In most cases we pick a destination cell that is walkable and reachable.
 // If we are low on health we want to move towards food.
-// If we are in the center of the board we want to move towards the bottom left corner.
 // The tragetCell logic should probably be moved to a different function.
 func getPath(state GameState, grid *Grid) *Path {
 	// Get the path from the grid using the GetPath function.
@@ -201,13 +210,6 @@ func getPath(state GameState, grid *Grid) *Path {
 		} else {
 			log.Printf("No walkable cells in bottom half of board.\n")
 		}
-	}
-
-	// If we are in the middle of the grid then pick a target cell that is not the opposite of the head.
-	if state.You.Head.X == state.Board.Height/2 && state.You.Head.Y == state.Board.Width/2 {
-		// Set targetCell X and Y to be the bottom left corner of the grid.
-		targetCell.X = state.Board.Height - 1
-		targetCell.Y = state.Board.Width - 1
 	}
 
 	// If our health is less than 85 we want to set our target cell to be the coordinates of the closest food.
@@ -333,26 +335,25 @@ func getNextDirection(state GameState, path *Path) BattlesnakeMoveResponse {
 	}
 }
 
-// Keep track of our size between turns. We want to use this to determine if we ate food or not.
-var prevLength int
+// Keep track of each snake's length between turns. 
+// We use this to determine if a snake ate food or not.
+var snakeHealths = make(map[string]int)
 
-// Function that determines if we ate food on the previous turn.
-func checkIfAteFood(state GameState) bool {
-	// If the snakes body size is greater than the previous turn size, we ate food.
+// Function to check if a snake ate food on the previous turn. 
+func didSnakeEatFood(snake Battlesnake, state GameState) bool {
+	// If the snakes health is greater than the previous turn, they ate food.
 	var ate bool
-	if len(state.You.Body) > prevLength && state.Turn != 0 {
+	if int(snake.Health) > snakeHealths[snake.ID] && state.Turn != 0 {
 		ate = true
 	} else {
 		ate = false
 	}
-	
-	// This is used for tests of this function only. 
-	// We shouldn't ever see a Turn of 999999 in a real game.
-	if state.Turn == 9999999 {
-		ate = false
-	}
-	
-	// Set prevLength to current snakes body size for use in next turn.
-	prevLength = len(state.You.Body)
 	return ate
+}
+
+// Function to loop through all snakes and update their health.
+func updateSnakeHealth(state GameState) {
+	for _, snake := range state.Board.Snakes {
+		snakeHealths[snake.ID] = int(snake.Health)
+	}
 }

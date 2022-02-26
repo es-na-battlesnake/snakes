@@ -699,3 +699,74 @@ for i := 0; i < 1; i++ {
 }
 }
 
+// Test that we don't set a tail next to a head as walkable.
+// Multi turn test to make sure we are setting snake tails as walkable correctly.
+func TestTailWalkable3(t *testing.T) {
+	for i := 0; i < 1; i++ {	
+		// Arrange
+		me := Battlesnake{
+			Head: Coord{X: 4, Y: 4},
+			Body: []Coord{{X: 4, Y: 4}, {X: 4, Y: 5}, {X: 5, Y: 5}},
+			Health: 100,
+			ID: "me",
+		}
+		other := Battlesnake{
+			Head: Coord{X: 5, Y: 3},
+			Body: []Coord{{X: 5, Y: 3},{X: 6, Y: 3}, {X: 6, Y: 4}, {X: 7, Y: 4}, {X: 7, Y: 3}, {X: 7, Y: 2}, {X: 6, Y: 2}, {X: 5, Y: 2}, {X: 4, Y: 2}, {X: 4, Y: 3}},
+			Health: 100,
+			ID: "other",
+		}
+		state := GameState{
+			Board: Board{
+				Snakes: []Battlesnake{me, other},
+				Height: 11,
+				Width:  11,
+				Food:   []Coord{{X: 3, Y: 10}},
+			},
+			Turn: 9999999,
+			You: me,
+		}
+		// Act 1000x (this isn't a great way to test, but it's okay for starting out)
+		for i := 0; i < 1000; i++ {
+			nextMove := move(state)
+			// Assert never move up
+			if nextMove.Move == "down" {
+				t.Errorf("Tail incorrectly set as walkable, %s", nextMove.Move)
+			}
+		}
+	}
+	for i := 0; i < 1; i++ {
+		// Arrange
+		me := Battlesnake{
+			Head: Coord{X: 4, Y: 4},
+			Body: []Coord{{X: 4, Y: 4}, {X: 4, Y: 5}, {X: 5, Y: 5}},
+			Health: 90,
+			ID: "me",
+		}
+		other := Battlesnake{
+			Head: Coord{X: 5, Y: 3},
+			Body: []Coord{{X: 5, Y: 3},{X: 6, Y: 3}, {X: 6, Y: 4}, {X: 7, Y: 4}, {X: 7, Y: 3}, {X: 7, Y: 2}, {X: 6, Y: 2}, {X: 5, Y: 2}, {X: 4, Y: 2}, {X: 4, Y: 3}},
+			Health: 90,
+			ID: "other",
+		}
+		state := GameState{
+			Board: Board{
+				Snakes: []Battlesnake{me, other},
+				Height: 11,
+				Width:  11,
+				Food:   []Coord{{X: 5, Y: 4}},
+			},
+			Turn: 9999999,
+			You: me,
+		}
+		// Act 1000x (this isn't a great way to test, but it's okay for starting out)
+		for i := 0; i < 1000; i++ {
+			nextMove := move(state)
+			// Assert never move up
+			if nextMove.Move == "down" {
+				t.Errorf("Tail incorrectly set as walkable, %s", nextMove.Move)
+			}
+		}
+	}
+}
+

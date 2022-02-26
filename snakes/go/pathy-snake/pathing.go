@@ -39,6 +39,25 @@ func addSnakesToGrid(state GameState, grid *Grid) {
 			grid.Get(bodyPart.X, bodyPart.Y).Walkable = false
 		}
 	}
+
+	// Clear any map that might exist between games.
+	// Note: 9999999 is used for testing purposes.
+	if state.Turn <= 3 || state.Turn == 9999999 {
+		snakeHealths = make(map[string]int)
+		updateSnakeHealth(state)
+	}
+	// If a snake did not eat food on the previous turn, we can make their tail walkable.
+	if state.Turn > 3 {
+		for _, otherSnake := range state.Board.Snakes {
+			if !didSnakeEatFood(otherSnake, state) {
+				// Make sure their tail is walkable.
+				grid.Get(otherSnake.Body[len(otherSnake.Body)-1].X, otherSnake.Body[len(otherSnake.Body)-1].Y).Walkable = true
+			}
+		}
+	// Update each snakes health with the health from this turn. 
+	 updateSnakeHealth(state)
+	}
+
 	// Iterrate over all the the other snakes heads.
 	for _, otherSnake := range state.Board.Snakes {
 		if otherSnake.ID != state.You.ID {
@@ -112,23 +131,6 @@ func addSnakesToGrid(state GameState, grid *Grid) {
 	// would not find a path if our head was not walkable.
 	grid.Get(state.You.Head.X, state.You.Head.Y).Walkable = true
 
-	// Clear any map that might exist between games.
-	// Note: 9999999 is used for testing purposes.
-	if state.Turn <= 3 || state.Turn == 9999999 {
-		snakeHealths = make(map[string]int)
-		updateSnakeHealth(state)
-	}
-	// If a snake did not eat food on the previous turn, we can make their tail walkable.
-	if state.Turn > 3 {
-		for _, otherSnake := range state.Board.Snakes {
-			if !didSnakeEatFood(otherSnake, state) {
-				// Make sure their tail is walkable.
-				grid.Get(otherSnake.Body[len(otherSnake.Body)-1].X, otherSnake.Body[len(otherSnake.Body)-1].Y).Walkable = true
-			}
-		}
-	// Update each snakes health with the health from this turn. 
-	 updateSnakeHealth(state)
-	}
 }
 
 // Add food to the grid as walkable but with lower cost.

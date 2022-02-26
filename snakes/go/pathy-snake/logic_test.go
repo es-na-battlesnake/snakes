@@ -2,7 +2,17 @@ package main
 
 import (
 	"testing"
+	"log"
+	"io/ioutil"
+	"os"
 )
+
+// Ignore log output when testing.
+// Comment this function out to see log output when testing.
+func TestMain(m *testing.M) {
+		log.SetOutput(ioutil.Discard)
+		os.Exit(m.Run())
+}
 
 func TestNeckAvoidance(t *testing.T) {
 	// Arrange
@@ -556,16 +566,84 @@ func TestCornerTrap4(t *testing.T) {
 }
 
 // Test that we are setting our own tail as walkable.
-func TestTailWalkable(t *testing.T) {
+func TestTailWalkable1(t *testing.T) {
+	for i := 0; i < 1; i++ {
+		// Arrange
+		me := Battlesnake{
+			Head: Coord{X: 4, Y: 4},
+			Body: []Coord{{X: 4, Y: 4}, {X: 4, Y: 5}, {X: 3, Y: 5}, {X: 3, Y: 4}, {X: 3, Y: 3}, {X: 4, Y: 3}},
+			Health: 100,
+			ID: "me",
+		}
+		state := GameState{
+			Board: Board{
+				Snakes: []Battlesnake{me},
+				Height: 11,
+				Width:  11,
+				Food:   []Coord{{X: 3, Y: 10}},
+			},
+			Turn: 0,
+			You: me,
+		}
+		// Act 1000x (this isn't a great way to test, but it's okay for starting out)
+		for i := 0; i < 1000; i++ {
+			nextMove := move(state)
+			// Assert never move up
+			if nextMove.Move == "down" {
+				t.Errorf("Walked on tail to early, %s", nextMove.Move)
+			}
+		}
+	}
+	for i := 0; i < 1; i++ {
+		// Arrange
+		me := Battlesnake{
+			Head: Coord{X: 4, Y: 4},
+			Body: []Coord{{X: 4, Y: 4}, {X: 4, Y: 5}, {X: 3, Y: 5}, {X: 3, Y: 4}, {X: 3, Y: 3}, {X: 4, Y: 3}},
+			Health: 20,
+			ID: "me",
+		}
+		other := Battlesnake{
+			Head: Coord{X: 5, Y: 4},
+			Body: []Coord{{X: 5, Y: 4}, {X: 5, Y: 3}, {X: 5, Y: 2}},
+			ID: "other",
+		}
+		state := GameState{
+			Board: Board{
+				Snakes: []Battlesnake{me, other},
+				Height: 11,
+				Width:  11,
+				Food:   []Coord{{X: 3, Y: 10}},
+			},
+			Turn: 9999999,
+			You: me,
+		}
+		// Act 1000x (this isn't a great way to test, but it's okay for starting out)
+		for i := 0; i < 1000; i++ {
+			nextMove := move(state)
+			// Assert never move up
+			if nextMove.Move != "down" {
+				t.Errorf("Tail is not getting set as walkable, %s", nextMove.Move)
+			}
+		}	
+	}
+}
+
+// Test that we are setting a neighboring snake tail as walkable.
+// Multi turn test to make sure we are setting snake tails as walkable correctly.
+func TestTailWalkable2(t *testing.T) {
+for i := 0; i < 1; i++ {	
 	// Arrange
 	me := Battlesnake{
 		Head: Coord{X: 4, Y: 4},
-		Body: []Coord{{X: 4, Y: 4}, {X: 4, Y: 5}, {X: 3, Y: 5}, {X: 3, Y: 4}, {X: 3, Y: 3}, {X: 4, Y: 3}},
+		Body: []Coord{{X: 4, Y: 4}, {X: 4, Y: 5}, {X: 3, Y: 5}, {X: 3, Y: 4}, {X: 3, Y: 3}, {X: 4, Y: 3}, {X: 5, Y: 3}},
 		Health: 100,
+		ID: "me",
 	}
 	other := Battlesnake{
-		Head: Coord{X: 5, Y: 4},
-		Body: []Coord{{X: 5, Y: 4}, {X: 5, Y: 3}, {X: 5, Y: 2}},
+		Head: Coord{X: 5, Y: 8},
+		Body: []Coord{{X: 5, Y: 8},{X: 6, Y: 8}, {X: 6, Y: 7}, {X: 6, Y: 6}},
+		Health: 100,
+		ID: "other",
 	}
 	state := GameState{
 		Board: Board{
@@ -581,9 +659,43 @@ func TestTailWalkable(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		nextMove := move(state)
 		// Assert never move up
-		if nextMove.Move != "down" {
+		if nextMove.Move != "right" {
 			t.Errorf("Tail is not getting set as walkable, %s", nextMove.Move)
 		}
 	}
+}
+for i := 0; i < 1; i++ {	
+	// Arrange
+	me := Battlesnake{
+		Head: Coord{X: 5, Y: 4},
+		Body: []Coord{{X: 5, Y: 4},{X: 4, Y: 4}, {X: 4, Y: 5}, {X: 3, Y: 5}, {X: 3, Y: 4}, {X: 3, Y: 3}, {X: 4, Y: 3}, {X: 5, Y: 3}},
+		Health: 20,
+		ID: "me",
+	}
+	other := Battlesnake{
+		Head: Coord{X: 5, Y: 8},
+		Body: []Coord{{X: 5, Y: 8},{X: 6, Y: 8}, {X: 6, Y: 7}, {X: 6, Y: 6}},
+		Health: 20,
+		ID: "other",
+	}
+	state := GameState{
+		Board: Board{
+			Snakes: []Battlesnake{me, other},
+			Height: 11,
+			Width:  11,
+			Food:   []Coord{{X: 3, Y: 10}},
+		},
+		Turn: 9999999,
+		You: me,
+	}
+	// Act 1000x (this isn't a great way to test, but it's okay for starting out)
+	for i := 0; i < 1000; i++ {
+		nextMove := move(state)
+		// Assert never move up
+		if nextMove.Move != "up" {
+			t.Errorf("Tail is not getting set as walkable, %s", nextMove.Move)
+		}
+	}
+}
 }
 

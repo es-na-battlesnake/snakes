@@ -21,10 +21,6 @@ jobs:
       with:
         go-version: 1.17
 
-    - name: Build
-      working-directory: ./snakes
-      run: go build -v ./...
-
     - name: Test
       working-directory: ./snakes
       run: go test -v ./...

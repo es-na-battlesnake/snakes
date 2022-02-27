@@ -41,8 +41,7 @@ func addSnakesToGrid(state GameState, grid *Grid) {
 	}
 
 	// Clear any map that might exist between games.
-	// Note: 9999999 is used for testing purposes.
-	if state.Turn <= 3 || state.Turn == 9999999 {
+	if state.Turn <= 3 {
 		snakeHealths = make(map[string]int)
 		updateSnakeHealth(state)
 	}
@@ -345,7 +344,7 @@ var snakeHealths = make(map[string]int)
 func didSnakeEatFood(snake Battlesnake, state GameState) bool {
 	// If the snakes health is greater than the previous turn, they ate food.
 	var ate bool
-	if int(snake.Health) > snakeHealths[snake.ID] && state.Turn != 0 {
+	if int(snake.Health) >= snakeHealths[snake.ID] && state.Turn != 0 {
 		ate = true
 	} else {
 		ate = false

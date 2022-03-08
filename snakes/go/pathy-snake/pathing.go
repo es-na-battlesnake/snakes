@@ -66,28 +66,28 @@ func addSnakesToGrid(state GameState, grid *Grid) {
 			if otherSnake.Head.X-1 >= 0 {
 				// If the snake is longer than us, then we want to avoid walking on cells next to their heads.
 				if otherSnake.Length >= state.You.Length {
-					grid.Get(otherSnake.Head.X-1, otherSnake.Head.Y).Walkable = false
+					grid.Get(otherSnake.Head.X-1, otherSnake.Head.Y).Cost = 1000
 				} else {
 					grid.Get(otherSnake.Head.X-1, otherSnake.Head.Y).Cost = 1.5
 				}
 			}
 			if otherSnake.Head.X+1 <= state.Board.Width-1 {
 				if otherSnake.Length >= state.You.Length {
-					grid.Get(otherSnake.Head.X+1, otherSnake.Head.Y).Walkable = false
+					grid.Get(otherSnake.Head.X+1, otherSnake.Head.Y).Cost = 1000
 				} else {
 					grid.Get(otherSnake.Head.X+1, otherSnake.Head.Y).Cost = 1.5
 				}
 			}
 			if otherSnake.Head.Y-1 >= 0 {
 				if otherSnake.Length >= state.You.Length {
-					grid.Get(otherSnake.Head.X, otherSnake.Head.Y-1).Walkable = false
+					grid.Get(otherSnake.Head.X, otherSnake.Head.Y-1).Cost = 1000
 				} else {
 					grid.Get(otherSnake.Head.X, otherSnake.Head.Y-1).Cost = 1.5
 				}
 			}
 			if otherSnake.Head.Y+1 <= state.Board.Height-1 {
 				if otherSnake.Length >= state.You.Length {
-					grid.Get(otherSnake.Head.X, otherSnake.Head.Y+1).Walkable = false
+					grid.Get(otherSnake.Head.X, otherSnake.Head.Y+1).Cost = 1000
 				} else {
 					grid.Get(otherSnake.Head.X, otherSnake.Head.Y+1).Cost = 1.5
 				}
@@ -218,6 +218,11 @@ func getPath(state GameState, grid *Grid) *Path {
 		// Iterate over all the food in the game state.
 		var targetFoodCell []*Cell
 		for _, food := range state.Board.Food {
+			// Since a cell next to a larger snakes head is walkable it is possible we may find a food in that cell. 
+			// We want to avoid a piece of food that is next to a snakes head if that snake is larger.
+			if isNextToLarger(food.X, food.Y, state) || isSurrounded(food.X, food.Y, state) {
+				continue
+			}
 			// Continue if food not walkable.
 			if !grid.Get(food.X, food.Y).Walkable {
 				continue

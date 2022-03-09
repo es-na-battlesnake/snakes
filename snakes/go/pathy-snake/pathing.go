@@ -185,11 +185,11 @@ func getPath(state GameState, grid *Grid) *Path {
 					}
 				}
 			}
-		}
-		if len(walkableCells) > 0 {
-			targetCell = walkableCells[rand.Intn(len(walkableCells))]
-		} else {
-			log.Printf("No walkable cells in top half of board.\n")
+			if len(walkableCells) > 0 {
+				targetCell = walkableCells[rand.Intn(len(walkableCells))]
+			} else {
+				log.Printf("No walkable cells in top half of board.\n")
+			}
 		}
 	} else {
 		// Create a list of walkable cells in the bottom half of the board.

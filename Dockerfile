@@ -13,7 +13,7 @@ COPY Gemfile Gemfile.lock ./
 RUN bundle install --without dev
 
 RUN pip install flask
-
+RUN pip install logic
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY . .
 

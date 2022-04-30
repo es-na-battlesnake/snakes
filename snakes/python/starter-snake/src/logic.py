@@ -80,8 +80,10 @@ def _avoid_my_neck(my_body: dict, possible_moves: List[str]) -> List[str]:
             e.g. ["up", "down", "left", "right"]
     return: The list of remaining possible_moves, with the 'neck' direction removed
     """
+
     my_head = my_body[0]  # The first body coordinate is always the head
     my_neck = my_body[1]  # The segment of body right after the head is the 'neck'
+
 
     if my_neck["x"] < my_head["x"]:  # my neck is left of my head
         possible_moves.remove("left")
@@ -92,4 +94,4 @@ def _avoid_my_neck(my_body: dict, possible_moves: List[str]) -> List[str]:
     elif my_neck["y"] > my_head["y"]:  # my neck is above my head
         possible_moves.remove("up")
 
-    return 
+    return possible_moves

@@ -76,6 +76,18 @@ class AvoidNeckTest(unittest.TestCase):
         self.assertEqual(len(result_moves), 3)
         self.assertEqual(expected, result_moves)
 
+    def test_avoid_self(self):
+        # Arrange
+        test_body = [{"x": 5, "y": 5}, {"x": 5, "y": 4}, {"x": 6, "y": 4}, {"x": 6, "y": 5}]   
+        possible_moves = ["up", "down", "left", "right"] 
+        expected = ["up", "left"]
+
+        # Act
+        result_moves = logic._avoid_my_body(test_body, possible_moves)
+
+        # Assert
+        self.assertEqual(len(result_moves), 2)
+        self.assertEqual(expected, result_moves)
 
 if __name__ == "__main__":
     unittest.main()

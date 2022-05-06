@@ -38,6 +38,6 @@ jobs:
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test Summer League 2022 snake
-      working-directory: ./python/summer-league-2022
+      working-directory: /python/summer-league-2022
       run: |
         python3 src/test.py -v

@@ -53,8 +53,8 @@ def choose_move(data: dict) -> str:
     # board_height = ?
     # board_width = ?
 
-    # TODO: Step 2 - Don't hit yourself.
     # Use information from `my_body` to avoid moves that would collide with yourself.
+    possible_moves = _avoid_my_body(my_body, possible_moves)
 
     # TODO: Step 3 - Don't collide with others.
     # Use information from `data` to prevent your Battlesnake from colliding with others.
@@ -93,5 +93,21 @@ def _avoid_my_neck(my_body: dict, possible_moves: List[str]) -> List[str]:
         possible_moves.remove("down")
     elif my_neck["y"] > my_head["y"]:  # my neck is above my head
         possible_moves.remove("up")
+
+    return possible_moves
+
+# function to prevent the snake from colliding with itself.
+def _avoid_my_body(my_body: dict, possible_moves: List[str]) -> List[str]:
+
+    my_head = my_body[0]
+
+    if my_head["x"] + 1 in [body["x"] for body in my_body[1:]]:
+        possible_moves.remove("right")
+    if my_head["x"] - 1 in [body["x"] for body in my_body[1:]]:
+        possible_moves.remove("left")
+    if my_head["y"] + 1 in [body["y"] for body in my_body[1:]]:
+        possible_moves.remove("up")
+    if my_head["y"] - 1 in [body["y"] for body in my_body[1:]]:
+        possible_moves.remove("down")
 
     return possible_moves

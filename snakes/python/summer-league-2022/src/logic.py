@@ -36,7 +36,7 @@ def choose_move(data: dict) -> str:
     my_body = my_snake["body"]  # A list of coordinate dictionaries like [{"x": 0, "y": 0}, {"x": 1, "y": 0}, {"x": 2, "y": 0}]
     
     #create an array of arrays to store other snakes' body
-    other_snakes = get_other_snakes(data)
+    other_snakes = _get_other_snakes(data)
 
     # Uncomment the lines below to see what this data looks like in your output!
     # print(f"~~~ Turn: {data['turn']}  Game Mode: {data['game']['ruleset']['name']} ~~~")
@@ -60,7 +60,7 @@ def choose_move(data: dict) -> str:
     possible_moves = _avoid_my_body(my_body, possible_moves)
 
     # Step 3 - Don't collide with others.
-    possible_moves = _avoid_other_snakes(my_body, other_snakes, possible_moves)
+    possible_moves = _avoid_snake(my_body, other_snakes, possible_moves)
 
     # TODO: Step 4 - Find food.
     # Use information in `data` to seek out and find food.
@@ -137,7 +137,7 @@ def _avoid_snake(my_body: dict, other_body: dict, possible_moves: List[str]) -> 
 
     return possible_moves
 
-def get_other_snakes(data: dict) -> List[dict]:
+def _get_other_snakes(data: dict) -> List[dict]:
 
     """
     data: A dictionary containing information about the game.

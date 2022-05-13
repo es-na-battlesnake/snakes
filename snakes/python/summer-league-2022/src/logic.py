@@ -34,6 +34,9 @@ def choose_move(data: dict) -> str:
     my_snake = data["you"]      # A dictionary describing your snake's position on the board
     my_head = my_snake["head"]  # A dictionary of coordinates like {"x": 0, "y": 0}
     my_body = my_snake["body"]  # A list of coordinate dictionaries like [{"x": 0, "y": 0}, {"x": 1, "y": 0}, {"x": 2, "y": 0}]
+    
+
+
 
     # Uncomment the lines below to see what this data looks like in your output!
     # print(f"~~~ Turn: {data['turn']}  Game Mode: {data['game']['ruleset']['name']} ~~~")
@@ -109,5 +112,27 @@ def _avoid_my_body(my_body: dict, possible_moves: List[str]) -> List[str]:
         possible_moves.remove("up")
     if my_head["y"] - 1 in [body["y"] for body in my_body[1:]]:
         possible_moves.remove("down")
+
+    return possible_moves
+
+def _avoid_snake(my_body: dict, other_body: dict, possible_moves: List[str]) -> List[str]:
+
+    my_head = my_body[0]
+
+    # check if head is in the other snake's body. If so, remove the move that would cause collision.
+    to_right = {'x': my_head["x"] + 1, 'y': my_head["y"]}
+    to_left = {'x': my_head["x"] - 1, 'y': my_head["y"]}
+    to_up = {'x': my_head["x"], 'y': my_head["y"] + 1}
+    to_down = {'x': my_head["x"], 'y': my_head["y"] - 1}
+
+    for body in other_body:
+        if to_right in body:
+           possible_moves.remove("right")
+        if to_left in body:
+            possible_moves.remove("left")
+        if to_up in body:
+            possible_moves.remove("up")
+        if to_down in body:
+            possible_moves.remove("down")
 
     return possible_moves

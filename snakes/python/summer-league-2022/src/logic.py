@@ -60,7 +60,7 @@ def choose_move(data: dict) -> str:
     possible_moves = _avoid_my_body(my_body, possible_moves)
 
     # Step 3 - Don't collide with others.
-    possible_moves = _avoid_other_snakes(my_body, other_snakes_body, possible_moves)
+    possible_moves = _avoid_other_snakes(my_body, other_snakes, possible_moves)
 
     # TODO: Step 4 - Find food.
     # Use information in `data` to seek out and find food.

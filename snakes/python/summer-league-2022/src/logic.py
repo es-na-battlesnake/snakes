@@ -137,7 +137,8 @@ def _avoid_snake(my_body: dict, other_body: dict, possible_moves: List[str]) -> 
 
     return possible_moves
 
-def get_other_snakes(data: dict)
+def get_other_snakes(data: dict) -> List[dict]:
+
     """
     data: A dictionary containing information about the game.
     return: A list of dictionaries containing the bodies of the other snakes on the board.

@@ -49,9 +49,8 @@ def choose_move(data: dict) -> str:
 
     # TODO: Step 1 - Don't hit walls.
     # Use information from `data` and `my_head` to not move beyond the game board.
-    # board = data['board']
-    # board_height = ?
-    # board_width = ?
+    board = data["board"]
+    possible_moves = _avoid_walls(my_body, possible_moves, board)
 
     # Use information from `my_body` to avoid moves that would collide with yourself.
     possible_moves = _avoid_my_body(my_body, possible_moves)
@@ -101,13 +100,39 @@ def _avoid_my_body(my_body: dict, possible_moves: List[str]) -> List[str]:
 
     my_head = my_body[0]
 
-    if my_head["x"] + 1 in [body["x"] for body in my_body[1:]]:
+    for segment in my_body:
+        if segment["x"] == my_head["x"] and segment["y"] == my_head["y"]:
+            continue
+        if segment["x"] < my_head["x"]:
+            if "left" in possible_moves:
+                possible_moves.remove("left")
+        elif segment["x"] > my_head["x"]:
+            if "right" in possible_moves:
+                possible_moves.remove("right")
+        elif segment["y"] < my_head["y"]:
+            if "down" in possible_moves:
+                possible_moves.remove("down")
+        elif segment["y"] > my_head["y"]:
+            if "up" in possible_moves:
+                possible_moves.remove("up")
+
+    return possible_moves
+
+# function to prevent the snake from colliding with walls.
+def _avoid_walls(my_body: dict, possible_moves: List[str], board: dict) -> List[str]:
+
+    board_height = board["height"]
+    board_width =  board["width"]
+
+    my_head = my_body[0]
+
+    if my_head["x"] + 1 > board_width:
         possible_moves.remove("right")
-    if my_head["x"] - 1 in [body["x"] for body in my_body[1:]]:
+    if my_head["x"] - 1 < 0:
         possible_moves.remove("left")
-    if my_head["y"] + 1 in [body["y"] for body in my_body[1:]]:
+    if my_head["y"] + 1 > board_height:
         possible_moves.remove("up")
-    if my_head["y"] - 1 in [body["y"] for body in my_body[1:]]:
+    if my_head["y"] - 1 < 0:
         possible_moves.remove("down")
 
     return possible_moves

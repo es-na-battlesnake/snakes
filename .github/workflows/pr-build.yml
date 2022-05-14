@@ -39,7 +39,7 @@ jobs:
           content="${content//'%'/'%25'}"
           content="${content//$'\n'/'%0A'}"
           content="${content//$'\r'/'%0D'}"
-          echo "::set-output name=result::$content"
+          echo "::set-output name=result::$(cat simulate_royale.log)"
       
     # Use the output from the simulate-games step
     - name: Get the simulate-games output

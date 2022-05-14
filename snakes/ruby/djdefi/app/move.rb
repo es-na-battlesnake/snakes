@@ -11,8 +11,8 @@ def move(board)
   start_time = Time.now
 
   # Health find threshold variable clamped to 0-100
-  @@health_threshold = 99
-  @@health_threshold.clamp(0, 100)
+  @health_threshold = 99
+  @health_threshold.clamp(0, 100)
 
   #puts board
 
@@ -465,9 +465,9 @@ def move(board)
   @highest_score_direction = @turn_score_array.max_by { |cell| cell[:score] }[:direction]
   puts "Highest score cell direction is: #{@highest_score_direction}"
 
-  # If our @health is above the @@health_threshold, set the multiplier to 1
-  # If our @health is below the @@health_threshold, set the multiplier to 2
-  if @health > @@health_threshold
+  # If our @health is above the @health_threshold, set the multiplier to 1
+  # If our @health is below the @health_threshold, set the multiplier to 2
+  if @health > @health_threshold
     @top_direction_score_multiplier = 0
   else
     @top_direction_score_multiplier = 15
@@ -588,12 +588,12 @@ def move(board)
       @move_direction = direction
     end
 
-    # If we are the longest by at least 2 cells, reduce our @@health_threshold by 1
+    # If we are the longest by at least 2 cells, reduce our @health_threshold by 1
     if @length - snake[:length] >= 5
-      @@health_threshold -= 1
+      @health_threshold -= 1
       # Clamp the health threshold to a minimum of 55
-      @@health_threshold = 55 if @@health_threshold < 55
-      puts "I'm going to eat a snake named #{snake[:name]}. I'm going to reduce my health_threshold by 1 to #{@@health_threshold}"
+      @health_threshold = 55 if @health_threshold < 55
+      puts "I'm going to eat a snake named #{snake[:name]}. I'm going to reduce my health_threshold by 1 to #{@health_threshold}"
     end
   end
 

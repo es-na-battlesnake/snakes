@@ -14,3 +14,6 @@ echo "Go version ${INSTALLED_GO_VERSION} is installed"
 # install gopls, dlv, hey
 echo "Getting development tools"
 go install golang.org/x/tools/gopls@latest
+
+# install battlesnake cli
+go install github.com/BattlesnakeOfficial/rules/cli/battlesnake@latest

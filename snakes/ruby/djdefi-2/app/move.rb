@@ -2,7 +2,7 @@
 
 $VERBOSE = nil
 # Health find threshold variable
-@@health_threshold = 100
+@health_threshold = 100
 
 # This function is called on every turn of a game. It's how your Battlesnake decides where to move.
 # Valid moves are "up", "down", "left", or "right".
@@ -259,23 +259,23 @@ def move(board)
           puts "Moving to eat other snake - #{other_head_direction}"
           @move_direction = other_head_direction
         end
-      # If there is another longer snake, set @@health_threshold to 100
+      # If there is another longer snake, set @health_threshold to 100
       elsif snake[:length] > @length
-        @@health_threshold = 100
-        puts "Longer snake exists - lets eat food! - health threshold is: #{@@health_threshold}"
+        @health_threshold = 100
+        puts "Longer snake exists - lets eat food! - health threshold is: #{@health_threshold}"
       # If all snakes are shorter than our snake, decrease health_threshold by 10
       else
-        @@health_threshold -= 10
+        @health_threshold -= 10
         # Clamp health_threshold to a minimum of 10
-        @@health_threshold = 10 if @@health_threshold < 10
-        puts "We are the biggest - Decreasing health threshold - health threshold is: #{@@health_threshold}"
+        @health_threshold = 10 if @health_threshold < 10
+        puts "We are the biggest - Decreasing health threshold - health threshold is: #{@health_threshold}"
       end
     end
   end
 
   # If our health drops below 50, find direction of the nearest food and set @move_direction to that direction
   @health = board[:you][:health]
-  if @health < @@health_threshold
+  if @health < @health_threshold
     @record_low_health = @health
     puts "Health is: #{@health}!! Finding food"
     turn_array.each do |turn|
@@ -284,10 +284,10 @@ def move(board)
         @move_direction = turn[:direction]
       end
     end
-    # if @health is still below @@health_threshold, increase the @@health_threshold
-    if @health < @@health_threshold
-      @@health_threshold += 1
-      puts "Health threshold is now: #{@@health_threshold}"
+    # if @health is still below @health_threshold, increase the @health_threshold
+    if @health < @health_threshold
+      @health_threshold += 1
+      puts "Health threshold is now: #{@health_threshold}"
     end
   end
 

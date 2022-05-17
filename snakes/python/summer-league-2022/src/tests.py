@@ -130,5 +130,77 @@ class AvoidBodyTest(unittest.TestCase):
         self.assertEqual(len(result_moves), 2)
         self.assertEqual(expected, result_moves)
 
+
+class AvoidSnakeTest(unittest.TestCase):
+
+    def test_avoid_snake_right(self):
+        # Arrange
+        test_body = [{"x": 5, "y": 5}, {"x": 4, "y": 5}, {"x": 3, "y": 5}, {"x": 2, "y": 5}]
+        other_snakes_body = ([ {"x": 5, "y": 3}, {"x": 6, "y": 3}, {"x": 6, "y": 2} ], 
+            [ {"x": 0, "y": 0}, {"x": 1, "y": 0}, {"x": 2, "y": 0} ], 
+            [ {"x": 6, "y": 5}, {"x": 6, "y": 4}, {"x": 6, "y": 3} ])
+
+        possible_moves = ["up", "down", "right"]
+        expected = ["up", "down"]
+
+        # Act
+        result_moves = logic._avoid_snake(test_body, other_snakes_body, possible_moves)
+
+        # Assert
+        self.assertEqual(len(result_moves), 2)
+        self.assertEqual(expected, result_moves)
+
+
+    def test_avoid_snake_left(self):
+        # Arrange
+        test_body = [{"x": 5, "y": 5}, {"x": 6, "y": 5}, {"x": 7, "y": 5}, {"x": 8, "y": 5}]
+        other_snakes_body = ([ {"x": 5, "y": 3}, {"x": 6, "y": 3}, {"x": 6, "y": 2} ], 
+            [ {"x": 0, "y": 0}, {"x": 1, "y": 0}, {"x": 2, "y": 0} ], 
+            [ {"x": 4, "y": 5}, {"x": 4, "y": 4}, {"x": 4, "y": 3} ])
+
+        possible_moves = ["up", "down", "left"]
+        expected = ["up", "down"]
+
+        # Act
+        result_moves = logic._avoid_snake(test_body, other_snakes_body, possible_moves)
+
+        # Assert
+        self.assertEqual(len(result_moves), 2)
+        self.assertEqual(expected, result_moves)
+
+    def test_avoid_snake_down(self):
+        # Arrange
+        test_body = [{"x": 5, "y": 5}, {"x": 5, "y": 6}, {"x": 5, "y": 7}, {"x": 5, "y": 8}]
+        other_snakes_body = ([ {"x": 3, "y": 5}, {"x": 2, "y": 5} ], 
+            [ {"x": 0, "y": 0}, {"x": 1, "y": 0}, {"x": 2, "y": 0} ], 
+            [ {"x": 5, "y": 4}, {"x": 6, "y": 4}, {"x": 6, "y": 3} ])
+
+        possible_moves = ["right", "down", "left"]
+        expected = ["right", "left"]
+
+        # Act
+        result_moves = logic._avoid_snake(test_body, other_snakes_body, possible_moves)
+
+        # Assert
+        self.assertEqual(len(result_moves), 2)
+        self.assertEqual(expected, result_moves)    
+
+    def test_avoid_snake_up(self):
+        # Arrange
+        test_body = [{"x": 5, "y": 5}, {"x": 5, "y": 4}, {"x": 5, "y": 3}, {"x": 5, "y": 2}]
+        other_snakes_body = ([ {"x": 3, "y": 5}, {"x": 2, "y": 5} ], 
+            [ {"x": 0, "y": 0}, {"x": 1, "y": 0}, {"x": 2, "y": 0} ], 
+            [ {"x": 5, "y": 6}, {"x": 6, "y": 6}, {"x": 6, "y": 7} ])
+
+        possible_moves = ["up", "left", "right"]
+        expected = ["left", "right"]
+
+        # Act
+        result_moves = logic._avoid_snake(test_body, other_snakes_body, possible_moves)
+
+        # Assert
+        self.assertEqual(len(result_moves), 2)
+        self.assertEqual(expected, result_moves)
+ 
 if __name__ == "__main__":
     unittest.main()

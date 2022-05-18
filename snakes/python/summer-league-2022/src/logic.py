@@ -145,10 +145,16 @@ def _avoid_snake(my_body: dict, other_body: dict, possible_moves: List[str]) -> 
     my_head = my_body[0]
 
     # check if head is in the other snake's body. If so, remove the move that would cause collision.
-    to_right = {'x': my_head["x"] + 1, 'y': my_head["y"]}
+    to_right = ({'x': my_head["x"] + 1, 'y': my_head["y"]})
     to_left = {'x': my_head["x"] - 1, 'y': my_head["y"]}
     to_up = {'x': my_head["x"], 'y': my_head["y"] + 1}
     to_down = {'x': my_head["x"], 'y': my_head["y"] - 1}
+
+    # Make to_* a hashable type
+    to_right = tuple(to_right.items())
+    to_left = tuple(to_left.items())
+    to_up = tuple(to_up.items())
+    to_down = tuple(to_down.items())
 
     for body in other_body:
         if to_right in body:

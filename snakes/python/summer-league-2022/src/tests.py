@@ -204,16 +204,17 @@ class AvoidSnakeTest(unittest.TestCase):
 
     def test_avoid_single_snake(self):
         test_body = [{"x": 5, "y": 5}, {"x": 5, "y": 4}, {"x": 5, "y": 3}, {"x": 5, "y": 2}]
-        other_snakes_body = ([{"x": 5, "y": 6}, {"x": 6, "y": 6}, {"x": 6, "y": 7}])
+        other_snakes_body = []
+        other_snakes_body.append([{"x": 5, "y": 6}, {"x": 6, "y": 6}, {"x": 6, "y": 7}])
 
         possible_moves = ["up", "left", "right"]
-        expected = ["up", "left", "right"]
+        expected = ["left", "right"]
 
         # Act
         result_moves = logic._avoid_snake(test_body, other_snakes_body, possible_moves)
 
         # Assert
-        self.assertEqual(len(result_moves), 3)
+        self.assertEqual(len(result_moves), 2)
         self.assertEqual(expected, result_moves)
 
  

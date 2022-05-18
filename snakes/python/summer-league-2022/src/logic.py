@@ -170,6 +170,6 @@ def _get_other_snakes(data: dict) -> List[dict]:
     """
     other_snakes = []
     for snake in data["board"]["snakes"]:
-        if snake["id"] != data["you"]["id"]:
-            other_snakes.append(snake)
+        if snake["id"] != data["you"]["id"]: 
+            other_snakes.append([snake])
     return other_snakes

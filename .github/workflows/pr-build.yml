@@ -35,22 +35,23 @@ jobs:
     - name: Simulate games
       id: simulate-games
       run: |
-          content=$(docker run --rm --network test code-snek:pr script/simulate_royale --mode wrapped --runs 5 | tee -a simulate_royale.log)
-          content="${content//'%'/'%25'}"
-          content="${content//$'\n'/'%0A'}"
-          content="${content//$'\r'/'%0D'}"
-          echo "::set-output name=result::$content"
-      
-    # Use the output from the simulate-games step
-    - name: Get the simulate-games output
-      run: echo "${{ steps.simulate-games.outputs.result }}"
+          docker run --rm --network test code-snek:pr script/simulate_royale --mode wrapped --runs 5 | tee -a simulate_royale.log
+
+    - name: Set sim-log to var
+      uses: actions/github-script@v4
+      id: sim-log
+      with:
+        script: |
+          const fs = require('fs');
+          return fs.readFileSync('simulate_royale.log','utf8').toString();
+        result-encoding: string
 
     - name: Post comment
       uses: mshick/add-pr-comment@v1
       with:
         message: |
             🤖 🐍:
-            "${{ steps.simulate-games.outputs.result }}"
+            "${{ steps.sim-log.outputs.result }}"
         repo-token: ${{ secrets.GITHUB_TOKEN }}
         repo-token-user-login: 'github-actions[bot]' # The user.login for temporary GitHub tokens
         allow-repeats: false # This is the default

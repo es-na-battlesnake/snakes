@@ -36,11 +36,7 @@ jobs:
       id: simulate-games
       run: |
         docker run --rm --network test code-snek:pr script/simulate_royale --mode wrapped --runs 5 | tee -a simulate_royale.log
-      
-    # Use the output from the simulate-games step
-    - name: Get the simulate-games output
-      run: echo "${{ steps.simulate-games.outputs.result }}"
-    
+
     - name: Set sim-log to var
       uses: actions/github-script@v4
       id: sim-log

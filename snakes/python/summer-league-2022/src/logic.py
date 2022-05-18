@@ -34,6 +34,9 @@ def choose_move(data: dict) -> str:
     my_snake = data["you"]      # A dictionary describing your snake's position on the board
     my_head = my_snake["head"]  # A dictionary of coordinates like {"x": 0, "y": 0}
     my_body = my_snake["body"]  # A list of coordinate dictionaries like [{"x": 0, "y": 0}, {"x": 1, "y": 0}, {"x": 2, "y": 0}]
+    
+    #create an array of arrays to store other snakes' body
+    other_snakes = _get_other_snakes(data)
 
     # Uncomment the lines below to see what this data looks like in your output!
     # print(f"~~~ Turn: {data['turn']}  Game Mode: {data['game']['ruleset']['name']} ~~~")
@@ -49,15 +52,14 @@ def choose_move(data: dict) -> str:
 
     # TODO: Step 1 - Don't hit walls.
     # Use information from `data` and `my_head` to not move beyond the game board.
-    # board = data['board']
-    # board_height = ?
-    # board_width = ?
+    board = data["board"]
+    possible_moves = _avoid_walls(my_body, possible_moves, board)
 
     # Use information from `my_body` to avoid moves that would collide with yourself.
     possible_moves = _avoid_my_body(my_body, possible_moves)
 
-    # TODO: Step 3 - Don't collide with others.
-    # Use information from `data` to prevent your Battlesnake from colliding with others.
+    # Step 3 - Don't collide with others.
+    possible_moves = _avoid_snake(my_body, other_snakes, possible_moves)
 
     # TODO: Step 4 - Find food.
     # Use information in `data` to seek out and find food.
@@ -101,13 +103,73 @@ def _avoid_my_body(my_body: dict, possible_moves: List[str]) -> List[str]:
 
     my_head = my_body[0]
 
-    if my_head["x"] + 1 in [body["x"] for body in my_body[1:]]:
+    for segment in my_body:
+        if segment["x"] == my_head["x"] and segment["y"] == my_head["y"]:
+            continue
+        if segment["x"] < my_head["x"]:
+            if "left" in possible_moves:
+                possible_moves.remove("left")
+        elif segment["x"] > my_head["x"]:
+            if "right" in possible_moves:
+                possible_moves.remove("right")
+        elif segment["y"] < my_head["y"]:
+            if "down" in possible_moves:
+                possible_moves.remove("down")
+        elif segment["y"] > my_head["y"]:
+            if "up" in possible_moves:
+                possible_moves.remove("up")
+
+    return possible_moves
+
+# function to prevent the snake from colliding with walls.
+def _avoid_walls(my_body: dict, possible_moves: List[str], board: dict) -> List[str]:
+
+    board_height = board["height"]
+    board_width =  board["width"]
+
+    my_head = my_body[0]
+
+    if my_head["x"] + 1 > board_width:
         possible_moves.remove("right")
-    if my_head["x"] - 1 in [body["x"] for body in my_body[1:]]:
+    if my_head["x"] - 1 < 0:
         possible_moves.remove("left")
-    if my_head["y"] + 1 in [body["y"] for body in my_body[1:]]:
+    if my_head["y"] + 1 > board_height:
         possible_moves.remove("up")
-    if my_head["y"] - 1 in [body["y"] for body in my_body[1:]]:
+    if my_head["y"] - 1 < 0:
         possible_moves.remove("down")
 
     return possible_moves
+
+def _avoid_snake(my_body: dict, other_body: dict, possible_moves: List[str]) -> List[str]:
+
+    my_head = my_body[0]
+
+    # check if head is in the other snake's body. If so, remove the move that would cause collision.
+    to_right = {'x': my_head["x"] + 1, 'y': my_head["y"]}
+    to_left = {'x': my_head["x"] - 1, 'y': my_head["y"]}
+    to_up = {'x': my_head["x"], 'y': my_head["y"] + 1}
+    to_down = {'x': my_head["x"], 'y': my_head["y"] - 1}
+
+    for body in other_body:
+        if to_right in body:
+           possible_moves.remove("right")
+        if to_left in body:
+            possible_moves.remove("left")
+        if to_up in body:
+            possible_moves.remove("up")
+        if to_down in body:
+            possible_moves.remove("down")
+
+    return possible_moves
+
+def _get_other_snakes(data: dict) -> List[dict]:
+
+    """
+    data: A dictionary containing information about the game.
+    return: A list of dictionaries containing the bodies of the other snakes on the board.
+    """
+    other_snakes = []
+    for snake in data["board"]["snakes"]:
+        if snake["id"] != data["you"]["id"]:
+            other_snakes.append(snake)
+    return other_snakes

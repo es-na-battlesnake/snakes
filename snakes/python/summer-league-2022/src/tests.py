@@ -217,6 +217,23 @@ class AvoidSnakeTest(unittest.TestCase):
         self.assertEqual(len(result_moves), 2)
         self.assertEqual(expected, result_moves)
 
- 
+class AvoidWallTest(unittest.TestCase):
+    
+    def test_avoid_wall_top_right(self):
+        # Arrange
+        test_body = [{"x": 10, "y": 10}, {"x": 9, "y": 10}, {"x": 8, "y": 10}, {"x": 7, "y": 10}]
+        # Setup board object with width and height nested objects
+        board = { "width": 10, "height": 10 }
+
+        possible_moves = ["up", "right", "down"]
+        expected = ["down"]
+
+        # Act
+        result_moves = logic._avoid_walls(test_body, possible_moves, board)
+
+        # Assert
+        self.assertEqual(len(result_moves), 1)
+        self.assertEqual(expected, result_moves)
+
 if __name__ == "__main__":
     unittest.main()

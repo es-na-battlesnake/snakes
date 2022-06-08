@@ -40,7 +40,7 @@ jobs:
           docker run --rm --network test code-snek:pr script/simulate_royale --mode wrapped --runs 5 | tee -a simulate_royale.log
 
     - name: Set sim-log to var
-      uses: actions/github-script@v4
+      uses: actions/github-script@v6
       id: sim-log
       with:
         script: |

@@ -19,6 +19,7 @@ type Game struct {
 	ID      string  `json:"id"`
 	Ruleset Ruleset `json:"ruleset"`
 	Timeout int32   `json:"timeout"`
+	Map     string 	`json:"map"`
 }
 
 type Ruleset struct {

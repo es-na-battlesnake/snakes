@@ -16,4 +16,4 @@ echo "Getting development tools"
 go install golang.org/x/tools/gopls@latest
 
 # install battlesnake cli
-go get github.com/BattlesnakeOfficial/rules/cli/battlesnake
+go install github.com/BattlesnakeOfficial/rules/cli/battlesnake@latest

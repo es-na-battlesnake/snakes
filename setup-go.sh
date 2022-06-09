@@ -1,5 +1,5 @@
 # install go
-VERSION='1.17.6'
+VERSION='1.18.3'
 OS='linux'
 ARCH='amd64'
 

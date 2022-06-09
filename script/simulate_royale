@@ -5,12 +5,16 @@
 #   --help: show this help
 #   --mode: mode to run (default: "royale")
 #   --runs: number of runs (default: 1)
+#   --map: map to use (default: "standard")
+#   --height: height of the map (default: 10)
+#   --width: width of the map (default: 10)
 #   --verbose | -v: verbose mode
 #
 # Examples:
 #   ./simulate_royale.sh --mode=royale --runs=10
 #   ./simulate_royale.sh --mode=wrapped --runs=42
 #   ./simulate_royale.sh --mode=wrapped --runs=42 --verbose
+#   ./simulate_royale.sh --mode=wrapped --runs=42 --map=standard
 #   ./simulate_royale.sh -v
 #
 
@@ -30,6 +34,18 @@ while [[ $# -gt 0 ]]; do
             runs="$2"
             shift
             ;;
+        --map)
+            map="$2"
+            shift
+            ;;
+        --height)
+            height="$2"
+            shift
+            ;;
+        --width)
+            width="$2"
+            shift
+            ;;
         --verbose|-v)
             verbose=true
             ;;
@@ -46,6 +62,15 @@ runs=${runs:-1}
 
 # default mode to "royale"
 mode=${mode:-royale}
+
+# default map to "standard"
+map=${map:-standard}
+
+# default height to 10
+height=${height:-10}
+
+# default width to 10
+width=${width:-10}
 
 # if verbose mode is enabled, set verbose flag
 if [[ $verbose ]]; then
@@ -82,17 +107,26 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+# Output the settings
+echo "Simulating battlesnake with the following settings:"
+echo "  mode: $mode"
+echo "  runs: $runs"
+echo "  map: $map"
+echo "  height: $height"
+echo "  width: $width"
+echo "  verbose: $verbose"
+
+
 # Run command $runs times and record "is the winner" line of output to a file.
 for i in $(seq 1 $runs); do
-    echo "Running battlesnake $i of $runs - mode: $mode"
-    /root/go/bin/battlesnake play -W 11 -H 11 --name ruby-danger-noodle --url http://code-snek:4567/ \
+    echo "Run [$i/$runs]"
+    /root/go/bin/battlesnake play -W $width -H $height \
     --name summer-2022 --url http://code-snek:8080/ \
     --name pathy --url http://code-snek:8081/ \
     --name ruby-danger-noodle --url http://code-snek:4567/ \
-    --name code-snake --url http://code-snek:4568/ \
     --name bevns --url http://code-snek:4569/ \
-    --name wilsonwong1990 --url http://code-snek:4570/ \
     -g $mode \
+    -m $map \
     $verbose_flag 2>&1 | grep "DONE" | tee -a winner.txt
 done
 

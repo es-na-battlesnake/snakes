@@ -6,6 +6,8 @@
 #   --mode: mode to run (default: "royale")
 #   --runs: number of runs (default: 1)
 #   --map: map to use (default: "standard")
+#   --height: height of the map (default: 10)
+#   --width: width of the map (default: 10)
 #   --verbose | -v: verbose mode
 #
 # Examples:
@@ -36,6 +38,14 @@ while [[ $# -gt 0 ]]; do
             map="$2"
             shift
             ;;
+        --height)
+            height="$2"
+            shift
+            ;;
+        --width)
+            width="$2"
+            shift
+            ;;
         --verbose|-v)
             verbose=true
             ;;
@@ -55,6 +65,12 @@ mode=${mode:-royale}
 
 # default map to "standard"
 map=${map:-standard}
+
+# default height to 10
+height=${height:-10}
+
+# default width to 10
+width=${width:-10}
 
 # if verbose mode is enabled, set verbose flag
 if [[ $verbose ]]; then
@@ -93,8 +109,8 @@ fi
 
 # Run command $runs times and record "is the winner" line of output to a file.
 for i in $(seq 1 $runs); do
-    echo "Running battlesnake $i of $runs - mode: $mode - map: $map"
-    /root/go/bin/battlesnake play -W 19 -H 21 \
+    echo "Running battlesnake $i of $runs - mode: $mode - map: $map - height: $height - width: $width"
+    /root/go/bin/battlesnake play -W $width -H $height \
     --name summer-2022 --url http://code-snek:8080/ \
     --name pathy --url http://code-snek:8081/ \
     --name ruby-danger-noodle --url http://code-snek:4567/ \

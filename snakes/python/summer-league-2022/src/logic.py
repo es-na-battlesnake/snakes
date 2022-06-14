@@ -38,9 +38,9 @@ def build_board(board: dict) -> List[List[int]]:
     return board_map
 
 """
-TO DO: Create a function that adds all the snakes to the board.
-TO DO: Create a function that adds all the food to the board.
-TO DO: Create a function that adds all the hazards to the board.
+TODO: Create a function that adds all the snakes to the board.
+TODO: Create a function that adds all the food to the board.
+TODO: Create a function that adds all the hazards to the board.
 """
 """
 build_map_example is an example function that shows how to build a map of the board.

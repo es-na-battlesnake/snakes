@@ -1,6 +1,10 @@
 import random
 from typing import List, Dict
 
+from pathfinding.core.diagonal_movement import DiagonalMovement
+from pathfinding.core.grid import Grid
+from pathfinding.finder.a_star import AStarFinder
+
 """
 This file can be a nice home for your Battlesnake's logic and helper functions.
 We have started this for you, and included some logic to remove your Battlesnake's 'neck'
@@ -21,6 +25,54 @@ def get_info() -> dict:
         "tail": "bolt",
     }
 
+def build_board(board: dict) -> List[List[int]]:
+    """
+    Create a 2d array the size of the board to represent the board.
+    """
+    board_map = []
+    for row in range(board["height"]-1):
+        board_map.append([])
+        for col in range(board["width"]-1):
+            board_map[row].append(0)
+
+    return board_map
+
+"""
+TO DO: Create a function that adds all the snakes to the board.
+TO DO: Create a function that adds all the food to the board.
+TO DO: Create a function that adds all the hazards to the board.
+"""
+"""
+build_map_example is an example function that shows how to build a map of the board.
+Then how to set the starting position and ending position of the pathfinder.
+I am leaving this here so that we can reference it to build out other functions that build our game board. 
+"""
+def build_map_example() -> str:
+
+    matrix = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    ]
+    #grid = Grid(matrix=matrix)
+    grid = Grid(10,10,matrix,False)
+    start = grid.node(0, 0)
+    end = grid.node(5, 5)
+
+    finder = AStarFinder(diagonal_movement=DiagonalMovement.never)
+    path, runs = finder.find_path(start, end, grid)
+
+    print('operations:', runs, 'path length:', len(path))
+    print(grid.grid_str(path=path, start=start, end=end))
+    print(path)
+
+    return "test"
 
 def choose_move(data: dict) -> str:
     """

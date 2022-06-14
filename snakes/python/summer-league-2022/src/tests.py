@@ -235,5 +235,18 @@ class AvoidWallTest(unittest.TestCase):
         self.assertEqual(len(result_moves), 1)
         self.assertEqual(expected, result_moves)
 
+class BuildMap(unittest.TestCase):
+
+    def test_map_is_built(self):
+        # Arrange
+        board = { "width": 10, "height": 10 }
+        
+        # Act
+        result_map = logic.build_board(board)
+
+        # Assert
+        self.assertEqual(len(result_map), 9)
+
+
 if __name__ == "__main__":
     unittest.main()

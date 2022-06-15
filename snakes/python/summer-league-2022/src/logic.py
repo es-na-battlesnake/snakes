@@ -30,9 +30,9 @@ def build_board(board: dict) -> List[List[int]]:
     Create a 2d array the size of the board to represent the board.
     """
     board_map = []
-    for row in range(board["height"]-1):
+    for row in range(board["height"]):
         board_map.append([])
-        for col in range(board["width"]-1):
+        for col in range(board["width"]):
             board_map[row].append(1)
 
     return board_map
@@ -60,42 +60,53 @@ def add_hazards_to_board(board: List[List[int]], hazards: List[dict]) -> List[Li
     
     return board
 
-"""
-TODO: Create a function that adds all the snakes to the board.
-TODO: Create a function that adds all the food to the board.
-TODO: Create a function that adds all the hazards to the board.
-"""
-"""
-build_map_example is an example function that shows how to build a map of the board.
-Then how to set the starting position and ending position of the pathfinder.
-I am leaving this here so that we can reference it to build out other functions that build our game board. 
-"""
-def build_map_example() -> str:
+def build_grid(board: dict) -> Grid:
+    """
+    board: A dictionary containing the board information.
+    return: A Grid object representing the board.
+    """
+    grid = Grid(matrix=board)
+    return grid
 
-    matrix = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    ]
-    #grid = Grid(matrix=matrix)
-    grid = Grid(10,10,matrix,False)
-    start = grid.node(0, 0)
-    end = grid.node(5, 5)
+def get_target(data: dict, board: dict) -> dict:
+    """
+    data: A dictionary containing information about the game.
+    return: A dictionary containing the x/y coordinates of the target.
+    """
+    # get random array position
+    if data["you"]["head"]["y"] <= 5:
+        print("head is less than 5")
 
-    finder = AStarFinder(diagonal_movement=DiagonalMovement.never)
-    path, runs = finder.find_path(start, end, grid)
+        y = random.randint(5, data["board"]["height"]-1)
+        x = random.randint(0, data["board"]["width"]-1)
+        print("y:", y, "x:", x)
+        return y, x
+    else:
+        print("head is greater than 5")
 
-    print('operations:', runs, 'path length:', len(path))
-    print(grid.grid_str(path=path, start=start, end=end))
-    print(path)
+        y = random.randint(0, data["board"]["height"]/2)
+        x = random.randint(0, data["board"]["width"]-1)
+        print("y:", y, "x:", x)
+        return y, x
 
-    return "test"
+def get_direction(path: List[str]) -> str:
+    """
+    path: A list of strings representing the path to the target.
+    return: A string representing the direction to move.
+    """
+    current = path[0]
+    next_move = path[1]
+
+    if next_move[0] == current[0] & next_move[1] > current[1]:
+        return "down"
+    elif next_move[0] == current[0] & next_move[1] < current[1]:
+        return "up"
+    elif next_move[1] == current[1] & next_move[0] > current[0]:
+        return "right"
+    elif next_move[1] == current[1] & next_move[0] < current[0]:
+        return "left"
+    else:
+        return "up"
 
 def choose_move(data: dict) -> str:
     """
@@ -121,7 +132,28 @@ def choose_move(data: dict) -> str:
     board = add_hazards_to_board(board, hazards)
     print(board)
 
-   # print(add_snakes_to_board(build_board(board), snakes))
+    grid = build_grid(board)
+
+    target = get_target(data, board)
+    #Set starting point to your head
+    start = grid.node(data["you"]["head"]["y"], data["you"]["head"]["x"])
+    end = grid.node(target[0], target[1])
+
+    finder = AStarFinder(diagonal_movement=DiagonalMovement.never)
+    path, runs = finder.find_path(start, end, grid)
+
+    print('operations:', runs, 'path length:', len(path))
+    print(grid.grid_str(path=path, start=start, end=end))
+    print(path)
+
+    return get_direction(path)
+
+
+    """
+    !!!!!!!!! 
+    OLD MOVE CODE BELOW
+    !!!!!!!!!
+    """
 
     my_snake = data["you"]      # A dictionary describing your snake's position on the board
     my_head = my_snake["head"]  # A dictionary of coordinates like {"x": 0, "y": 0}

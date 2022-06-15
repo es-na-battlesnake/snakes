@@ -254,6 +254,11 @@ class BuildMap(unittest.TestCase):
         # Act
         result_map = logic.choose_move(data)
 
+        # Assert
+        '''
+        currently there is no assert here as this test was created to help with adding the new functions. 
+        '''
+
 
 
 if __name__ == "__main__":

@@ -49,7 +49,7 @@ def add_snakes_to_board(board: List[List[int]], snakes: List[dict]) -> List[List
     
     return board
 
-def add_hazard_to_board(board: List[List[int]], hazards: List[dict]) -> List[List[int]]:
+def add_hazards_to_board(board: List[List[int]], hazards: List[dict]) -> List[List[int]]:
     """
     board: A 2d array representing the board.
     hazards: A list of dictionaries containing the bodies of the other snakes on the board.
@@ -118,8 +118,7 @@ def choose_move(data: dict) -> str:
     """
     Add hazards to board
     """
-    print(hazards)
-    board = add_hazard_to_board(board, hazards)
+    board = add_hazards_to_board(board, hazards)
     print(board)
 
    # print(add_snakes_to_board(build_board(board), snakes))

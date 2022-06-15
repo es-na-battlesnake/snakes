@@ -33,9 +33,32 @@ def build_board(board: dict) -> List[List[int]]:
     for row in range(board["height"]-1):
         board_map.append([])
         for col in range(board["width"]-1):
-            board_map[row].append(0)
+            board_map[row].append(1)
 
     return board_map
+
+def add_snakes_to_board(board: List[List[int]], snakes: List[dict]) -> List[List[int]]:
+    """
+    board: A 2d array representing the board.
+    snakes: A list of dictionaries containing the bodies of the other snakes on the board.
+    return: A 2d array representing the board with the other snakes added.
+    """
+    for snake in snakes:
+        for segment in snake["body"]:
+            board[segment["y"]][segment["x"]] = 0
+    
+    return board
+
+def add_hazard_to_board(board: List[List[int]], hazards: List[dict]) -> List[List[int]]:
+    """
+    board: A 2d array representing the board.
+    hazards: A list of dictionaries containing the bodies of the other snakes on the board.
+    return: A 2d array representing the board with the other snakes added.
+    """
+    for hazard in hazards:
+        board[hazard["y"]][hazard["x"]] = -1
+    
+    return board
 
 """
 TODO: Create a function that adds all the snakes to the board.
@@ -83,6 +106,24 @@ def choose_move(data: dict) -> str:
     with as a Python Dictionary, and contains all of the information about the Battlesnake board
     for each move of the game.
     """
+
+    snakes = data["board"]["snakes"]
+    hazards = data["board"]["hazards"]
+    
+    board = build_board(data["board"])
+    """
+    Add snakes to board
+    """
+    board = add_snakes_to_board(board, snakes)
+    """
+    Add hazards to board
+    """
+    print(hazards)
+    board = add_hazard_to_board(board, hazards)
+    print(board)
+
+   # print(add_snakes_to_board(build_board(board), snakes))
+
     my_snake = data["you"]      # A dictionary describing your snake's position on the board
     my_head = my_snake["head"]  # A dictionary of coordinates like {"x": 0, "y": 0}
     my_body = my_snake["body"]  # A list of coordinate dictionaries like [{"x": 0, "y": 0}, {"x": 1, "y": 0}, {"x": 2, "y": 0}]

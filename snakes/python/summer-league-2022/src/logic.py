@@ -4,6 +4,7 @@ from typing import List, Dict
 from pathfinding.core.diagonal_movement import DiagonalMovement
 from pathfinding.core.grid import Grid
 from pathfinding.finder.a_star import AStarFinder
+from pathfinding.finder.dijkstra import DijkstraFinder
 
 """
 This file can be a nice home for your Battlesnake's logic and helper functions.
@@ -94,6 +95,12 @@ def get_direction(path: List[str]) -> str:
     path: A list of strings representing the path to the target.
     return: A string representing the direction to move.
     """
+
+    if len(path) < 2:
+        #return random move
+        print("Random move")
+        return random.choice(["up", "down", "left", "right"])
+
     current = path[0]
     next_move = path[1]
 

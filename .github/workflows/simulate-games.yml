@@ -27,6 +27,9 @@ jobs:
     - name: Run the Docker image
       run: docker run -d -p 4567:4567 --network test --name code-snek code-snek:pr
 
+    - name: Pause for 10 seconds
+      run: sleep 10
+
     - name: Simulate games
       id: simulate-games
       run: |

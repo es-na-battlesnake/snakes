@@ -21,9 +21,9 @@ jobs:
           go-version: '^1.17.1'
 
     - name: Simulate games
-          id: simulate-games
-          run: |
-              docker run --rm --network test code-snek:pr script/simulate_royale --mode wrapped --map arcade_maze  --width 19 --height 21 --runs 10 | tee -a simulate_royale.log
+      id: simulate-games
+      run: |
+          docker run --rm --network test code-snek:pr script/simulate_royale --mode wrapped --map arcade_maze  --width 19 --height 21 --runs 10 | tee -a simulate_royale.log
 
     - name: Set sim-log to var
       uses: actions/github-script@v6

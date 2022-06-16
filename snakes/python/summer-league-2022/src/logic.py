@@ -74,16 +74,16 @@ def get_target(data: dict, board: dict) -> dict:
     data: A dictionary containing information about the game.
     return: A dictionary containing the x/y coordinates of the target.
     """
-    print("Head is located at: ", data["you"]["head"]["x"], data["you"]["head"]["y"])
+    #print("Head is located at: ", data["you"]["head"]["x"], data["you"]["head"]["y"])
     if data["you"]["head"]["y"] <= 5:
         # print("head is less than 5")
 
         while True:
-            y = random.randint(5, data["board"]["height"]-2)
-            x = random.randint(0, data["board"]["width"]-2)
+            y = random.randint(5, data["board"]["width"]-2)
+            x = random.randint(0, data["board"]["height"]-2)
 
-            if board[x][y] > 0:
-
+            #print("Target is located at: ", x, y)
+            if board[x][y] >= 1:
                 break
 
         return y, x
@@ -91,12 +91,13 @@ def get_target(data: dict, board: dict) -> dict:
         # print("head is greater than 5")
 
         while True:
-            y = random.randint(0, data["board"]["height"]//2)
-            x = random.randint(0, data["board"]["width"]-2)
+            y = random.randint(0, data["board"]["width"]//2)
+            x = random.randint(0, data["board"]["height"]-2)
 
-            if board[x][y] > 0:
+            #print("Target is located at: ", x, y)
+            if board[x][y] >= 1:
                 break
-
+        
         return y, x
 
 def get_direction(path: List[str]) -> str:
@@ -154,13 +155,13 @@ def choose_move(data: dict) -> str:
     #Set starting point to your head
     start = grid.node(data["you"]["head"]["x"], data["you"]["head"]["y"])
     end = grid.node(target[0], target[1])
-
+    #print("Got a target" , target)
     finder = DijkstraFinder(diagonal_movement=DiagonalMovement.never)
     path, runs = finder.find_path(start, end, grid)
 
-    print('operations:', runs, 'path length:', len(path))
-    print(grid.grid_str(path=path, start=start, end=end))
-    print(path)
+    #print('operations:', runs, 'path length:', len(path))
+    #print(grid.grid_str(path=path, start=start, end=end))
+    #print(path)
 
     return get_direction(path)
 

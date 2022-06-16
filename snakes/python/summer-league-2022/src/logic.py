@@ -73,20 +73,20 @@ def get_target(data: dict, board: dict) -> dict:
     data: A dictionary containing information about the game.
     return: A dictionary containing the x/y coordinates of the target.
     """
-    # get random array position
+    print("Head is located at: ", data["you"]["head"]["x"], data["you"]["head"]["y"])
     if data["you"]["head"]["y"] <= 5:
-        print("head is less than 5")
+        # print("head is less than 5")
 
         y = random.randint(5, data["board"]["height"]-1)
         x = random.randint(0, data["board"]["width"]-1)
-        print("y:", y, "x:", x)
+
         return y, x
     else:
-        print("head is greater than 5")
+        # print("head is greater than 5")
 
-        y = random.randint(0, data["board"]["height"]/2)
+        y = random.randint(0, data["board"]["height"]//2)
         x = random.randint(0, data["board"]["width"]-1)
-        print("y:", y, "x:", x)
+
         return y, x
 
 def get_direction(path: List[str]) -> str:
@@ -97,15 +97,18 @@ def get_direction(path: List[str]) -> str:
     current = path[0]
     next_move = path[1]
 
-    if next_move[0] == current[0] & next_move[1] > current[1]:
-        return "down"
-    elif next_move[0] == current[0] & next_move[1] < current[1]:
-        return "up"
-    elif next_move[1] == current[1] & next_move[0] > current[0]:
-        return "right"
-    elif next_move[1] == current[1] & next_move[0] < current[0]:
-        return "left"
+    if next_move[0] == current[0]:
+        if next_move[1] > current[1]:
+            return "up"
+        else:
+            return "down"
+    elif next_move[1] == current[1]:
+        if next_move[0] > current[0]:
+            return "right"
+        else:
+            return "left"
     else:
+        print("error: no move available")
         return "up"
 
 def choose_move(data: dict) -> str:
@@ -120,23 +123,17 @@ def choose_move(data: dict) -> str:
 
     snakes = data["board"]["snakes"]
     hazards = data["board"]["hazards"]
-    
+    # Print the move
+    print("Move: ", data["turn"])
     board = build_board(data["board"])
-    """
-    Add snakes to board
-    """
+    # Add snakes to board
     board = add_snakes_to_board(board, snakes)
-    """
-    Add hazards to board
-    """
+    # Add hazards to board
     board = add_hazards_to_board(board, hazards)
-    print(board)
-
     grid = build_grid(board)
-
     target = get_target(data, board)
     #Set starting point to your head
-    start = grid.node(data["you"]["head"]["y"], data["you"]["head"]["x"])
+    start = grid.node(data["you"]["head"]["x"], data["you"]["head"]["y"])
     end = grid.node(target[0], target[1])
 
     finder = AStarFinder(diagonal_movement=DiagonalMovement.never)

@@ -81,12 +81,10 @@ def get_target(data: dict, board: dict) -> dict:
         while True:
             y = random.randint(5, data["board"]["height"]-2)
             x = random.randint(0, data["board"]["width"]-2)
-            print(x, y)
-            print(board)
+
             if board[x][y] > 0:
 
                 break
-        print(y, x)
 
         return y, x
     else:
@@ -95,11 +93,9 @@ def get_target(data: dict, board: dict) -> dict:
         while True:
             y = random.randint(0, data["board"]["height"]//2)
             x = random.randint(0, data["board"]["width"]-2)
-            print(x, y)
-            print(board)
+
             if board[x][y] > 0:
                 break
-        print(y, x)
 
         return y, x
 
@@ -129,7 +125,7 @@ def get_direction(path: List[str]) -> str:
             return "left"
     else:
         print("error: no move available")
-        return "up"
+        return random.choice(["up", "down", "left", "right"])
 
 def choose_move(data: dict) -> str:
     """

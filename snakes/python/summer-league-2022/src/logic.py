@@ -78,15 +78,28 @@ def get_target(data: dict, board: dict) -> dict:
     if data["you"]["head"]["y"] <= 5:
         # print("head is less than 5")
 
-        y = random.randint(5, data["board"]["height"]-1)
-        x = random.randint(0, data["board"]["width"]-1)
+        while True:
+            y = random.randint(5, data["board"]["height"]-2)
+            x = random.randint(0, data["board"]["width"]-2)
+            print(x, y)
+            print(board)
+            if board[x][y] > 0:
+
+                break
+        print(y, x)
 
         return y, x
     else:
         # print("head is greater than 5")
 
-        y = random.randint(0, data["board"]["height"]//2)
-        x = random.randint(0, data["board"]["width"]-1)
+        while True:
+            y = random.randint(0, data["board"]["height"]//2)
+            x = random.randint(0, data["board"]["width"]-2)
+            print(x, y)
+            print(board)
+            if board[x][y] > 0:
+                break
+        print(y, x)
 
         return y, x
 
@@ -139,11 +152,14 @@ def choose_move(data: dict) -> str:
     board = add_hazards_to_board(board, hazards)
     grid = build_grid(board)
     target = get_target(data, board)
+    # check if target is walkable. If not get new target
+
+   
     #Set starting point to your head
     start = grid.node(data["you"]["head"]["x"], data["you"]["head"]["y"])
     end = grid.node(target[0], target[1])
 
-    finder = AStarFinder(diagonal_movement=DiagonalMovement.never)
+    finder = DijkstraFinder(diagonal_movement=DiagonalMovement.never)
     path, runs = finder.find_path(start, end, grid)
 
     print('operations:', runs, 'path length:', len(path))

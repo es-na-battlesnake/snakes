@@ -4,6 +4,7 @@ from typing import List, Dict
 from pathfinding.core.diagonal_movement import DiagonalMovement
 from pathfinding.core.grid import Grid
 from pathfinding.finder.a_star import AStarFinder
+from pathfinding.finder.dijkstra import DijkstraFinder
 
 """
 This file can be a nice home for your Battlesnake's logic and helper functions.
@@ -30,49 +31,102 @@ def build_board(board: dict) -> List[List[int]]:
     Create a 2d array the size of the board to represent the board.
     """
     board_map = []
-    for row in range(board["height"]-1):
+    for row in range(board["height"]):
         board_map.append([])
-        for col in range(board["width"]-1):
-            board_map[row].append(0)
+        for col in range(board["width"]):
+            board_map[row].append(1)
 
     return board_map
 
-"""
-TODO: Create a function that adds all the snakes to the board.
-TODO: Create a function that adds all the food to the board.
-TODO: Create a function that adds all the hazards to the board.
-"""
-"""
-build_map_example is an example function that shows how to build a map of the board.
-Then how to set the starting position and ending position of the pathfinder.
-I am leaving this here so that we can reference it to build out other functions that build our game board. 
-"""
-def build_map_example() -> str:
+def add_snakes_to_board(board: List[List[int]], snakes: List[dict]) -> List[List[int]]:
+    """
+    board: A 2d array representing the board.
+    snakes: A list of dictionaries containing the bodies of the other snakes on the board.
+    return: A 2d array representing the board with the other snakes added.
+    """
+    for snake in snakes:
+        for segment in snake["body"]:
+            board[segment["y"]][segment["x"]] = 0
+    
+    return board
 
-    matrix = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    ]
-    #grid = Grid(matrix=matrix)
-    grid = Grid(10,10,matrix,False)
-    start = grid.node(0, 0)
-    end = grid.node(5, 5)
+def add_hazards_to_board(board: List[List[int]], hazards: List[dict]) -> List[List[int]]:
+    """
+    board: A 2d array representing the board.
+    hazards: A list of dictionaries containing the bodies of the other snakes on the board.
+    return: A 2d array representing the board with the other snakes added.
+    """
+    for hazard in hazards:
+        board[hazard["y"]][hazard["x"]] = -1
+    
+    return board
 
-    finder = AStarFinder(diagonal_movement=DiagonalMovement.never)
-    path, runs = finder.find_path(start, end, grid)
+def build_grid(board: dict) -> Grid:
+    """
+    board: A dictionary containing the board information.
+    return: A Grid object representing the board.
+    """
+    grid = Grid(matrix=board)
+    return grid
 
-    print('operations:', runs, 'path length:', len(path))
-    print(grid.grid_str(path=path, start=start, end=end))
-    print(path)
+def get_target(data: dict, board: dict) -> dict:
+    """
+    data: A dictionary containing information about the game.
+    return: A dictionary containing the x/y coordinates of the target.
+    """
+    #print("Head is located at: ", data["you"]["head"]["x"], data["you"]["head"]["y"])
+    if data["you"]["head"]["y"] <= 5:
+        # print("head is less than 5")
 
-    return "test"
+        while True:
+            y = random.randint(5, data["board"]["width"]-2)
+            x = random.randint(0, data["board"]["height"]-2)
+
+            #print("Target is located at: ", x, y)
+            if board[x][y] >= 1:
+                break
+
+        return y, x
+    else:
+        # print("head is greater than 5")
+
+        while True:
+            y = random.randint(0, data["board"]["width"]//2)
+            x = random.randint(0, data["board"]["height"]-2)
+
+            #print("Target is located at: ", x, y)
+            if board[x][y] >= 1:
+                break
+        
+        return y, x
+
+def get_direction(path: List[str]) -> str:
+    """
+    path: A list of strings representing the path to the target.
+    return: A string representing the direction to move.
+    """
+
+    if len(path) < 2:
+        #return random move
+        print("Random move")
+        return random.choice(["up", "down", "left", "right"])
+
+    current = path[0]
+    next_move = path[1]
+
+    if next_move[0] == current[0]:
+        if next_move[1] > current[1]:
+            return "up"
+        else:
+            return "down"
+    elif next_move[1] == current[1]:
+        if next_move[0] > current[0]:
+            return "right"
+        else:
+            return "left"
+    else:
+        print("error: no move available")
+        return random.choice(["up", "down", "left", "right"])
 
 def choose_move(data: dict) -> str:
     """
@@ -83,48 +137,38 @@ def choose_move(data: dict) -> str:
     with as a Python Dictionary, and contains all of the information about the Battlesnake board
     for each move of the game.
     """
-    my_snake = data["you"]      # A dictionary describing your snake's position on the board
-    my_head = my_snake["head"]  # A dictionary of coordinates like {"x": 0, "y": 0}
-    my_body = my_snake["body"]  # A list of coordinate dictionaries like [{"x": 0, "y": 0}, {"x": 1, "y": 0}, {"x": 2, "y": 0}]
-    
-    #create an array of arrays to store other snakes' body
-    other_snakes = _get_other_snakes(data)
 
-    # Uncomment the lines below to see what this data looks like in your output!
-    # print(f"~~~ Turn: {data['turn']}  Game Mode: {data['game']['ruleset']['name']} ~~~")
-    # print(f"All board data this turn: {data}")
-    # print(f"My Battlesnake this turn is: {my_snake}")
-    # print(f"My Battlesnakes head this turn is: {my_head}")
-    # print(f"My Battlesnakes body this turn is: {my_body}")
+    snakes = data["board"]["snakes"]
+    hazards = data["board"]["hazards"]
+    # Print the move
+    print("Move: ", data["turn"])
+    board = build_board(data["board"])
+    # Add snakes to board
+    board = add_snakes_to_board(board, snakes)
+    # Add hazards to board
+    board = add_hazards_to_board(board, hazards)
+    grid = build_grid(board)
+    target = get_target(data, board)
+    # check if target is walkable. If not get new target
 
-    possible_moves = ["up", "down", "left", "right"]
+   
+    #Set starting point to your head
+    start = grid.node(data["you"]["head"]["x"], data["you"]["head"]["y"])
+    end = grid.node(target[0], target[1])
+    #print("Got a target" , target)
+    finder = DijkstraFinder(diagonal_movement=DiagonalMovement.never)
+    path, runs = finder.find_path(start, end, grid)
 
-    # Step 0: Don't allow your Battlesnake to move back on it's own neck.
-    possible_moves = _avoid_my_neck(my_body, possible_moves)
+    #print('operations:', runs, 'path length:', len(path))
+    #print(grid.grid_str(path=path, start=start, end=end))
+    #print(path)
 
-    # TODO: Step 1 - Don't hit walls.
-    # Use information from `data` and `my_head` to not move beyond the game board.
-    board = data["board"]
-    possible_moves = _avoid_walls(my_body, possible_moves, board)
+    return get_direction(path)
 
-    # Use information from `my_body` to avoid moves that would collide with yourself.
-    possible_moves = _avoid_my_body(my_body, possible_moves)
-
-    # Step 3 - Don't collide with others.
-    possible_moves = _avoid_snake(my_body, other_snakes, possible_moves)
-
-    # TODO: Step 4 - Find food.
-    # Use information in `data` to seek out and find food.
-    # food = data['board']['food']
-
-    # Choose a random direction from the remaining possible_moves to move in, and then return that move
-    move = random.choice(possible_moves)
-    # TODO: Explore new strategies for picking a move that are better than random
-
-    print(f"{data['game']['id']} MOVE {data['turn']}: {move} picked from all valid options in {possible_moves}")
-
-    return move
-
+'''
+The functions below this point are only used by the tests. 
+They can be removed and tests can be cleaned up.
+'''
 
 def _avoid_my_neck(my_body: dict, possible_moves: List[str]) -> List[str]:
     """

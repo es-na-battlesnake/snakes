@@ -245,7 +245,7 @@ class BuildMap(unittest.TestCase):
         result_map = logic.build_board(board)
 
         # Assert
-        self.assertEqual(len(result_map), 11)
+        self.assertEqual(len(result_map), 10)
 
     def test_map_build_from_data(self):
         # Arrange

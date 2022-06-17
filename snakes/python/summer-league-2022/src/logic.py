@@ -30,7 +30,7 @@ def build_board(board: dict) -> List[List[int]]:
     """
     Create a 2d array the size of the board to represent the board.
     """
-    board_map = [[]]
+    board_map = []
     for row in range(board["height"]):
         board_map.append([])
         for col in range(board["width"]):

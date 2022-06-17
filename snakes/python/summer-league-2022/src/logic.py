@@ -188,7 +188,12 @@ def choose_move(data: dict) -> str:
     # Add food to board
     board = add_food_to_board(board, data["board"]["food"])
     grid = build_grid(board)
-    target = get_target(data, board)
+
+    # if our health is low then target food. Otherwise random target
+    if data["you"]["health"] < 80:
+        target = target_closest_food(data)   
+    else:
+        target = get_target(data, board)
     # check if target is walkable. If not get new target
 
    

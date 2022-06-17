@@ -34,7 +34,7 @@ def build_board(board: dict) -> List[List[int]]:
     for row in range(board["height"]):
         board_map.append([])
         for col in range(board["width"]):
-            board_map[row].append(1)
+            board_map[row].append(2)
 
     return board_map
 
@@ -100,6 +100,43 @@ def get_target(data: dict, board: dict) -> dict:
         
         return y, x
 
+def add_food_to_board(board: List[List[int]], food: List[dict]) -> List[List[int]]:
+    """
+    board: A 2d array representing the board.
+    food: A list of dictionaries containing the bodies of the other snakes on the board.
+    return: A 2d array representing the board with the other snakes added.
+    """
+    for food_item in food:
+        board[food_item["y"]][food_item["x"]] = 1
+    
+    return board
+
+def target_closest_food(data: dict) -> str:
+    """
+    data: A dictionary containing information about the game.
+    return: A string representing the direction to move.
+    """
+    head = data["you"]["head"]
+    food = data["board"]["food"]
+    # Find food closest to head
+    """
+    distance := abs(food.X-state.You.Head.X) + abs(food.Y-state.You.Head.Y)
+        // If the distance is less than the closest distance, then set the food to be the closest food.
+        if distance < closestDistance || closestDistance == 0 {
+            closestDistance = distance
+            closestFoodCell = grid.Get(food.X, food.Y)
+        }
+    """
+    for f in food:
+        distance = abs(f["x"] - head["x"]) + abs(f["y"] - head["y"])
+        closest_distance = 0
+        closestFoodCell = 0,0
+        if distance < closest_distance or closest_distance == 0:
+            closest_distance = distance
+            closestFoodCell = f["x"], f["y"]
+    
+    return closestFoodCell
+
 def get_direction(path: List[str]) -> str:
     """
     path: A list of strings representing the path to the target.
@@ -140,6 +177,7 @@ def choose_move(data: dict) -> str:
 
     snakes = data["board"]["snakes"]
     hazards = data["board"]["hazards"]
+    food = data["board"]["food"]
     # Print the move
     print("Move: ", data["turn"])
     board = build_board(data["board"])
@@ -147,8 +185,15 @@ def choose_move(data: dict) -> str:
     board = add_snakes_to_board(board, snakes)
     # Add hazards to board
     board = add_hazards_to_board(board, hazards)
+    # Add food to board
+    board = add_food_to_board(board, data["board"]["food"])
     grid = build_grid(board)
-    target = get_target(data, board)
+
+    # if our health is low then target food. Otherwise random target
+    if data["you"]["health"] < 80:
+        target = target_closest_food(data)   
+    else:
+        target = get_target(data, board)
     # check if target is walkable. If not get new target
 
    

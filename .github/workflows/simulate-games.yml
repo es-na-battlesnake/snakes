@@ -1,0 +1,55 @@
+name: Simulate Snake Games
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-go@v3
+      with:
+          go-version: '^1.17.1'
+    
+    - name: Build the Docker image
+      run: docker build . --file Dockerfile --tag code-snek:pr
+    - name: Setup Docker network
+      run: docker network create test
+    - name: Run the Docker image
+      run: docker run -d -p 4567:4567 --network test --name code-snek code-snek:pr
+
+    - name: Pause for 10 seconds
+      run: sleep 10
+
+    - name: Simulate games
+      id: simulate-games
+      run: |
+          docker run --rm --network test code-snek:pr script/simulate_royale --mode wrapped --map arcade_maze  --width 19 --height 21 --runs 10 | tee -a simulate_royale.log
+
+    - name: Set sim-log to var
+      uses: actions/github-script@v6
+      id: sim-log
+      with:
+        script: |
+          const fs = require('fs');
+          return fs.readFileSync('simulate_royale.log','utf8').toString();
+        result-encoding: string
+
+    - name: Post comment
+      uses: mshick/add-pr-comment@v1
+      with:
+        message: |
+            🤖 🐍:
+            "${{ steps.sim-log.outputs.result }}"
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        repo-token-user-login: 'github-actions[bot]' # The user.login for temporary GitHub tokens
+        allow-repeats: false # This is the default, but let's be explicit

@@ -32,32 +32,8 @@ jobs:
     - name: Test snake2 app response
       run: docker run --rm --network test curlimages/curl:latest --connect-timeout 10 --retry 5 --retry-delay 2 --retry-connrefused http://code-snek:4568/
     - name: Test GoSnek app response
-      run: docker run --rm --network test curlimages/curl:latest --connect-timeout 10 --retry 5 --retry-delay 2 --retry-connrefused http://code-snek:8080/
-      
-    - name: Simulate games
-      id: simulate-games
-      run: |
-          docker run --rm --network test code-snek:pr script/simulate_royale --mode wrapped --map arcade_maze  --width 19 --height 21 --runs 10 | tee -a simulate_royale.log
-
-    - name: Set sim-log to var
-      uses: actions/github-script@v6
-      id: sim-log
-      with:
-        script: |
-          const fs = require('fs');
-          return fs.readFileSync('simulate_royale.log','utf8').toString();
-        result-encoding: string
-
-    - name: Post comment
-      uses: mshick/add-pr-comment@v1
-      with:
-        message: |
-            🤖 🐍:
-            "${{ steps.sim-log.outputs.result }}"
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
-        repo-token-user-login: 'github-actions[bot]' # The user.login for temporary GitHub tokens
-        allow-repeats: false # This is the default
-            
+      run: docker run --rm --network test curlimages/curl:latest --connect-timeout 10 --retry 5 --retry-delay 2 --retry-connrefused http://code-snek:8081/
+               
     - name: Rspec test djdefi snake
       run: docker exec code-snek bundle config set with 'dev' && docker exec code-snek bundle config unset frozen && docker exec code-snek bundle update && docker exec code-snek /bin/bash -c 'script/test djdefi'
     

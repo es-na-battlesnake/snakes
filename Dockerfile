@@ -3,6 +3,7 @@ RUN apt-get update && apt-get install --no-install-suggests -y supervisor && apt
 RUN mkdir -p /var/log/supervisor
 
 RUN bundle config --global frozen 1
+RUN bundle config set --local without 'dev'
 
 COPY setup-go.sh setup-go.sh
 RUN bash setup-go.sh
@@ -10,7 +11,7 @@ RUN bash setup-go.sh
 WORKDIR /usr/src/app
 
 COPY Gemfile Gemfile.lock ./
-RUN bundle install --without dev
+RUN bundle install
 
 RUN pip install flask
 RUN pip install pathfinding

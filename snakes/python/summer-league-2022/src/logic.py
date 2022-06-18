@@ -21,7 +21,7 @@ def get_info() -> dict:
     return {
         "apiversion": "1",
         "author": "es-na-battlesnake",
-        "color": "#40de09a",
+        "color": "#C5B358",
         "head": "silly",
         "tail": "bolt",
     }

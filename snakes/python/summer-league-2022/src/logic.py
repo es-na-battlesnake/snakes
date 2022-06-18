@@ -47,6 +47,9 @@ def add_snakes_to_board(board: List[List[int]], snakes: List[dict]) -> List[List
     for snake in snakes:
         for segment in snake["body"]:
             board[segment["y"]][segment["x"]] = 0
+
+    #make our own tail walkable
+    board[snakes[0]["body"][0]["y"]][snakes[0]["body"][0]["x"]] = 1
     
     return board
 

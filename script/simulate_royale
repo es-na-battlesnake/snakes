@@ -132,3 +132,4 @@ done
 
 # Output the most winning player from the file.
 cat winner.txt | jq "if .isDraw == true then \"draw\" else .winnerName end" | sort | uniq -c | sort -nr
+rm winner.txt

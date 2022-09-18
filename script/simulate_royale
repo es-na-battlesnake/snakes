@@ -127,9 +127,10 @@ for i in $(seq 1 $runs); do
     --name bevns --url http://code-snek:4569/ \
     -g $mode \
     -m $map \
-    $verbose_flag 2>&1 | grep "DONE" | tee -a winner.txt
+    $verbose_flag --output out.log ;
+    tail -1 out.log | tee -a winner.txt ;
 done
 
 # Output the most winning player from the file.
-cat winner.txt | cut -d " " -f 9 | sort | uniq -c | sort -nr 
+cat winner.txt | jq "if .isDraw == true then \"draw\" else .winnerName end" | sort | uniq -c | sort -nr
 rm winner.txt

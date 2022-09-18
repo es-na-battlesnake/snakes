@@ -128,9 +128,9 @@ for i in $(seq 1 $runs); do
     -g $mode \
     -m $map \
     $verbose_flag --output out.log ;
-    tail -1 out.log | tee -a winner.txt ;
+    tail -1 out.log | jq "if .isDraw then {winner: \"draw\"} else {winner: .winnerName} end" | tee -a winner.txt
 done
 
 # Output the most winning player from the file.
-cat winner.txt | jq "if .isDraw == true then \"draw\" else .winnerName end" | sort | uniq -c | sort -nr
+cat winner.txt | jq .winner | sort | uniq -c | sort -nr
 rm winner.txt

@@ -1,6 +1,7 @@
 name: Docker Image build + push + deploy - main branch
 permissions:
   id-token: write
+  packages: write
 
 on:
   push:
@@ -15,7 +16,7 @@ on:
 
 jobs:
 
-  build:
+  build-deploy-prod:
 
     runs-on: ubuntu-latest
     environment: production

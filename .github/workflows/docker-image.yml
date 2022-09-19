@@ -56,7 +56,7 @@ jobs:
         # if ${{ github.event.inputs.delete }} = true then 
         if [ "${{ github.event.inputs.delete }}" = "true" ]; then
           echo "Deleting existing deployment due to true flag"
-          az container list | grep code-snake && az container delete --yes --name code-snake --ids "/subscriptions/${{ secrets.AZURE_SUBID }}/resourceGroups/snekResourceGroup/providers/Microsoft.ContainerInstance/containerGroups/code-snake"
+          az container list | grep code-snake && az container delete --yes --name code-snake --ids "/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/snekResourceGroup/providers/Microsoft.ContainerInstance/containerGroups/code-snake"
           exit 0
         fi
         # File based detection
@@ -64,7 +64,7 @@ jobs:
           echo "$file was changed"
           # If .github/workflows/docker-image.yml workflow was changed, check if code-snake is deployed
           if [[ "$file" == ".github/workflows/docker-image.yml" ]]; then
-            az container list | grep code-snake && az container delete --yes --name code-snake --ids "/subscriptions/${{ secrets.AZURE_SUBID }}/resourceGroups/snekResourceGroup/providers/Microsoft.ContainerInstance/containerGroups/code-snake"
+            az container list | grep code-snake && az container delete --yes --name code-snake --ids "/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/snekResourceGroup/providers/Microsoft.ContainerInstance/containerGroups/code-snake"
           fi
         done
     

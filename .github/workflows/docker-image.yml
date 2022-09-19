@@ -78,7 +78,5 @@ jobs:
         name: code-snake
         location: 'west us'
         ports: '4567 4568 4569 4570 4571 8080 8081'
-        memory: 2
-        cpu: 2
         restart-policy: OnFailure
         ip-address: Public

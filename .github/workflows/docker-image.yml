@@ -42,8 +42,6 @@ jobs:
     
     - name: 'Login via Azure CLI'
       uses: azure/login@v1
-      with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
 
     - name: Delete existing deployment if deployment workflow changes or delete is true
       run: |

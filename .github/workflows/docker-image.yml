@@ -81,3 +81,4 @@ jobs:
         memory: 2
         cpu: 2
         restart-policy: OnFailure
+        ip-address: Public

@@ -119,7 +119,7 @@ echo "  verbose: $verbose"
 
 # Run command $runs times and record "is the winner" line of output to a file.
 for i in $(seq 1 $runs); do
-    echo "Run [$i/$runs]"
+    echo -n "Run [$i/$runs]:"
     /root/go/bin/battlesnake play -W $width -H $height \
     --name summer-2022 --url http://code-snek:8080/ \
     --name pathy --url http://code-snek:8081/ \

@@ -49,7 +49,7 @@ jobs:
       with:
         message: |
             🤖 🐍:
-            "${{ steps.sim-log.outputs.result }}"
+            ${{ steps.sim-log.outputs.result }}
         repo-token: ${{ secrets.GITHUB_TOKEN }}
         repo-token-user-login: 'github-actions[bot]' # The user.login for temporary GitHub tokens
         allow-repeats: false # This is the default, but let's be explicit

@@ -107,6 +107,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+echo "```"
 # Output the settings
 echo "Simulating battlesnake with the following settings:"
 echo "  mode: $mode"
@@ -115,8 +116,9 @@ echo "  map: $map"
 echo "  height: $height"
 echo "  width: $width"
 echo "  verbose: $verbose"
+echo "```"
 
-
+echo "```"
 # Run command $runs times and record "is the winner" line of output to a file.
 for i in $(seq 1 $runs); do
     echo -n "Run [$i/$runs] "
@@ -128,11 +130,12 @@ for i in $(seq 1 $runs); do
     -g $mode \
     -m $map \
     $verbose_flag --output out.log ;
-    tail -1 out.log | jq -c "if .isDraw then {winner: \"draw\"} else {winner: .winnerName} end" | tee -a winner.txt | sed 's/[{}"]//g' | sed 's/:/: /g' | sed 's/w/W/g'
+    tail -1 out.log | jq -c "if .isDraw then {winner: \"draw\"} else {winner: .winnerName} end" | tee -a winner.txt | sed 's/[{}"]//g' | sed 's/:/: /g'
 done
+echo "```"
 
-echo "----------------------------------------"
-
+echo "```"
 # Output the most winning player from the file.
 cat winner.txt | jq -r .winner | sort | uniq -c | sort -nr
 rm winner.txt
+echo "```"

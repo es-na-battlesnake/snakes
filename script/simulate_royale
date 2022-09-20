@@ -132,5 +132,5 @@ for i in $(seq 1 $runs); do
 done
 
 # Output the most winning player from the file.
-cat winner.txt | jq .winner | sort | uniq -c | sort -nr
+cat winner.txt | jq -r .winner | sort | uniq -c | sort -nr
 rm winner.txt

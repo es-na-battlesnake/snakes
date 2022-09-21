@@ -42,3 +42,13 @@ Deployment environment:
 
 CI/CD:
 - [GitHub Actions](https://github.com/es-na-battlesnake/snakes/tree/main/.github/workflows)
+
+## Deployment 🚀
+
+To deploy a change to this repository, follow the general process laid out below:
+
+1. Create a new branch and pull request with your changes
+1. Observe CI to ensure it is passing
+1. Get an approval from from the required codeowners
+1. Run `.deploy` on your pull request to deploy your changes to production
+1. If you branch deployment completes successfully, merge your pull request!

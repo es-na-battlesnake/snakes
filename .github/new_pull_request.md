@@ -1,6 +1,6 @@
 ### 👋 Thanks for opening a pull request!
 
-If you are new, please check out the [deployment process](https://github.com/https://github.com/es-na-battlesnake/snakes#deployment-) to understand how to deploy this pull request. A trimmed down summary will be listed below:
+If you are new, please check out the [deployment process](https://github.com/https://github.com/es-na-battlesnake/snakes#deployment) to understand how to deploy this pull request. A trimmed down summary will be listed below:
 
 1. 👀 Observe the CI and ensure it is passing
 1. ✔️ Obtain an approval/review on this pull request

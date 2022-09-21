@@ -53,7 +53,7 @@ jobs:
 
       - name: Build the Docker image
         if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}
-        run: docker build . --file Dockerfile --tag ghcr.io/es-na-battlesnake/code-snake:latest
+        run: docker build . --file Dockerfile --tag ghcr.io/es-na-battlesnake/code-snake:${{ github.sha }}
 
       - name: Login to GitHub Container Registry
         if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}
@@ -65,7 +65,7 @@ jobs:
 
       - name: Push Docker image
         if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}
-        run: docker push ghcr.io/es-na-battlesnake/code-snake:latest
+        run: docker push ghcr.io/es-na-battlesnake/code-snake:${{ github.sha }}
       
       - name: 'Login via Azure CLI'
         if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}

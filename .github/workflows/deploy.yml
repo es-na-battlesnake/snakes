@@ -22,6 +22,7 @@ jobs:
         id: branch-deploy
         with:
           trigger: ".deploy"
+          admins: bevns,djdefi
 
       # Run your deployment logic for your project here - examples seen below
 

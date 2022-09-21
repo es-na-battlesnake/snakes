@@ -1,6 +1,6 @@
 # ES NA Battlesnakes
 
-[Battlesnakes](https://play.battlesnake.com/) created by a [small team](https://play.battlesnake.com/t/es-na/) of GitHub Enterprise Support Engineers as a learning and team-building exercise.
+[Battlesnakes](https://play.battlesnake.com/) created by a [small team](https://play.battlesnake.com/t/es-na/) of GitHub Enterprise Support Engineers as a learning and team-building exercise. 
 
 ## Adding snakes
 

@@ -1,0 +1,108 @@
+name: "Branch Deploy"
+
+# The workflow to execute on is comments that are newly created
+on:
+  issue_comment:
+    types: [created]
+
+# Permissions needed for reacting and adding comments for IssueOps commands
+permissions:
+  pull-requests: write
+  deployments: write
+  contents: write
+
+jobs:
+  demo:
+    if: ${{ github.event.issue.pull_request }} # only run on pull request comments
+    runs-on: ubuntu-latest
+    steps:
+      # Execute IssueOps branch deployment logic, hooray!
+      # This will be used to "gate" all future steps below and conditionally trigger steps/deployments
+      - uses: github/branch-deploy@v3.0.1
+        id: branch-deploy
+        with:
+          trigger: ".deploy"
+
+      # Checkout your projects repository based on the ref provided by the branch-deploy step
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ steps.branch-deploy.outputs.ref }}
+
+      # Do some fake "noop" deployment logic here
+      # conditionally run a noop deployment
+      - name: fake noop deploy
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop == 'true' }}
+        run: echo "We do not currently have a noop deploy configured. A proper noop deploy may be added in the future. "
+
+      # Production deploy logic
+      - name: fake regular deploy
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}
+        run: echo "I am doing a fake regular deploy"
+      
+      - uses: actions/checkout@v3
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Get changed files
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}
+        id: changed-files
+        uses: tj-actions/changed-files@v29.0.7
+
+      - name: Build the Docker image
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}
+        run: docker build . --file Dockerfile --tag ghcr.io/es-na-battlesnake/code-snake:latest
+
+      - name: Login to GitHub Container Registry
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push Docker image
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}
+        run: docker push ghcr.io/es-na-battlesnake/code-snake:latest
+      
+      - name: 'Login via Azure CLI'
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }} 
+          enable-AzPSSession: true
+
+      - name: Delete existing deployment if deployment workflow changes or delete is true
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}
+        run: |
+          az container list | grep code-snake || echo "No deployment found" && exit 0
+          # if ${{ github.event.inputs.delete }} = true then 
+          if [ "${{ github.event.inputs.delete }}" = "true" ]; then
+            echo "Deleting existing deployment due to true flag"
+            az container list | grep code-snake && az container delete --yes --name code-snake --ids "/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/snekResourceGroup/providers/Microsoft.ContainerInstance/containerGroups/code-snake"
+            exit 0
+          fi
+          # File based detection
+          for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
+            echo "$file was changed"
+            # If .github/workflows/docker-image.yml workflow was changed, check if code-snake is deployed
+            if [[ "$file" == ".github/workflows/docker-image.yml" ]]; then
+              az container list | grep code-snake && az container delete --yes --name code-snake --ids "/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/snekResourceGroup/providers/Microsoft.ContainerInstance/containerGroups/code-snake"
+            fi
+          done
+      
+      - name: 'Deploy to Azure Container Instances'
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}
+        uses: 'azure/aci-deploy@v1'
+        with:
+          resource-group: snekResourceGroup
+          dns-name-label: code-snek
+          image: ghcr.io/es-na-battlesnake/code-snake:latest
+          name: code-snake
+          location: 'west us 2'
+          ports: '4567 4568 4569 4570 4571 8080 8081'
+          restart-policy: OnFailure
+          ip-address: Public
+

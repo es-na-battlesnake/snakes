@@ -4,8 +4,6 @@ permissions:
   packages: write
 
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
     inputs:
       delete:

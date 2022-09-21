@@ -14,7 +14,7 @@ permissions:
   packages: write
 
 jobs:
-  demo:
+  deploy:
     if: ${{ github.event.issue.pull_request }} # only run on pull request comments
     runs-on: ubuntu-latest
     environment: production
@@ -36,14 +36,14 @@ jobs:
       # conditionally run a noop deployment
       - name: fake noop deploy
         if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop == 'true' }}
-        run: echo "We do not currently have a noop deploy configured. A proper noop deploy may be added in the future. "
+        run: |
+          echo "We do not currently have a noop deploy configured. A proper noop deploy may be added in the future."
+          echo "DEPLOY_MESSAGE=We do not currently have a noop deploy configured. A proper noop deploy may be added in the future." >> $GITHUB_ENV
 
       # Production deploy logic
       - name: fake regular deploy
         if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}
-        run: |
-          echo "I am doing a fake regular deploy"
-          git branch
+        run: echo "I am doing a production deploy"
 
       - name: Get changed files
         if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}
@@ -52,9 +52,7 @@ jobs:
 
       - name: Build the Docker image
         if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}
-        run: |
-          git branch
-          docker build . --file Dockerfile --tag ghcr.io/es-na-battlesnake/code-snake:${{ github.sha }}
+        run: docker build . --file Dockerfile --tag ghcr.io/es-na-battlesnake/code-snake:${{ github.sha }}
 
       - name: Login to GitHub Container Registry
         if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}

@@ -18,7 +18,7 @@ jobs:
     steps:
       # Execute IssueOps branch deployment logic, hooray!
       # This will be used to "gate" all future steps below and conditionally trigger steps/deployments
-      - uses: github/branch-deploy@vX.X.X
+      - uses: github/branch-deploy@latest
         id: branch-deploy
         with:
           trigger: ".deploy"
@@ -26,7 +26,7 @@ jobs:
       # Run your deployment logic for your project here - examples seen below
 
       # Checkout your projects repository based on the ref provided by the branch-deploy step
-      - uses: actions/checkout@3.0.2
+      - uses: actions/checkout@v3
         with:
           ref: ${{ steps.branch-deploy.outputs.ref }}
 

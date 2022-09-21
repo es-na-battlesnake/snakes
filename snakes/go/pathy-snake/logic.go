@@ -15,7 +15,7 @@ func info() BattlesnakeInfoResponse {
 		APIVersion: "1",
 		Author:     "ES Team", // TODO: Your Battlesnake username
 		Color:      "#77EBF7", // TODO: Personalize
-		Head:       "gamer",   // TODO: Personalize
+		Head:       "bendr",   // TODO: Personalize
 		Tail:       "offroad", // TODO: Personalize
 	}
 }

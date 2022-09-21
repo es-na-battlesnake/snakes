@@ -101,7 +101,7 @@ jobs:
         with:
           resource-group: snekResourceGroup
           dns-name-label: code-snek
-          image: ghcr.io/es-na-battlesnake/code-snake:latest
+          image: ghcr.io/es-na-battlesnake/code-snake:${{ github.sha }}
           name: code-snake
           location: 'west us 2'
           ports: '4567 4568 4569 4570 4571 8080 8081'

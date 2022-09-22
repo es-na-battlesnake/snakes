@@ -2,9 +2,16 @@ name: Simulate Snake Games
 
 on:
   push:
-    branches: [ main ]
+    branches-ignore:
+      - main
+    paths:
+      - 'snakes/**'
+  # trigger action on new pull request pushes
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
+    paths:
+      - 'snakes/**'
 
 jobs:
 

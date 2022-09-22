@@ -52,3 +52,5 @@ To deploy a change to this repository, follow the general process laid out below
 1. Get an approval from from the required codeowners
 1. Run `.deploy` on your pull request to deploy your changes to production
 1. If you branch deployment completes successfully, merge your pull request!
+
+To roll back a deployment to the last `main` version, run `.deploy main`.

@@ -1,8 +1,6 @@
-# ES NA Battlesnakes
+# ES NA Battlesnakes ![Deploy](https://github.com/es-na-battlesnake/snakes/actions/workflows/deploy-branch.yml/badge.svg) ![CodeQL](https://github.com/es-na-battlesnake/snakes/actions/workflows/codeql-analysis.yml/badge.svg)
 
 [Battlesnakes](https://play.battlesnake.com/) created by a [small team](https://play.battlesnake.com/t/es-na/) of GitHub Enterprise Support Engineers as a learning and team-building exercise.
-
-![Deploy](https://github.com/es-na-battlesnake/snakes/actions/workflows/deploy-branch.yml/badge.svg) ![CodeQL](https://github.com/es-na-battlesnake/snakes/actions/workflows/codeql-analysis.yml/badge.svg)
 
 ## Adding snakes
 

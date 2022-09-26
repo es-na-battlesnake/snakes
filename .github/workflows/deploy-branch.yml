@@ -52,6 +52,25 @@ jobs:
         run: |
           echo "Changed files: ${{ steps.changed-files.outputs.all }}"
           echo "DEPLOY_MESSAGE=Changed files: ${{ steps.changed-files.outputs.all }}" >> $GITHUB_ENV
+
+      # Check if changed files are in the full deployment path
+      - name: Check if changed files are in the deployable path
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop == 'true' }}
+        id: check-path
+        run: |
+         # if changing README.md then no full production deploy will be triggered
+          if [[ ${{ steps.changed-files.outputs.all }} == *"README.md"* ]]; then
+            echo "DEPLOY_MESSAGE=No full production deploy will take place. Only README.md was changed." >> $GITHUB_ENV
+            echo "::set-output name=continue::false"
+          else
+            echo "::set-output name=continue::true"
+          fi
+      
+      - name: Prod deploy required?
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop == 'true' && steps.check-path.outputs.continue == 'true' }}
+        run: |
+          echo "A full production deployment would be triggered here."
+          echo "DEPLOY_MESSAGE=A full production deployment would be triggered here." >> $GITHUB_ENV
     
       # Production deploy logic
       - name: fake regular deploy

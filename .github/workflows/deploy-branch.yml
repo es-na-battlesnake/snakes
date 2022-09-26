@@ -59,7 +59,7 @@ jobs:
         id: check-path
         run: |
          # if changing README.md then no full production deploy will be triggered
-          if [[ ${{ steps.changed-files.outputs.all }} == *"README.md"* ]]; then
+          if [[ ${{ steps.changed-files.outputs.all }} == "README.md" ]]; then
             echo "DEPLOY_MESSAGE=No full production deploy will take place. Only README.md was changed." >> $GITHUB_ENV
             echo "::set-output name=continue::false"
           else

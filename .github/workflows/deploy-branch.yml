@@ -39,7 +39,20 @@ jobs:
         run: |
           echo "We do not currently have a noop deploy configured. A proper noop deploy may be added in the future."
           echo "DEPLOY_MESSAGE=We do not currently have a noop deploy configured. A proper noop deploy may be added in the future." >> $GITHUB_ENV
+      
+      # Get changed file names for noop deploy message
+      - name: Get changed files
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop == 'true' }}
+        id: changed-files
+        uses: tj-actions/changed-files@v29.0.7
 
+      # Output changed files as part of the deployment message
+      - name: Output changed files
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop == 'true' }}
+        run: |
+          echo "Changed files: ${{ steps.changed-files.outputs.all }}"
+          echo "DEPLOY_MESSAGE=Changed files: ${{ steps.changed-files.outputs.all }}" >> $GITHUB_ENV
+    
       # Production deploy logic
       - name: fake regular deploy
         if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}

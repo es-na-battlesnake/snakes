@@ -58,13 +58,13 @@ jobs:
         if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop == 'true' }}
         id: check-path
         run: |
-         # if changing README.md then no full production deploy will be triggered
-          if [[ ${{ steps.changed-files-noop.outputs.all_changed_files }} == "README.md" ]]; then
-            echo "DEPLOY_MESSAGE=No full production deploy will take place. Only README.md was changed." >> $GITHUB_ENV
-            echo "::set-output name=continue::false"
-          else
-            echo "::set-output name=continue::true"
-          fi
+          for file in ${{ steps.changed-files-noop.outputs.all_changed_files }}; do
+            if [[ "$file" != "README.md" ]]; then
+              echo "DEPLOY_MESSAGE=Changed files are in the deployable path." >> $GITHUB_ENV
+              echo "::set-output name=continue::true"
+              exit 0
+            fi
+          done
       
       - name: Prod deploy required?
         if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop == 'true' && steps.check-path.outputs.continue == 'true' }}

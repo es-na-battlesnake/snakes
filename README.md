@@ -11,7 +11,6 @@
 
 ## Running snakes
 
-
 ### Codespaces
 
 1. Run `script/server` to launch all snakes

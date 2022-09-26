@@ -43,7 +43,7 @@ jobs:
       # Get changed file names for noop deploy message
       - name: Get changed files
         if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop == 'true' }}
-        id: changed-files
+        id: changed-files-noop
         uses: tj-actions/changed-files@v29.0.7
 
       # Output changed files as part of the deployment message

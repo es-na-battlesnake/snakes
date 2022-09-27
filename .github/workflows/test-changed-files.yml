@@ -51,13 +51,3 @@ jobs:
             break
           fi
         done
-
-    - name: check if full deploy
-      id: check-full-deploy
-      run:
-        # if full deploy is true, then do a full deploy
-        if [[ ${{ steps.check-file.outputs.full-deploy }} == true ]]; then
-          echo "Full Deployment"
-        else
-          echo "Partial Deployment"
-        fi

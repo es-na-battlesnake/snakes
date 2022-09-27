@@ -53,6 +53,6 @@ jobs:
         done
 
     - name: Check if full deployment is required
-      if: steps.check-file.outputs.full-deploy == true
+      if: steps.check-file.outputs.full-deploy == 'true'
       run: |
         echo "Full Deployment Required"

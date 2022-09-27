@@ -73,4 +73,4 @@ if __name__ == "__main__":
 
     print(f"\nRunning Battlesnake server at http://{host}:{port}")
     app.env = 'development'
-    app.run(host=host, port=port, debug=True)
+    app.run(host=host, port=port)

@@ -16,7 +16,7 @@ WORKDIR /usr/src/app
 COPY Gemfile Gemfile.lock ./
 RUN bundle install
 
-RUN pip install flask pathfinding
+RUN pip install --no-cache-dir flask==2.2.2 pathfinding==1.0.1
 
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY . .

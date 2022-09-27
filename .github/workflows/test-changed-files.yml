@@ -13,26 +13,26 @@ permissions:
 
 jobs:
   deployment:
-  runs-on: ubuntu-latest
+    runs-on: ubuntu-latest
   
-  steps:
-  # Checkout your projects repository based on the ref provided by the branch-deploy step
-  - uses: actions/checkout@v3
-    with:
-      ref: ${{ steps.branch-deploy.outputs.ref }}
-      fetch-depth: 0
+    steps:
+    # Checkout your projects repository based on the ref provided by the branch-deploy step
+    - uses: actions/checkout@v3
+      with:
+        ref: ${{ steps.branch-deploy.outputs.ref }}
+        fetch-depth: 0
 
-  # Get changed file names
-  - name: Get changed files
-    id: changed-files
-    uses: tj-actions/changed-files@v29.0.7
-    with:
-      sha: ${{ github.event.issue.pull_request.head.sha }}
-      base: ${{ github.event.issue.pull_request.base.sha }}
-  
-  # loop through each file name
-  - name: Loop through each file name
-    run: |
-      for file in ${{ steps.changed-files.outputs.all }}; do
-        echo "File name: $file"
-      done
+    # Get changed file names
+    - name: Get changed files
+      id: changed-files
+      uses: tj-actions/changed-files@v29.0.7
+      with:
+        sha: ${{ github.event.issue.pull_request.head.sha }}
+        base: ${{ github.event.issue.pull_request.base.sha }}
+    
+    # loop through each file name
+    - name: Loop through each file name
+      run: |
+        for file in ${{ steps.changed-files.outputs.all }}; do
+          echo "File name: $file"
+        done

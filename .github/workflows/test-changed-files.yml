@@ -26,28 +26,23 @@ jobs:
       with:
         ref: ${{ steps.branch-deploy.outputs.ref }}
         fetch-depth: 0
-    
-    # get changed files between current branch and main
-    - name: Changed between branches
-      id: changed-files-branches
-      run: |
-        echo "git diff --name-only main...${{ github.ref }}"
-        
 
-
-        
-    # Get changed file names
+    # use github cli to get changed files on current branch
     - name: Get changed files
       id: changed-files
-      uses: tj-actions/changed-files@v29.0.7
-      with:
-        sha: ${{ github.event.issue.pull_request.head.sha }}
-        # get the target branch lastest commit sha
-        base_sha: ${{ github.event.issue.pull_request.base.sha }}
-    
+      run: |
+        gh pr checkout ${{ github.event.pull_request.number }}
+        gh pr view --json files --jq '.files[].filename' > changed-files.txt
+        echo "::set-output name=changed_files::$(cat changed-files.txt)"
+        
+    # Output changed files as part of the deployment message
+    - name: Output changed files
+      run: |
+        echo "Changed files: ${{ steps.changed-files.outputs.changed_files }}"
+  
     # loop through each file name
     - name: Loop through each file name
       run: |
-        for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
+        for file in ${{ steps.changed-files.outputs.changed_files }}; do
           echo "File name: $file"
         done

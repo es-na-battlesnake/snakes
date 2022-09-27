@@ -27,18 +27,26 @@ jobs:
         fetch-depth: 0
 
     # use github cli to get changed files on current branch
-    - name: Get changed files
+    - name: Get files changing in the Pull Request
       id: changed-files
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        changed=$(gh pr diff --name-only)
-        echo "::set-output name=changed::$changed"
-        echo $changed 
-  
-    # loop through each file name
-    - name: Loop through each file name
+        gh pr diff --name-only > changed-files.txt
+
+    - name: Get changed files
+      id: get-changed-files
       run: |
-        for file in ${{ steps.changed-files.outputs.changed }}; do
-          echo "File name: $file"
+        for file in $(cat changed-files.txt); do
+          echo "Changed file: $file"
         done
+    
+    - name: Check if changed files contain a specific file
+      id: check-file
+      run: |
+        if grep -Fx "README.md" changed-files.txt; then
+          echo "::set-output name=contains-file::true"
+        else
+          echo "::set-output name=contains-file::false"
+        fi
+  

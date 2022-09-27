@@ -1,4 +1,5 @@
 # github action that just checks for the files changed in a PR
+name: "test-changed-files"
 
 on:
   workflow_dispatch:

@@ -39,7 +39,40 @@ jobs:
         run: |
           echo "We do not currently have a noop deploy configured. A proper noop deploy may be added in the future."
           echo "DEPLOY_MESSAGE=We do not currently have a noop deploy configured. A proper noop deploy may be added in the future." >> $GITHUB_ENV
-    
+          
+      # use github cli to get changed files on current branch
+      - name: Get files changing in the Pull Request
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop == 'true' }}
+        id: changed-files-on-pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr diff --name-only > changed-files.txt
+      
+      - name: Check changed files
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop == 'true' }}
+        id: check-file
+        run: |
+          for file in $(cat changed-files.txt); do
+            if [[ $file != "README.md" ]]; then
+              echo "Full Production Deployment Required"
+              echo "::set-output name=full-deploy::true"
+              break
+            fi
+          done
+        
+      - name: Check if full deployment is required
+        if: steps.check-file.outputs.full-deploy == 'true'
+        run: |
+          echo "Full Deployment Required"
+          echo "DEPLOY_MESSAGE=Full Deployment Required." >> $GITHUB_ENV
+
+      - name: Check if full deployment is not required
+        if: steps.check-file.outputs.full-deploy != 'true'
+        run: |
+          echo "No Full Deployment Required"
+          echo "DEPLOY_MESSAGE=No Full Deployment Required." >> $GITHUB_ENV  
+          
       # Production deploy logic
       - name: fake regular deploy
         if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}

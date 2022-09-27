@@ -73,4 +73,9 @@ if __name__ == "__main__":
 
     print(f"\nRunning Battlesnake server at http://{host}:{port}")
     app.env = 'development'
-    app.run(host=host, port=port, debug=True)
+
+    # Only run Flask in debug when inside a codespace
+    if os.environ.get('CODESPACES') == 'true':
+        app.run(host=host, port=port, debug=True)
+    else:
+        app.run(host=host, port=port)

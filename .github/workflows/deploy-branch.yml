@@ -64,7 +64,7 @@ jobs:
       - name: Check if full deploy needed
         if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop == 'true' }} 
         run: |
-          if steps.check-file.outputs.full-deploy == 'true'; then
+          if [ "${{ steps.check-file.outputs.contains-file}}" == "true" ]; then
             echo "Full deploy"
             echo "DEPLOY_MESSAGE=A Full Deploy is required as part of these changes." >> $GITHUB_ENV
           else

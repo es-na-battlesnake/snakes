@@ -3,6 +3,10 @@ name: "test-changed-files"
 
 on:
   workflow_dispatch:
+  # run on new pushes to the branch
+  push:
+
+      
 
 # Permissions needed for reacting and adding comments for IssueOps commands
 permissions:

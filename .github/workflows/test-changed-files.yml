@@ -55,7 +55,7 @@ jobs:
     - name: check if full deploy
       run:
         # if full deploy is true, then do a full deploy
-        if [[ ${{ steps.check-file.outputs.full-deploy }} == "true" ]]; then
+        if [[ ${{ steps.check-file.outputs.full-deploy }} == true ]]; then
           echo "Full Deployment"
         else
           echo "Partial Deployment"

@@ -31,7 +31,8 @@ jobs:
     - name: Get changed files
       id: changed-files
       run: |
-        gh pr checkout ${{ github.event.pull_request.number }}
+      # gh pr checkout current branch ref
+        gh pr checkout ${{ GITHUB_REF }}
         gh pr view --json files --jq '.files[].filename' > changed-files.txt
         echo "::set-output name=changed_files::$(cat changed-files.txt)"
         

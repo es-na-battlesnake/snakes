@@ -38,6 +38,6 @@ jobs:
     # loop through each file name
     - name: Loop through each file name
       run: |
-        for file in ${{ steps.changed-files.outputs.all }}; do
+        for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
           echo "File name: $file"
         done

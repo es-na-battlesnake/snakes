@@ -60,17 +60,18 @@ jobs:
               break
             fi
           done
-          
-      - name: Check if full deploy needed
-        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop == 'true' }} 
+        
+      - name: Check if full deployment is required
+        if: steps.check-file.outputs.full-deploy == 'true'
         run: |
-          if [[ "${{ steps.check-file.outputs.full-deploy}}" == "true" ]]; then
-            echo "Full deploy"
-            echo "DEPLOY_MESSAGE=A Full Deploy is required as part of these changes." >> $GITHUB_ENV
-          else
-            echo "NO full deploy"
-            echo "DEPLOY_MESSAGE=No full Deploy is required as part of these changes." >> $GITHUB_ENV
-          fi
+          echo "Full Deployment Required"
+          echo "DEPLOY_MESSAGE=Full Deployment Required." >> $GITHUB_ENV
+
+      - name: Check if full deployment is not required
+        if: steps.check-file.outputs.full-deploy != 'true'
+        run: |
+          echo "No Full Deployment Required"
+          echo "DEPLOY_MESSAGE=No Full Deployment Required." >> $GITHUB_ENV  
           
       # Production deploy logic
       - name: fake regular deploy

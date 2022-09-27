@@ -24,7 +24,6 @@ jobs:
     # Checkout your projects repository based on the ref provided by the branch-deploy step
     - uses: actions/checkout@v3
       with:
-        ref: ${{ steps.branch-deploy.outputs.ref }}
         fetch-depth: 0
 
     # use github cli to get changed files on current branch

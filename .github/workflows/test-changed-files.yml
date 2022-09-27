@@ -29,6 +29,8 @@ jobs:
     # use github cli to get changed files on current branch
     - name: Get changed files
       id: changed-files
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         gh pr checkout ${GITHUB_REF##*/}
         gh pr view --json files --jq '.files[].filename' > changed-files.txt

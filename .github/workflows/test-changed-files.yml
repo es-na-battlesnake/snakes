@@ -44,9 +44,19 @@ jobs:
     - name: Check if changed files contain a specific file
       id: check-file
       run: |
-        if grep -Fx "README.md" changed-files.txt; then
-          echo "::set-output name=contains-file::true"
+        for file in $(cat changed-files.txt); do
+          if [[ $file != "README.md" ]]; then
+            echo "Full Production Deployment Required"
+            echo "::set-output name=full-deploy::true"
+            break
+          fi
+        done
+
+    - name: check if full deploy
+      run:
+        if [[ ${{ steps.check-file.outputs.full-deploy }} == "true" ]]; then
+          echo "Full Production Deployment Required"
         else
-          echo "::set-output name=contains-file::false"
-        fi
+          echo "No Full Production Deployment Required"
+        fi       
   

@@ -32,9 +32,9 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        gh pr view --json files > pr.json
+        gh pr view --json > pr.json
         cat pr.json
-        gh pr view --json files --jq '.files[].filename' > changed-files.txt
+        gh pr view --json files --jq '.files[].p
         cat changed-files.txt
         echo "::set-output name=changed_files::$(cat changed-files.txt)"
         

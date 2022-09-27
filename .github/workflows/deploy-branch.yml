@@ -81,11 +81,11 @@ jobs:
         run: echo "I am doing a production deploy"
 
       - name: Build the Docker image
-        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' && steps.check-file.outputs.full-deploy == 'true' }}
         run: docker build . --file Dockerfile --tag ghcr.io/es-na-battlesnake/code-snake:${{ github.sha }}
 
       - name: Login to GitHub Container Registry
-        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' && steps.check-file.outputs.full-deploy == 'true' }}
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
@@ -93,11 +93,11 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push Docker image
-        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' && steps.check-file.outputs.full-deploy == 'true' }}
         run: docker push ghcr.io/es-na-battlesnake/code-snake:${{ github.sha }}
       
       - name: 'Login via Azure CLI'
-        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' && steps.check-file.outputs.full-deploy == 'true' }}
         uses: azure/login@v1
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -106,7 +106,7 @@ jobs:
           enable-AzPSSession: true
 
       - name: Delete existing deployment if deployment workflow changes or delete is true
-        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' && steps.check-file.outputs.full-deploy == 'true' }}
         run: |
           az container list | grep code-snake || echo "No deployment found" && exit 0
           # if ${{ github.event.inputs.delete }} = true then 
@@ -123,7 +123,7 @@ jobs:
           done
       
       - name: 'Deploy to Azure Container Instances'
-        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' && steps.check-file.outputs.full-deploy == 'true' }}
         uses: 'azure/aci-deploy@v1'
         with:
           resource-group: snekResourceGroup
@@ -134,4 +134,3 @@ jobs:
           ports: '4567 4568 4569 4570 4571 8080 8081'
           restart-policy: OnFailure
           ip-address: Public
-

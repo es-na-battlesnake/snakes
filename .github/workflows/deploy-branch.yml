@@ -46,8 +46,8 @@ jobs:
         id: changed-files-noop
         uses: tj-actions/changed-files@v29.0.7
         with:
-          sha: ${{ steps.branch-deploy.outputs.ref }}
-          base_sha: ${{ github.event.pull_request.head.sha }}
+          sha: ${{ github.event.issue.pull_request.head.sha }}
+          base_sha: ${{ github.event.issue.pull_request.base.sha }}
 
       # Output changed files as part of the deployment message
       - name: Output changed files

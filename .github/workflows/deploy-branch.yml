@@ -47,7 +47,6 @@ jobs:
         uses: tj-actions/changed-files@v29.0.7
         with:
           sha: ${{ github.event.issue.pull_request.head.sha }}
-          base_sha: ${{ github.event.issue.pull_request.base.sha }}
 
       # Output changed files as part of the deployment message
       - name: Output changed files

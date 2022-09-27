@@ -45,7 +45,8 @@ jobs:
         if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop == 'true' }}
         id: changed-files-noop
         uses: tj-actions/changed-files@v29.0.7
-        with: 
+        with:
+          sha: ${{ steps.branch-deploy.outputs.ref }}
           base_sha: ${{ github.event.pull_request.head.sha }}
 
       # Output changed files as part of the deployment message

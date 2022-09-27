@@ -26,6 +26,17 @@ jobs:
       with:
         ref: ${{ steps.branch-deploy.outputs.ref }}
         fetch-depth: 0
+    
+    - name: Print shas
+      run: |
+        # Print the SHA of the commit that triggered the workflow
+        echo "The SHA of the commit that triggered this workflow is ${{ github.sha }}"
+        # Print the SHA of the head commit of the pull request
+        echo "The SHA of the head commit of the pull request is ${{ github.event.pull_request.head.sha }}"
+        # Print the SHA of the merge commit of the pull request
+        echo "The SHA of the merge commit of the pull request is ${{ github.event.pull_request.merge_commit_sha }}"
+        # Print the SHA of the base commit of the pull request
+        echo "The SHA of the base commit of the pull request is ${{ github.event.pull_request.base.sha }}"
 
     # Get changed file names
     - name: Get changed files

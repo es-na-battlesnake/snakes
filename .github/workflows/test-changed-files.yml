@@ -32,7 +32,7 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        gh pr diff > changed-files.txt
+        gh pr diff --name-only > changed-files.txt
         cat changed-files.txt
         echo "::set-output name=changed_files::$(cat changed-files.txt)"
         

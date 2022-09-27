@@ -31,8 +31,17 @@ jobs:
       run: |
         # Print the SHA of the commit that triggered the workflow
         echo "The SHA of the commit that triggered this workflow is ${{ github.sha }}"
-        # Print the SHA of the head commit of the pull request
-        echo "The SHA of the head commit of the pull request is ${{ github.head_ref.sha }}"
+        # Print the ref of the current branch
+        echo "The ref of the current branch is ${{ github.ref }}"
+        # Print the ref of the base branch
+        echo "The ref of the base branch is ${{ github.base_ref }}"
+        # Print the SHA of the head commit of the current branch
+        echo "The SHA of the head commit of the current branch is ${{ github.event.before }}"
+        # Print the SHA of the head commit of the base branch
+        echo "The SHA of the head commit of the base branch is ${{ github.event.after }}"
+        
+
+
         
     # Get changed file names
     - name: Get changed files

@@ -56,3 +56,8 @@ jobs:
       if: steps.check-file.outputs.full-deploy == 'true'
       run: |
         echo "Full Deployment Required"
+
+    - name: Check if full deployment is not required
+      if: steps.check-file.outputs.full-deploy != 'true'
+      run: |
+        echo "No Full Deployment Required"

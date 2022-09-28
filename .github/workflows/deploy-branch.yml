@@ -68,12 +68,12 @@ jobs:
           echo "Full Deployment Required"
           echo "DEPLOY_MESSAGE=Full Deployment Required." >> $GITHUB_ENV
 
-      # NOOP Message if a full deployment is required
-      - name: Check if full deployment is required
+      # NOOP Message if a full deployment is not required
+      - name: Check if full deployment is not required
         if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop == 'true' && steps.check-file.outputs.full-deploy != 'true' }}
         run: |
-          echo "Full Deployment Required"
-          echo "DEPLOY_MESSAGE=Full Deployment Required." >> $GITHUB_ENV
+          echo "Full Deployment NOT Required"
+          echo "DEPLOY_MESSAGE=Full Deployment NOT Required." >> $GITHUB_ENV
           
       # Production deploy logic
       - name: production deploy

@@ -43,7 +43,7 @@ jobs:
       
       # check if changed files require a full deployment
       - name: Check changed files
-        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop == 'true' }}
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' }}
         id: check-file
         run: |
           for file in $(cat changed-files.txt); do

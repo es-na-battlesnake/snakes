@@ -9,8 +9,6 @@
      - Ruby snakes run on ports 4567+
      - Go snakes run on 8080+
 
-
-
 ## Running snakes
 
 ### Codespaces

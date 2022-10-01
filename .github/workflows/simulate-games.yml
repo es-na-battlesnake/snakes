@@ -6,12 +6,14 @@ on:
       - main
     paths:
       - 'snakes/**'
+      - '.github/workflows/simulate-games.yml'
   # trigger action on new pull request pushes
   pull_request:
     branches:
       - main
     paths:
       - 'snakes/**'
+      - '.github/workflows/simulate-games.yml'
 
 jobs:
 
@@ -40,7 +42,7 @@ jobs:
     - name: Simulate games
       id: simulate-games
       run: |
-          docker run --rm --network test code-snek:pr script/simulate_royale --mode wrapped --map arcade_maze  --width 19 --height 21 --runs 10 | tee -a simulate_royale.log
+          docker run --rm --network test code-snek:pr script/simulate_royale --mode wrapped --map hz_rivers_bridges  --width 11 --height 11 --runs 10 | tee -a simulate_royale.log
 
     - name: Set sim-log to var
       uses: actions/github-script@v6

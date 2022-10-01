@@ -26,31 +26,24 @@ jobs:
         with:
           trigger: ".deploy"
 
-      # Checkout your projects repository based on the ref provided by the branch-deploy step
+      # Checkout repository based on the ref provided by the branch-deploy step
       - uses: actions/checkout@v3
         with:
           ref: ${{ steps.branch-deploy.outputs.ref }}
           fetch-depth: 0
-
-      # Do some fake "noop" deployment logic here
-      # conditionally run a noop deployment
-      - name: fake noop deploy
-        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop == 'true' }}
-        run: |
-          echo "We do not currently have a noop deploy configured. A proper noop deploy may be added in the future."
-          echo "DEPLOY_MESSAGE=We do not currently have a noop deploy configured. A proper noop deploy may be added in the future." >> $GITHUB_ENV
-          
+      
       # use github cli to get changed files on current branch
       - name: Get files changing in the Pull Request
-        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop == 'true' }}
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' }}
         id: changed-files-on-pr
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh pr diff --name-only > changed-files.txt
       
+      # check if changed files require a full deployment
       - name: Check changed files
-        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop == 'true' }}
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' }}
         id: check-file
         run: |
           for file in $(cat changed-files.txt); do
@@ -60,35 +53,39 @@ jobs:
               break
             fi
           done
-        
+
+      # NOOP deployment logic
+      - name: noop deploy
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop == 'true' }}
+        run: |
+          echo "We do not currently have a noop deploy configured. A proper noop deploy may be added in the future."
+          echo "DEPLOY_MESSAGE=We do not currently have a noop deploy configured. A proper noop deploy may be added in the future." >> $GITHUB_ENV
+
+      # NOOP Message if a full deployment is required     
       - name: Check if full deployment is required
-        if: steps.check-file.outputs.full-deploy == 'true'
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop == 'true' && steps.check-file.outputs.full-deploy == 'true' }}
         run: |
           echo "Full Deployment Required"
           echo "DEPLOY_MESSAGE=Full Deployment Required." >> $GITHUB_ENV
 
+      # NOOP Message if a full deployment is not required
       - name: Check if full deployment is not required
-        if: steps.check-file.outputs.full-deploy != 'true'
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop == 'true' && steps.check-file.outputs.full-deploy != 'true' }}
         run: |
-          echo "No Full Deployment Required"
-          echo "DEPLOY_MESSAGE=No Full Deployment Required." >> $GITHUB_ENV  
+          echo "Full Deployment NOT Required"
+          echo "DEPLOY_MESSAGE=Full Deployment NOT Required." >> $GITHUB_ENV
           
       # Production deploy logic
-      - name: fake regular deploy
+      - name: production deploy
         if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}
         run: echo "I am doing a production deploy"
 
-      - name: Get changed files
-        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}
-        id: changed-files
-        uses: tj-actions/changed-files@v29.0.7
-
       - name: Build the Docker image
-        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' && steps.check-file.outputs.full-deploy == 'true' }}
         run: docker build . --file Dockerfile --tag ghcr.io/es-na-battlesnake/code-snake:${{ github.sha }}
 
       - name: Login to GitHub Container Registry
-        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' && steps.check-file.outputs.full-deploy == 'true' }}
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
@@ -96,11 +93,11 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push Docker image
-        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' && steps.check-file.outputs.full-deploy == 'true' }}
         run: docker push ghcr.io/es-na-battlesnake/code-snake:${{ github.sha }}
       
       - name: 'Login via Azure CLI'
-        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' && steps.check-file.outputs.full-deploy == 'true' }}
         uses: azure/login@v1
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -109,7 +106,7 @@ jobs:
           enable-AzPSSession: true
 
       - name: Delete existing deployment if deployment workflow changes or delete is true
-        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' && steps.check-file.outputs.full-deploy == 'true' }}
         run: |
           az container list | grep code-snake || echo "No deployment found" && exit 0
           # if ${{ github.event.inputs.delete }} = true then 
@@ -119,16 +116,14 @@ jobs:
             exit 0
           fi
           # File based detection
-          for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
-            echo "$file was changed"
-            # If .github/workflows/docker-image.yml workflow was changed, check if code-snake is deployed
-            if [[ "$file" == ".github/workflows/docker-image.yml" ]]; then
+          for file in $(cat changed-files.txt); do
+            if [[ $file == ".github/workflows/docker-image.yml" ]]; then
               az container list | grep code-snake && az container delete --yes --name code-snake --ids "/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/snekResourceGroup/providers/Microsoft.ContainerInstance/containerGroups/code-snake"
             fi
           done
       
       - name: 'Deploy to Azure Container Instances'
-        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' && steps.check-file.outputs.full-deploy == 'true' }}
         uses: 'azure/aci-deploy@v1'
         with:
           resource-group: snekResourceGroup
@@ -139,4 +134,3 @@ jobs:
           ports: '4567 4568 4569 4570 4571 8080 8081'
           restart-policy: OnFailure
           ip-address: Public
-

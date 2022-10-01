@@ -146,7 +146,8 @@ func changeHazardsCost(state GameState, grid *Grid) {
 	// Iterate over all the hazards in the game state.
 	for _, hazard := range state.Board.Hazards {
 		// Set the hazard cell cost to a higher value.
-		if state.Game.Map == "arcade_maze" {
+		// If game map is arcade_maze or arcade_maze_2, then set walkable to false.
+		if state.Game.Map == "arcade_maze" || state.Game.Map == "hz_rivers_bridges" {
 			grid.Get(hazard.X, hazard.Y).Walkable = false
 		} else {
 			grid.Get(hazard.X, hazard.Y).Cost = 5

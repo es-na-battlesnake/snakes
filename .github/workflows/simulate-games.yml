@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'snakes/**'
+      - '.github/workflows/simulate-games.yml'
   # trigger action on new pull request pushes
   pull_request:
     branches:

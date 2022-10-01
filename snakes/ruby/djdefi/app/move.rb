@@ -324,7 +324,7 @@ def move(board)
     @score_multiplier = {
       'wall' => 0,
       'hazard' => -550,
-      'hazard_adjacent' => -10,
+      'hazard_adjacent' => -1,
       'food' => 45,
       'food_hazard' => 0,
       'food_adjacent' => 20,

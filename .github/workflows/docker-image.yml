@@ -26,7 +26,7 @@ jobs:
 
     - name: Get changed files
       id: changed-files
-      uses: tj-actions/changed-files@v29.0.7
+      uses: tj-actions/changed-files@v31.0.2
 
     - name: Build the Docker image
       run: docker build . --file Dockerfile --tag ghcr.io/es-na-battlesnake/code-snake:latest

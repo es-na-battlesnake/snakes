@@ -12,6 +12,7 @@ on:
       - main
     paths:
       - 'snakes/**'
+      - '.github/workflows/simulate-games.yml'
 
 jobs:
 

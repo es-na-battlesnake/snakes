@@ -72,6 +72,9 @@ height=${height:-10}
 # default width to 10
 width=${width:-10}
 
+# random seed
+seed=$RANDOM
+
 # if verbose mode is enabled, set verbose flag
 if [[ $verbose ]]; then
     verbose_flag="-v"
@@ -117,6 +120,7 @@ echo "  map: $map"
 echo "  height: $height"
 echo "  width: $width"
 echo "  verbose: $verbose"
+echo "  seed: $seed"
 echo "\`\`\`"
 
 echo "\`\`\`"
@@ -130,6 +134,7 @@ for i in $(seq 1 $runs); do
     --name bevns --url http://code-snek:4569/ \
     -g $mode \
     -m $map \
+    -r $seed \
     $verbose_flag --output out.log ;
     tail -1 out.log | jq -c "if .isDraw then {winner: \"draw\"} else {winner: .winnerName} end" | tee -a winner.txt | sed 's/[{}"]//g' | sed 's/:/: /g'
 done

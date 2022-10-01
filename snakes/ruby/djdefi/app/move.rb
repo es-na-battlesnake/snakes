@@ -323,8 +323,8 @@ def move(board)
     #puts '@@@ Using wrapped game mode score multiplier'
     @score_multiplier = {
       'wall' => 0,
-      'hazard' => -250,
-      'hazard_adjacent' => -1,
+      'hazard' => -550,
+      'hazard_adjacent' => -10,
       'food' => 45,
       'food_hazard' => 0,
       'food_adjacent' => 20,

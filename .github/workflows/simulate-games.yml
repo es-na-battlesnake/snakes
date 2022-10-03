@@ -7,6 +7,8 @@ on:
     paths:
       - 'snakes/**'
       - '.github/workflows/simulate-games.yml'
+      - 'script/simulate_royale'
+      
   # trigger action on new pull request pushes
   pull_request:
     branches:
@@ -14,6 +16,7 @@ on:
     paths:
       - 'snakes/**'
       - '.github/workflows/simulate-games.yml'
+      - 'script/simulate_royale'
 
 jobs:
 
@@ -42,7 +45,7 @@ jobs:
     - name: Simulate games
       id: simulate-games
       run: |
-          docker run --rm --network test code-snek:pr script/simulate_royale --mode wrapped --map hz_rivers_bridges  --width 11 --height 11 --runs 10 | tee -a simulate_royale.log
+          docker run --rm --network test code-snek:pr script/simulate_royale --mode wrapped --map hz_islands_bridges  --width 11 --height 11 --runs 10 | tee -a simulate_royale.log
 
     - name: Set sim-log to var
       uses: actions/github-script@v6

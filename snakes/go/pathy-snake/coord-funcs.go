@@ -70,7 +70,7 @@ func (c Coord) isNextToSnakeHead(state GameState) bool {
 		if above == snake.Head || below == snake.Head || left == snake.Head || right == snake.Head {
 			return true
 		}
-		if state.wrapped() && snake.onOppositeSide(c, state) {
+		if state.isWrapped() && snake.onOppositeSide(c, state) {
 			return true
 		}
 	}

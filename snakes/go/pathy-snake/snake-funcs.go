@@ -7,15 +7,15 @@ func (s Battlesnake) onLeftEdge() bool {
 	return false
 }
 
-func (s Battlesnake) onRightEdge(width int) bool {
-	if s.Head.X == width-1 {
+func (s Battlesnake) onRightEdge(state GameState) bool {
+	if s.Head.X == state.Board.Width-1 {
 		return true
 	}
 	return false
 }
 
-func (s Battlesnake) onTopEdge(height int) bool {
-	if s.Head.Y == height-1 {
+func (s Battlesnake) onTopEdge(state GameState) bool {
+	if s.Head.Y == state.Board.Height-1 {
 		return true
 	}
 	return false
@@ -29,7 +29,7 @@ func (s Battlesnake) onBottomEdge() bool {
 }
 
 func (s Battlesnake) onEdge(state GameState) bool {
-	if s.onLeftEdge() || s.onRightEdge(state.Board.Width) || s.onTopEdge(state.Board.Height) || s.onBottomEdge() {
+	if s.onLeftEdge() || s.onRightEdge(state) || s.onTopEdge(state) || s.onBottomEdge() {
 		return true
 	}
 	return false
@@ -70,9 +70,17 @@ func (s Battlesnake) ownSnake(state GameState) bool {
 	return false
 }
 
+// is not us
+func (s Battlesnake) isEnemySnake(state GameState) bool {
+	if s.ID != state.You.ID {
+		return true
+	}
+	return false
+}
+
 //func to check if a snake is on the opposite side of the board to coord
 func (s Battlesnake) onOppositeSide(coord Coord, state GameState) bool {
-	if coord.onLeftEdge() && s.onRightEdge(state.Board.Width) && coord.Y == s.Head.Y {
+	if coord.onLeftEdge() && s.onRightEdge(state) && coord.Y == s.Head.Y {
 		return true
 	}
 	if coord.onRightEdge(state.Board.Width) && s.onLeftEdge() && coord.Y == s.Head.Y {
@@ -81,7 +89,7 @@ func (s Battlesnake) onOppositeSide(coord Coord, state GameState) bool {
 	if coord.onTopEdge(state.Board.Height) && s.onBottomEdge() && coord.X == s.Head.X {
 		return true
 	}
-	if coord.onBottomEdge() && s.onTopEdge(state.Board.Height) && coord.X == s.Head.X {
+	if coord.onBottomEdge() && s.onTopEdge(state) && coord.X == s.Head.X {
 		return true
 	}
 	if coord.inBottomLeft() && (s.inBottomRight(state.Board.Width) || s.inTopLeft(state.Board.Height)) {
@@ -94,6 +102,14 @@ func (s Battlesnake) onOppositeSide(coord Coord, state GameState) bool {
 		return true
 	}
 	if coord.inTopRight(state.Board.Width, state.Board.Height) && (s.inBottomRight(state.Board.Width) || s.inTopLeft(state.Board.Height)) {
+		return true
+	}
+	return false
+}
+
+//func to check if a snake is larger than our own snake
+func (s Battlesnake) isLargerThanUs(state GameState) bool {
+	if s.Length >= state.You.Length {
 		return true
 	}
 	return false

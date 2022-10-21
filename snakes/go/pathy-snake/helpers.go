@@ -80,7 +80,7 @@ func isNextToSnakeHead(coord Coord, state GameState) bool {
 		if snake.Head == above || snake.Head == below || snake.Head == left || snake.Head == right {
 			return true
 		}
-		if state.wrapped() && onEdge(coord.X, coord.Y, state.Board.Width, state.Board.Height) {
+		if state.wrapped() && coord.onEdge(state) {
 			if coord.onLeftEdge() && snake.onRightEdge(state.Board.Width) && snake.Head.Y == coord.Y {
 				return true
 			}

@@ -96,3 +96,7 @@ func (c Coord) cellRight(width int) Coord {
 	}
 	return Coord{X: c.X + 1, Y: c.Y}
 }
+
+func (c Coord) onEdge(state GameState) bool {
+	return c.onBottomEdge() || c.onLeftEdge() || c.onRightEdge(state.Board.Width) || c.onTopEdge(state.Board.Height)
+}

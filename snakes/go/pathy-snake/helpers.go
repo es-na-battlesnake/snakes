@@ -184,10 +184,19 @@ func (s Battlesnake) ownSnake(state GameState) bool {
 }
 
 func (g GameState) wrapped() bool {
-	if state.GameState.Ruleset.Name == "wrapped" {
+	if g.Game.Ruleset.Name == "wrapped" {
 		return true
 	}
 	return false
+}
+
+func (c Coord) isNextToSnakeHead(state GameState) bool {
+	return isNextToSnakeHead(c, state)
+}
+
+func (c Coord) Surrounded(state GameState) bool {
+	// log that we are checking if a coord is surrounded.
+	return isSurrounded(c, state)
 }
 
 func isNextToSnakeHead(coord Coord, state GameState) bool {
@@ -236,79 +245,62 @@ func isNextToSnakeHead(coord Coord, state GameState) bool {
 	return false
 }
 
-
-// This function takes in an x,y coord and tells us if the cell is surrounded by snake body parts. 
-func isSurrounded(x int, y int, state GameState) bool {
-	// Get the x and y of each neighboring cell as a coord
-	// If the coord is not on the edge of the board.
-	var left, right, up, down Coord
-	if onEdge(x, y, state.Board.Width, state.Board.Height) {
-		// Set x and y based on where we are on the board.
-		if x == 0 {
-			left = Coord{X: state.Board.Width - 1, Y: y}
-			right = Coord{X: x + 1, Y: y}
-			up = Coord{X: x, Y: y + 1}
-			down = Coord{X: x, Y: y - 1}
-		}
-		if x == state.Board.Width-1 {
-			left = Coord{X: x - 1, Y: y}
-			right = Coord{X: 0, Y: y}
-			up = Coord{X: x, Y: y + 1}
-			down = Coord{X: x, Y: y - 1}
-		}
-		if y == 0 {
-			left = Coord{X: x - 1, Y: y}
-			right = Coord{X: x + 1, Y: y}
-			up = Coord{X: x, Y: y + 1}
-			down = Coord{X: x, Y: state.Board.Height - 1}
-		}
-		if y == state.Board.Height-1 {
-			left = Coord{X: x - 1, Y: y}
-			right = Coord{X: x + 1, Y: y}
-			up = Coord{X: x, Y: y - 1}
-			down = Coord{X: x, Y: 0}
-		}
-		// Add statements for each of the four corners.
-		if x == 0 && y == 0 {
-			left = Coord{X: state.Board.Width - 1, Y: y}
-			right = Coord{X: x + 1, Y: y}
-			up = Coord{X: x, Y: y + 1}
-			down = Coord{X: x, Y: state.Board.Height - 1}
-		}
-		if x == 0 && y == state.Board.Height-1 {
-			left = Coord{X: state.Board.Width - 1, Y: y}
-			right = Coord{X: x + 1, Y: y}
-			up = Coord{X: 0, Y: 0}
-			down = Coord{X: x, Y: y - 1}
-		}
-		if x == state.Board.Width-1 && y == 0 {
-			left = Coord{X: x - 1, Y: y}
-			right = Coord{X: 0, Y: y}
-			up = Coord{X: x, Y: y + 1}
-			down = Coord{X: x, Y: state.Board.Height - 1}
-		}
-		if x == state.Board.Width-1 && y == state.Board.Height-1 {
-			left = Coord{X: x - 1, Y: y}
-			right = Coord{X: 0, Y: y}
-			up = Coord{X: x, Y: 0}
-			down = Coord{X: x, Y: y - 1}
-		}
-	} else {
-		left = Coord{x - 1, y}
-		right = Coord{x + 1, y}
-		up = Coord{x, y + 1}
-		down = Coord{x, y - 1}
+func (c Coord) cellAbove(height int) Coord {
+	// assumes that every game is wrapped.
+	if c.onTopEdge(height) {
+		return Coord{X: c.X, Y: 0}
 	}
-	// Check if each neighboring cell is a snake body part.
-	for _, snake := range state.Board.Snakes {
-		// Check if the snake.Body object contains the left, right, up, and down coords.
-		if snakeContains(snake.Body, left) && snakeContains(snake.Body, right) && snakeContains(snake.Body, up) && snakeContains(snake.Body, down) {
+	return Coord{X: c.X, Y: c.Y + 1}
+}
+
+func (c Coord) cellBelow(height int) Coord {
+	// assumes that every game is wrapped.
+	if c.onBottomEdge() {
+		return Coord{X: c.X, Y: height - 1}
+	}
+	return Coord{X: c.X, Y: c.Y - 1}
+}
+
+func (c Coord) cellLeft(width int) Coord {
+	// assumes that every game is wrapped.
+	if c.onLeftEdge() {
+		return Coord{X: width - 1, Y: c.Y}
+	}
+	return Coord{X: c.X - 1, Y: c.Y}
+}
+
+func (c Coord) cellRight(width int) Coord {
+	// assumes that every game is wrapped.
+	if c.onRightEdge(width) {
+		return Coord{X: 0, Y: c.Y}
+	}
+	return Coord{X: c.X + 1, Y: c.Y}
+}
+
+// function to imulate contains for an array  of coords.
+func containsCoord(array []Coord, coord Coord) bool {
+	for _, c := range array {
+		if c == coord {
 			return true
 		}
 	}
 	return false
 }
 
-
-
-
+// This function takes in an coord and tells returns true if the cell is surrounded by snake body parts. 
+func isSurrounded(coord Coord, state GameState) bool {
+	surroundingCells := []Coord{coord.cellAbove(state.Board.Height), coord.cellBelow(state.Board.Height), coord.cellLeft(state.Board.Width), coord.cellRight(state.Board.Width)}
+	// print the surrounding cells.
+	var snakeBodyParts []Coord
+	for _, snake := range state.Board.Snakes {
+		for _, bodyPart := range snake.Body {
+			snakeBodyParts = append(snakeBodyParts, bodyPart)
+		}
+	}
+	for _, cell := range surroundingCells {
+		if !containsCoord(snakeBodyParts, cell) {
+			return false		
+		}
+	}
+	return true
+}

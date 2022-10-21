@@ -65,21 +65,3 @@ func containsCoord(array []Coord, coord Coord) bool {
 	}
 	return false
 }
-
-// This function takes in an coord and tells returns true if the cell is surrounded by snake body parts. 
-func isSurrounded(coord Coord, state GameState) bool {
-	surroundingCells := []Coord{coord.cellAbove(state.Board.Height), coord.cellBelow(state.Board.Height), coord.cellLeft(state.Board.Width), coord.cellRight(state.Board.Width)}
-	// print the surrounding cells.
-	var snakeBodyParts []Coord
-	for _, snake := range state.Board.Snakes {
-		for _, bodyPart := range snake.Body {
-			snakeBodyParts = append(snakeBodyParts, bodyPart)
-		}
-	}
-	for _, cell := range surroundingCells {
-		if !containsCoord(snakeBodyParts, cell) {
-			return false		
-		}
-	}
-	return true
-}

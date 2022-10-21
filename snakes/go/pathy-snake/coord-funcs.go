@@ -78,8 +78,18 @@ func (c Coord) isNextToSnakeHead(state GameState) bool {
 }
 
 func (c Coord) Surrounded(state GameState) bool {
-	// log that we are checking if a coord is surrounded.
-	return isSurrounded(c, state)
+	surroundingCells := []Coord{c.cellAbove(state.Board.Height), c.cellBelow(state.Board.Height), c.cellLeft(state.Board.Width), c.cellRight(state.Board.Width)}
+	// print the surrounding cells.
+	var snakeBodyParts []Coord
+	for _, snake := range state.Board.Snakes {
+		snakeBodyParts = append(snakeBodyParts, snake.Body...)	
+	}
+	for _, cell := range surroundingCells {
+		if !containsCoord(snakeBodyParts, cell) {
+			return false
+		}
+	}
+	return true
 }
 
 func (c Coord) cellAbove(height int) Coord {

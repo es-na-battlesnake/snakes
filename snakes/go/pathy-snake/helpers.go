@@ -64,7 +64,7 @@ func snakeContains(body []Coord, coord Coord) bool {
 	return false
 }
 
-// This function takes and x,y coord and tells us if there is a snake next to it larger than us. 
+// This function takes and x,y coord and tells us if there is a snake head next to it larger than us. 
 func isNextToLarger(x int, y int, state GameState) bool {
 	// check if there is a snake next to us that is larger than us.
 	for _, snake := range state.Board.Snakes {
@@ -77,18 +77,12 @@ func isNextToLarger(x int, y int, state GameState) bool {
 			continue
 		}
 		// Check if the snake is to the left, right, above, or below us.
-		if snake.Head.X == x-1 && snake.Head.Y == y {
+		if snake.Head.Y == y && (snake.Head.X == x-1 || snake.Head.X == x+1) {
 			return true
 		}
-		if snake.Head.X == x+1 && snake.Head.Y == y {
+		if snake.Head.X == x && (snake.Head.Y == y-1 || snake.Head.Y == y+1) {
 			return true
 		}
-		if snake.Head.X == x && snake.Head.Y == y-1 {
-			return true
-		}
-		if snake.Head.X == x && snake.Head.Y == y+1 {
-			return true
-		}		
 		if state.Game.Ruleset.Name == "wrapped" {
 			if onEdge(x, y, state.Board.Width, state.Board.Height) {
 				if x == 0 && snake.Head.X == state.Board.Width-1 && snake.Head.Y == y {
@@ -141,6 +135,168 @@ func isNextToLarger(x int, y int, state GameState) bool {
 	}
 	return false
 }
+
+// class to check if cord is on left edge
+func (c Coord) onLeftEdge() bool {
+	if c.X == 0 {
+		return true
+	}
+	return false
+}
+
+// class to check if cord is on right edge
+func (c Coord) onRightEdge(width int) bool {
+	if c.X == width-1 {
+		return true
+	}
+	return false
+}
+
+// class to check if cord is on top edge
+func (c Coord) onTopEdge(height int) bool {
+	if c.Y == height-1 {
+		return true
+	}
+	return false
+}
+
+// class to check if cord is on bottom edge
+func (c Coord) onBottomEdge() bool {
+	if c.Y == 0 {
+		return true
+	}
+	return false
+}
+
+// class to check if cord is in bottom left
+func (c Coord) inBottomLeft() bool {
+	if c.X == 0 && c.Y == 0 {
+		return true
+	}
+	return false
+}
+
+// class to check if cord is in bottom right
+func (coord Coord) inBottomRight(width int) bool {
+	if coord.X == width-1 && coord.Y == 0 {
+		return true
+	}
+	return false
+}
+
+// class to check if cord is in top left
+func (c Coord) inTopLeft(height int) bool {
+	if c.X == 0 && c.Y == height-1 {
+		return true
+	}
+	return false
+}
+
+// class to check if cord is inTopRight
+func (c Coord) inTopRight(width int, height int) bool {
+	if c.X == width-1 && c.Y == height-1 {
+		return true
+	}
+	return false
+}
+
+func (s Battlesnake) onLeftEdge() bool {
+	if s.Head.X == 0 {
+		return true
+	}
+	return false
+}
+
+func (s Battlesnake) onRightEdge(width int) bool {
+	if s.Head.X == width-1 {
+		return true
+	}
+	return false
+}
+
+func (s Battlesnake) onTopEdge(height int) bool {
+	if s.Head.Y == height-1 {
+		return true
+	}
+	return false
+}
+
+func (s Battlesnake) onBottomEdge() bool {
+	if s.Head.Y == 0 {
+		return true
+	}
+	return false
+}
+
+
+func isNextToSnakeHead(coord Coord, state GameState) bool {
+	// get the four cells around us.
+	above := Coord{X: coord.X, Y: coord.Y + 1}
+	below := Coord{X: coord.X, Y: coord.Y - 1}
+	left := Coord{X: coord.X - 1, Y: coord.Y}
+	right := Coord{X: coord.X + 1, Y: coord.Y}
+	// check if above, below, left, or right is occupied by a snake.
+	for _, snake := range state.Board.Snakes {
+		// skip if the snake is us.
+		if snake.ID == state.You.ID || snake.Length < state.You.Length {
+			continue
+		}
+		// check if the snake is above, below, left, or right of us.
+		if snake.Head == above || snake.Head == below || snake.Head == left || snake.Head == right {
+			return true
+		}
+		if state.Game.Ruleset.Name == "wrapped" {
+			if onEdge(coord.X, coord.Y, state.Board.Width, state.Board.Height) {
+				if coord.onLeftEdge() && snake.onRightEdge(state.Board.Width) && snake.Head.Y == coord.Y {
+					return true
+				}
+				if coord.onRightEdge(state.Board.Width) && snake.onLeftEdge() && snake.Head.Y == coord.Y {
+					return true
+				}
+				if coord.onTopEdge(state.Board.Height) && snake.onBottomEdge() && snake.Head.X == coord.X{
+					return true
+				}
+				if coord.onBottomEdge() && snake.onTopEdge(state.Board.Height) && snake.Head.X == coord.X {
+					return true
+				}
+				if coord.inBottomLeft() {
+					if snake.Head.X == state.Board.Width-1 && snake.Head.Y == coord.Y {
+						return true
+					}
+					if snake.Head.X == coord.X && snake.Head.Y == state.Board.Height-1 {
+						return true
+					}
+				}
+				if coord.inBottomRight(state.Board.Width) {
+					if snake.Head.X == 0 && snake.Head.Y == coord.Y {
+						return true
+					}
+					if snake.Head.X == coord.X && snake.Head.Y == state.Board.Height-1 {
+						return true
+					}
+				}
+				if coord.inTopLeft(state.Board.Height) {
+					if snake.Head.X == state.Board.Width-1 && snake.Head.Y == coord.Y {
+						return true
+					}
+					if snake.Head.X == coord.X && snake.Head.Y == 0 {
+						return true
+					}
+				}
+				if coord.inTopRight(state.Board.Width, state.Board.Height) {
+					if snake.Head.X == 0 && snake.Head.Y == coord.Y {
+						return true
+					}
+					if snake.Head.X == coord.X && snake.Head.Y == 0 {
+						return true
+					}
+				}
+			}
+		}
+	}
+	return false
+}
+
 
 // This function takes in an x,y coord and tells us if the cell is surrounded by snake body parts. 
 func isSurrounded(x int, y int, state GameState) bool {

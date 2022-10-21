@@ -239,7 +239,7 @@ func getPath(state GameState, grid *Grid) *Path {
 			var closestDistance int
 			for _, food := range state.Board.Food {
 				// Skip the food if it is isNextToSnakeHead.
-				if food.isNextToSnakeHead(state) {
+				if food.isNextToSnakeHead(state) || food.Surrounded(state) {
 					continue
 				}
 				// Get the manhattan distance between the head and the food.

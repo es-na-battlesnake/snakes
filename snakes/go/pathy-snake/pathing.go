@@ -169,7 +169,7 @@ func getPath(state GameState, grid *Grid) *Path {
 	// Get the path from the grid using the GetPath function.
 	// If game mode is wrapped set a bool to true else set it to false.
 	var wrapped bool
-	if state.Game.Ruleset.Name == "wrapped" {
+	if state.wrapped() {
 		wrapped = true
 	} else {
 		wrapped = false

@@ -57,7 +57,24 @@ func (c Coord) inTopRight(width int, height int) bool {
 }
 
 func (c Coord) isNextToSnakeHead(state GameState) bool {
-	return isNextToSnakeHead(c, state)
+	above := Coord{X: c.X, Y: c.Y + 1}
+	below := Coord{X: c.X, Y: c.Y - 1}
+	left := Coord{X: c.X - 1, Y: c.Y}
+	right := Coord{X: c.X + 1, Y: c.Y}
+	// check if above, below, left, or right is occupied by a snake.
+	for _, snake := range state.Board.Snakes {
+		// skip if the snake is us.
+		if snake.ownSnake(state) || snake.Length < state.You.Length {
+			continue
+		}
+		if above == snake.Head || below == snake.Head || left == snake.Head || right == snake.Head {
+			return true
+		}
+		if state.wrapped() && snake.onOppositeSide(c, state) {
+			return true
+		}
+	}
+	return false
 }
 
 func (c Coord) Surrounded(state GameState) bool {

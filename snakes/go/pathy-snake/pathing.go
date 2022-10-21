@@ -94,7 +94,7 @@ func addSnakesToGrid(state GameState, grid *Grid) {
 			}
 			// If the snakes head is on the edge of the board.
 			// We want to set the cells opposite to the head to not be walkable.
-			if onEdge(otherSnake.Head.X, otherSnake.Head.Y, state.Board.Width, state.Board.Height) {
+			if otherSnake.onEdge(state) {
 				if otherSnake.Head.X == 0 {
 					if otherSnake.Length >= state.You.Length {
 						grid.Get(state.Board.Width-1, otherSnake.Head.Y).Walkable = false

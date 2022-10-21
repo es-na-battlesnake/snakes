@@ -46,65 +46,11 @@ func abs(x int) int {
 	return x
 }
 
-// This function is used to check if a snake head x,y coord is on the edge of the board.
-func onEdge(x int, y int, width int, height int) bool {
-	if x == 0 || x == width-1 || y == 0 || y == height-1 {
-		return true
-	}
-	return false
-}
-
 // Function that looks to see if a coord is in the snake.Body
 func snakeContains(body []Coord, coord Coord) bool {
 	for _, bodyCoord := range body {
 		if bodyCoord == coord {
 			return true
-		}
-	}
-	return false
-}
-
-func isNextToSnakeHead(coord Coord, state GameState) bool {
-	// get the four cells around us.
-	above := Coord{X: coord.X, Y: coord.Y + 1}
-	below := Coord{X: coord.X, Y: coord.Y - 1}
-	left := Coord{X: coord.X - 1, Y: coord.Y}
-	right := Coord{X: coord.X + 1, Y: coord.Y}
-	// check if above, below, left, or right is occupied by a snake.
-	for _, snake := range state.Board.Snakes {
-		// skip if the snake is us.
-		if snake.ownSnake(state) || snake.Length < state.You.Length {
-			continue
-		}
-		// check if the snake is above, below, left, or right of us.
-		if snake.Head == above || snake.Head == below || snake.Head == left || snake.Head == right {
-			return true
-		}
-		if state.wrapped() && coord.onEdge(state) {
-			if coord.onLeftEdge() && snake.onRightEdge(state.Board.Width) && snake.Head.Y == coord.Y {
-				return true
-			}
-			if coord.onRightEdge(state.Board.Width) && snake.onLeftEdge() && snake.Head.Y == coord.Y {
-				return true
-			}
-			if coord.onTopEdge(state.Board.Height) && snake.onBottomEdge() && snake.Head.X == coord.X{
-				return true
-			}
-			if coord.onBottomEdge() && snake.onTopEdge(state.Board.Height) && snake.Head.X == coord.X {
-				return true
-			}
-			if coord.inBottomLeft() && (snake.inBottomRight(state.Board.Width) || snake.inTopLeft(state.Board.Height)) {
-				return true
-			}
-			if coord.inBottomRight(state.Board.Width) && (snake.inBottomLeft() || snake.inTopRight(state.Board.Width, state.Board.Height)) {
-				return true
-			}
-			if coord.inTopLeft(state.Board.Height) && (snake.inTopRight(state.Board.Width, state.Board.Height) || snake.inBottomLeft()) {
-				return true
-			}
-			if coord.inTopRight(state.Board.Width, state.Board.Height) && (snake.inTopLeft(state.Board.Height) || snake.inBottomRight(state.Board.Width)) {
-				return true
-			}
 		}
 	}
 	return false

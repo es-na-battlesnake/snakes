@@ -16,7 +16,9 @@ on:
     paths:
       - 'snakes/**'
       - '.github/workflows/simulate-games.yml'
+      - '.github/workflows/build-base.yml'
       - 'script/simulate_royale'
+      - 'Dockerfile*'
 
 jobs:
 

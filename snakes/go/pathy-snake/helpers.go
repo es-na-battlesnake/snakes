@@ -64,79 +64,6 @@ func snakeContains(body []Coord, coord Coord) bool {
 	return false
 }
 
-// This function takes and x,y coord and tells us if there is a snake head next to it larger than us. 
-func isNextToLarger(x int, y int, state GameState) bool {
-	// check if there is a snake next to us that is larger than us.
-	for _, snake := range state.Board.Snakes {
-		// if the snake is us, skip it.
-		if snake.ID == state.You.ID {
-			continue
-		}
-		// if the snake is smaller than us, skip it.
-		if snake.Length < state.You.Length {
-			continue
-		}
-		// Check if the snake is to the left, right, above, or below us.
-		if snake.Head.Y == y && (snake.Head.X == x-1 || snake.Head.X == x+1) {
-			return true
-		}
-		if snake.Head.X == x && (snake.Head.Y == y-1 || snake.Head.Y == y+1) {
-			return true
-		}
-		if state.Game.Ruleset.Name == "wrapped" {
-			if onEdge(x, y, state.Board.Width, state.Board.Height) {
-				if x == 0 && snake.Head.X == state.Board.Width-1 && snake.Head.Y == y {
-					return true
-				}
-				if x == state.Board.Width-1 && snake.Head.X == 0 && snake.Head.Y == y {
-					return true
-				}
-				if y == 0 && snake.Head.X == x && snake.Head.Y == state.Board.Height-1 {
-					return true
-				}
-				if y == state.Board.Height-1 && snake.Head.X == x && snake.Head.Y == 0 {
-					return true
-				}
-				// Do the same but check the corners.
-				if x == 0 && y == 0 {
-					if snake.Head.X == state.Board.Width-1 && snake.Head.Y == y {
-						return true
-					}
-					if snake.Head.X == x && snake.Head.Y == state.Board.Height-1 {
-						return true
-					}
-				}
-				if x == state.Board.Width-1 && y == 0 {
-					if snake.Head.X == 0 && snake.Head.Y == y {
-						return true
-					}
-					if snake.Head.X == x && snake.Head.Y == state.Board.Height-1 {
-						return true
-					}
-				}
-				if x == 0 && y == state.Board.Height-1 {
-					if snake.Head.X == state.Board.Width-1 && snake.Head.Y == y {
-						return true
-					}
-					if snake.Head.X == x && snake.Head.Y == 0 {
-						return true
-					}
-				}
-				if x == state.Board.Width-1 && y == state.Board.Height-1 {
-					if snake.Head.X == 0 && snake.Head.Y == y {
-						return true
-					}
-					if snake.Head.X == x && snake.Head.Y == 0 {
-						return true
-					}
-				}
-			}
-		}	
-	}
-	return false
-}
-
-// class to check if cord is on left edge
 func (c Coord) onLeftEdge() bool {
 	if c.X == 0 {
 		return true
@@ -144,7 +71,6 @@ func (c Coord) onLeftEdge() bool {
 	return false
 }
 
-// class to check if cord is on right edge
 func (c Coord) onRightEdge(width int) bool {
 	if c.X == width-1 {
 		return true
@@ -152,7 +78,6 @@ func (c Coord) onRightEdge(width int) bool {
 	return false
 }
 
-// class to check if cord is on top edge
 func (c Coord) onTopEdge(height int) bool {
 	if c.Y == height-1 {
 		return true
@@ -160,7 +85,6 @@ func (c Coord) onTopEdge(height int) bool {
 	return false
 }
 
-// class to check if cord is on bottom edge
 func (c Coord) onBottomEdge() bool {
 	if c.Y == 0 {
 		return true
@@ -168,7 +92,6 @@ func (c Coord) onBottomEdge() bool {
 	return false
 }
 
-// class to check if cord is in bottom left
 func (c Coord) inBottomLeft() bool {
 	if c.X == 0 && c.Y == 0 {
 		return true
@@ -176,7 +99,6 @@ func (c Coord) inBottomLeft() bool {
 	return false
 }
 
-// class to check if cord is in bottom right
 func (coord Coord) inBottomRight(width int) bool {
 	if coord.X == width-1 && coord.Y == 0 {
 		return true
@@ -184,7 +106,6 @@ func (coord Coord) inBottomRight(width int) bool {
 	return false
 }
 
-// class to check if cord is in top left
 func (c Coord) inTopLeft(height int) bool {
 	if c.X == 0 && c.Y == height-1 {
 		return true
@@ -192,7 +113,6 @@ func (c Coord) inTopLeft(height int) bool {
 	return false
 }
 
-// class to check if cord is inTopRight
 func (c Coord) inTopRight(width int, height int) bool {
 	if c.X == width-1 && c.Y == height-1 {
 		return true
@@ -228,6 +148,47 @@ func (s Battlesnake) onBottomEdge() bool {
 	return false
 }
 
+func (s Battlesnake) inBottomLeft() bool {
+	if s.Head.X == 0 && s.Head.Y == 0 {
+		return true
+	}
+	return false
+}
+
+func (s Battlesnake) inBottomRight(width int) bool {
+	if s.Head.X == width-1 && s.Head.Y == 0 {
+		return true
+	}
+	return false
+}
+
+func (s Battlesnake) inTopLeft(height int) bool {
+	if s.Head.X == 0 && s.Head.Y == height-1 {
+		return true
+	}
+	return false
+}
+
+func (s Battlesnake) inTopRight(width int, height int) bool {
+	if s.Head.X == width-1 && s.Head.Y == height-1 {
+		return true
+	}
+	return false
+}
+
+func (s Battlesnake) ownSnake(state GameState) bool {
+	if s.ID == state.You.ID {
+		return true
+	}
+	return false
+}
+
+func (g GameState) wrapped() bool {
+	if state.GameState.Ruleset.Name == "wrapped" {
+		return true
+	}
+	return false
+}
 
 func isNextToSnakeHead(coord Coord, state GameState) bool {
 	// get the four cells around us.
@@ -238,59 +199,37 @@ func isNextToSnakeHead(coord Coord, state GameState) bool {
 	// check if above, below, left, or right is occupied by a snake.
 	for _, snake := range state.Board.Snakes {
 		// skip if the snake is us.
-		if snake.ID == state.You.ID || snake.Length < state.You.Length {
+		if snake.ownSnake(state) || snake.Length < state.You.Length {
 			continue
 		}
 		// check if the snake is above, below, left, or right of us.
 		if snake.Head == above || snake.Head == below || snake.Head == left || snake.Head == right {
 			return true
 		}
-		if state.Game.Ruleset.Name == "wrapped" {
-			if onEdge(coord.X, coord.Y, state.Board.Width, state.Board.Height) {
-				if coord.onLeftEdge() && snake.onRightEdge(state.Board.Width) && snake.Head.Y == coord.Y {
-					return true
-				}
-				if coord.onRightEdge(state.Board.Width) && snake.onLeftEdge() && snake.Head.Y == coord.Y {
-					return true
-				}
-				if coord.onTopEdge(state.Board.Height) && snake.onBottomEdge() && snake.Head.X == coord.X{
-					return true
-				}
-				if coord.onBottomEdge() && snake.onTopEdge(state.Board.Height) && snake.Head.X == coord.X {
-					return true
-				}
-				if coord.inBottomLeft() {
-					if snake.Head.X == state.Board.Width-1 && snake.Head.Y == coord.Y {
-						return true
-					}
-					if snake.Head.X == coord.X && snake.Head.Y == state.Board.Height-1 {
-						return true
-					}
-				}
-				if coord.inBottomRight(state.Board.Width) {
-					if snake.Head.X == 0 && snake.Head.Y == coord.Y {
-						return true
-					}
-					if snake.Head.X == coord.X && snake.Head.Y == state.Board.Height-1 {
-						return true
-					}
-				}
-				if coord.inTopLeft(state.Board.Height) {
-					if snake.Head.X == state.Board.Width-1 && snake.Head.Y == coord.Y {
-						return true
-					}
-					if snake.Head.X == coord.X && snake.Head.Y == 0 {
-						return true
-					}
-				}
-				if coord.inTopRight(state.Board.Width, state.Board.Height) {
-					if snake.Head.X == 0 && snake.Head.Y == coord.Y {
-						return true
-					}
-					if snake.Head.X == coord.X && snake.Head.Y == 0 {
-						return true
-					}
-				}
+		if state.wrapped() && onEdge(coord.X, coord.Y, state.Board.Width, state.Board.Height) {
+			if coord.onLeftEdge() && snake.onRightEdge(state.Board.Width) && snake.Head.Y == coord.Y {
+				return true
+			}
+			if coord.onRightEdge(state.Board.Width) && snake.onLeftEdge() && snake.Head.Y == coord.Y {
+				return true
+			}
+			if coord.onTopEdge(state.Board.Height) && snake.onBottomEdge() && snake.Head.X == coord.X{
+				return true
+			}
+			if coord.onBottomEdge() && snake.onTopEdge(state.Board.Height) && snake.Head.X == coord.X {
+				return true
+			}
+			if coord.inBottomLeft() && (snake.inBottomRight(state.Board.Width) || snake.inTopLeft(state.Board.Height)) {
+				return true
+			}
+			if coord.inBottomRight(state.Board.Width) && (snake.inBottomLeft() || snake.inTopRight(state.Board.Width, state.Board.Height)) {
+				return true
+			}
+			if coord.inTopLeft(state.Board.Height) && (snake.inTopRight(state.Board.Width, state.Board.Height) || snake.inBottomLeft()) {
+				return true
+			}
+			if coord.inTopRight(state.Board.Width, state.Board.Height) && (snake.inTopLeft(state.Board.Height) || snake.inBottomRight(state.Board.Width)) {
+				return true
 			}
 		}
 	}

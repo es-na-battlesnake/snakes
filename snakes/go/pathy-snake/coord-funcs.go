@@ -14,15 +14,15 @@ func (c Coord) onLeftEdge() bool {
 	return false
 }
 
-func (c Coord) onRightEdge(width int) bool {
-	if c.X == width-1 {
+func (c Coord) onRightEdge(state GameState) bool {
+	if c.X == state.Board.Width-1 {
 		return true
 	}
 	return false
 }
 
-func (c Coord) onTopEdge(height int) bool {
-	if c.Y == height-1 {
+func (c Coord) onTopEdge(state GameState) bool {
+	if c.Y == state.Board.Height-1 {
 		return true
 	}
 	return false
@@ -94,7 +94,7 @@ func (c Coord) Surrounded(state GameState) bool {
 
 func (c Coord) cellAbove(state GameState) Coord {
 	// assumes that every game is wrapped.
-	if c.onTopEdge(state.Board.Height) {
+	if c.onTopEdge(state) {
 		return Coord{X: c.X, Y: 0}
 	}
 	return Coord{X: c.X, Y: c.Y + 1}
@@ -118,12 +118,12 @@ func (c Coord) cellLeft(state GameState) Coord {
 
 func (c Coord) cellRight(state GameState) Coord {
 	// assumes that every game is wrapped.
-	if c.onRightEdge(state.Board.Width) {
+	if c.onRightEdge(state) {
 		return Coord{X: 0, Y: c.Y}
 	}
 	return Coord{X: c.X + 1, Y: c.Y}
 }
 
 func (c Coord) onEdge(state GameState) bool {
-	return c.onBottomEdge() || c.onLeftEdge() || c.onRightEdge(state.Board.Width) || c.onTopEdge(state.Board.Height)
+	return c.onBottomEdge() || c.onLeftEdge() || c.onRightEdge(state) || c.onTopEdge(state)
 }

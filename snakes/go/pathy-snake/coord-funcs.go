@@ -35,22 +35,22 @@ func (c Coord) inBottomLeft() bool {
 	return false
 }
 
-func (coord Coord) inBottomRight(width int) bool {
-	if coord.X == width-1 && coord.Y == 0 {
+func (coord Coord) inBottomRight(state GameState) bool {
+	if coord.X == state.Board.Width-1 && coord.Y == 0 {
 		return true
 	}
 	return false
 }
 
-func (c Coord) inTopLeft(height int) bool {
-	if c.X == 0 && c.Y == height-1 {
+func (c Coord) inTopLeft(state GameState) bool {
+	if c.X == 0 && c.Y == state.Board.Height-1 {
 		return true
 	}
 	return false
 }
 
-func (c Coord) inTopRight(width int, height int) bool {
-	if c.X == width-1 && c.Y == height-1 {
+func (c Coord) inTopRight(state GameState) bool {
+	if c.X == state.Board.Width-1 && c.Y == state.Board.Height-1 {
 		return true
 	}
 	return false

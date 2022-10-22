@@ -42,22 +42,22 @@ func (s Battlesnake) inBottomLeft() bool {
 	return false
 }
 
-func (s Battlesnake) inBottomRight(width int) bool {
-	if s.Head.X == width-1 && s.Head.Y == 0 {
+func (s Battlesnake) inBottomRight(state GameState) bool {
+	if s.Head.X == state.Board.Width-1 && s.Head.Y == 0 {
 		return true
 	}
 	return false
 }
 
-func (s Battlesnake) inTopLeft(height int) bool {
-	if s.Head.X == 0 && s.Head.Y == height-1 {
+func (s Battlesnake) inTopLeft(state GameState) bool {
+	if s.Head.X == 0 && s.Head.Y == state.Board.Height-1 {
 		return true
 	}
 	return false
 }
 
-func (s Battlesnake) inTopRight(width int, height int) bool {
-	if s.Head.X == width-1 && s.Head.Y == height-1 {
+func (s Battlesnake) inTopRight(state GameState) bool {
+	if s.Head.X == state.Board.Width-1 && s.Head.Y == state.Board.Height-1 {
 		return true
 	}
 	return false
@@ -83,25 +83,25 @@ func (s Battlesnake) onOppositeSide(coord Coord, state GameState) bool {
 	if coord.onLeftEdge() && s.onRightEdge(state) && coord.Y == s.Head.Y {
 		return true
 	}
-	if coord.onRightEdge(state.Board.Width) && s.onLeftEdge() && coord.Y == s.Head.Y {
+	if coord.onRightEdge(state) && s.onLeftEdge() && coord.Y == s.Head.Y {
 		return true
 	}
-	if coord.onTopEdge(state.Board.Height) && s.onBottomEdge() && coord.X == s.Head.X {
+	if coord.onTopEdge(state) && s.onBottomEdge() && coord.X == s.Head.X {
 		return true
 	}
 	if coord.onBottomEdge() && s.onTopEdge(state) && coord.X == s.Head.X {
 		return true
 	}
-	if coord.inBottomLeft() && (s.inBottomRight(state.Board.Width) || s.inTopLeft(state.Board.Height)) {
+	if coord.inBottomLeft() && (s.inBottomRight(state) || s.inTopLeft(state)) {
 		return true
 	}
-	if coord.inBottomRight(state.Board.Width) && (s.inBottomLeft() || s.inTopRight(state.Board.Width, state.Board.Height)) {
+	if coord.inBottomRight(state) && (s.inBottomLeft() || s.inTopRight(state)) {
 		return true
 	}
-	if coord.inTopLeft(state.Board.Height) && (s.inBottomLeft() || s.inTopRight(state.Board.Width, state.Board.Height)) {
+	if coord.inTopLeft(state) && (s.inBottomLeft() || s.inTopRight(state)) {
 		return true
 	}
-	if coord.inTopRight(state.Board.Width, state.Board.Height) && (s.inBottomRight(state.Board.Width) || s.inTopLeft(state.Board.Height)) {
+	if coord.inTopRight(state) && (s.inBottomRight(state) || s.inTopLeft(state)) {
 		return true
 	}
 	return false

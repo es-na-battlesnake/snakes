@@ -40,7 +40,7 @@ func addSnakesToGrid(state GameState, grid *Grid) {
 		}
 	}
 
-	// Clear any map that might exist between games.
+	// Clear any snake health map that might exist between games.
 	if state.Turn <= 3 {
 		snakeHealths = make(map[string]int)
 		updateSnakeHealth(state)
@@ -60,51 +60,21 @@ func addSnakesToGrid(state GameState, grid *Grid) {
 	// Iterrate over all the the other snakes heads.
 	for _, otherSnake := range state.Board.Snakes {
 		if otherSnake.ID != state.You.ID {
-			// Check that other snake is on the edge of the board.
-			// Added to avoid panics (out of bounds) when the head is at the edge of the board.
-			// Then set the cost of the cells next to the head to higher cost.
-			if !otherSnake.onLeftEdge() && otherSnake.isLargerThanUs(state) {
-				grid.Get(otherSnake.Head.X-1, otherSnake.Head.Y).Walkable = false
-			} else if !otherSnake.onLeftEdge() {
-				grid.Get(otherSnake.Head.X-1, otherSnake.Head.Y).Cost = 1.5
+			left := otherSnake.Head.cellLeft(state)
+			right := otherSnake.Head.cellRight(state)
+			above := otherSnake.Head.cellAbove(state)
+			below := otherSnake.Head.cellBelow(state)
+			if otherSnake.isLargerThanUs(state) {
+				grid.Get(left.X, left.Y).Walkable = false
+				grid.Get(right.X, right.Y).Walkable = false
+				grid.Get(above.X, above.Y).Walkable = false
+				grid.Get(below.X, below.Y).Walkable = false
+			} else {
+				grid.Get(left.X, left.Y).Cost = 1.5
+				grid.Get(right.X, right.Y).Cost = 1.5
+				grid.Get(above.X, above.Y).Cost = 1.5
+				grid.Get(below.X, below.Y).Cost = 1.5
 			}
-			if !otherSnake.onRightEdge(state) && otherSnake.isLargerThanUs(state) {
-				grid.Get(otherSnake.Head.X+1, otherSnake.Head.Y).Walkable = false
-			} else if !otherSnake.onRightEdge(state) {
-				grid.Get(otherSnake.Head.X+1, otherSnake.Head.Y).Cost = 1.5
-			}
-			if !otherSnake.onBottomEdge() && otherSnake.isLargerThanUs(state) {
-				grid.Get(otherSnake.Head.X, otherSnake.Head.Y-1).Walkable = false
-			} else if !otherSnake.onBottomEdge() {
-				grid.Get(otherSnake.Head.X, otherSnake.Head.Y-1).Cost = 1.5
-			}
-			if !otherSnake.onTopEdge(state) && otherSnake.isLargerThanUs(state) {
-				grid.Get(otherSnake.Head.X, otherSnake.Head.Y+1).Walkable = false
-			} else if !otherSnake.onTopEdge(state) {
-				grid.Get(otherSnake.Head.X, otherSnake.Head.Y+1).Cost = 1.5
-			}
-			// If the snakes head is on the edge of the board.
-			// We want to set the cells opposite to the head to not be walkable.
-			if otherSnake.onLeftEdge() && otherSnake.isLargerThanUs(state) {
-				grid.Get(state.Board.Width-1, otherSnake.Head.Y).Walkable = false
-			} else if otherSnake.onLeftEdge(){
-				grid.Get(state.Board.Width-1, otherSnake.Head.Y).Cost = 1.5
-			}
-			if otherSnake.onRightEdge(state) && otherSnake.isLargerThanUs(state) {
-				grid.Get(0, otherSnake.Head.Y).Walkable = false
-			} else if otherSnake.onRightEdge(state) {
-				grid.Get(0, otherSnake.Head.Y).Cost = 1.5
-			}
-			if otherSnake.onBottomEdge() && otherSnake.isLargerThanUs(state) {
-				grid.Get(otherSnake.Head.X, state.Board.Height-1).Walkable = false
-			} else if otherSnake.onBottomEdge() {
-				grid.Get(otherSnake.Head.X, state.Board.Height-1).Cost = 1.5
-			}
-			if otherSnake.onTopEdge(state) && otherSnake.isLargerThanUs(state) {
-				grid.Get(otherSnake.Head.X, 0).Walkable = false
-			} else if otherSnake.onTopEdge(state) {
-				grid.Get(otherSnake.Head.X, 0).Cost = 1.5
-			}	
 		}
 	}
 	// Make sure our own head is walkable. We need to do this because the getPath function

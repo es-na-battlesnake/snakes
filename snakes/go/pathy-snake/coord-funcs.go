@@ -78,7 +78,7 @@ func (c Coord) isNextToSnakeHead(state GameState) bool {
 }
 
 func (c Coord) Surrounded(state GameState) bool {
-	surroundingCells := []Coord{c.cellAbove(state.Board.Height), c.cellBelow(state.Board.Height), c.cellLeft(state.Board.Width), c.cellRight(state.Board.Width)}
+	surroundingCells := []Coord{c.cellAbove(state), c.cellBelow(state), c.cellLeft(state), c.cellRight(state)}
 	// print the surrounding cells.
 	var snakeBodyParts []Coord
 	for _, snake := range state.Board.Snakes {
@@ -92,33 +92,33 @@ func (c Coord) Surrounded(state GameState) bool {
 	return true
 }
 
-func (c Coord) cellAbove(height int) Coord {
+func (c Coord) cellAbove(state GameState) Coord {
 	// assumes that every game is wrapped.
-	if c.onTopEdge(height) {
+	if c.onTopEdge(state.Board.Height) {
 		return Coord{X: c.X, Y: 0}
 	}
 	return Coord{X: c.X, Y: c.Y + 1}
 }
 
-func (c Coord) cellBelow(height int) Coord {
+func (c Coord) cellBelow(state GameState) Coord {
 	// assumes that every game is wrapped.
 	if c.onBottomEdge() {
-		return Coord{X: c.X, Y: height - 1}
+		return Coord{X: c.X, Y: state.Board.Height - 1}
 	}
 	return Coord{X: c.X, Y: c.Y - 1}
 }
 
-func (c Coord) cellLeft(width int) Coord {
+func (c Coord) cellLeft(state GameState) Coord {
 	// assumes that every game is wrapped.
 	if c.onLeftEdge() {
-		return Coord{X: width - 1, Y: c.Y}
+		return Coord{X: state.Board.Width - 1, Y: c.Y}
 	}
 	return Coord{X: c.X - 1, Y: c.Y}
 }
 
-func (c Coord) cellRight(width int) Coord {
+func (c Coord) cellRight(state GameState) Coord {
 	// assumes that every game is wrapped.
-	if c.onRightEdge(width) {
+	if c.onRightEdge(state.Board.Width) {
 		return Coord{X: 0, Y: c.Y}
 	}
 	return Coord{X: c.X + 1, Y: c.Y}

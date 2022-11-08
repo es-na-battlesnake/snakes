@@ -114,3 +114,32 @@ func (s Battlesnake) isLargerThanUs(state GameState) bool {
 	}
 	return false
 }
+
+// Keep track of each snake's length between turns. 
+// We use this to determine if a snake ate food or not.
+var snakeHealths = make(map[string]int)
+
+// Function that takes in a state and clears the snakeHealths map.
+func clearSnakeHealths(state GameState) {
+	if state.Turn <= 3 {
+		snakeHealths = make(map[string]int)
+		updateSnakeHealth(state)
+	}
+}
+
+// Function to check if a snake ate food on the previous turn. 
+func didSnakeEatFood(snake Battlesnake, state GameState) bool {
+	// If the snakes health is greater than the previous turn, they ate food.
+	if int(snake.Health) >= snakeHealths[snake.ID] && state.Turn != 0 {
+		return true
+	} 
+
+	return false
+}
+
+// Function to loop through all snakes and update their health.
+func updateSnakeHealth(state GameState) {
+	for _, snake := range state.Board.Snakes {
+		snakeHealths[snake.ID] = int(snake.Health)
+	}
+}

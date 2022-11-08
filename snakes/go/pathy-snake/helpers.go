@@ -6,6 +6,7 @@ import (
 	"log"
 	"strings"
 	"strconv"
+	"math/rand"
 )
 
 // This function helps ensure that user input is clearly marked in log entries, and that
@@ -14,6 +15,12 @@ func sanatizeInput(s string) string {
 	escapedInput := strings.Replace(s, "\n", "", -1)
 	escapedInput = strings.Replace(escapedInput, "\r", "", -1)
 	return escapedInput
+}
+
+// Function to print the grid to the console.
+func printGrid(state GameState, grid *Grid) {
+	// Print the grid to the console.
+	log.Println(grid)
 }
 
 // This function helps ensure that user input is clearly marked in log entries, and that
@@ -32,10 +39,9 @@ func isNumber(i int) int {
 	// if i divded by 1 is equal to i, then i is a number and return that.
 	if i/1 == i {
 		return i
-	} else {
-		// 0000 is meant to represent and error. Meaning we received a turn that was not a number.
-		return 0000
-	}
+	} 
+
+	return 0000
 }
 
 // This function returns the absolute value of an int.
@@ -64,4 +70,13 @@ func containsCoord(array []Coord, coord Coord) bool {
 		}
 	}
 	return false
+}
+
+// function to choose a target cell from an array of grid cells
+func chooseTargetCell(walkableCells []*Cell) *Cell {
+	if len(walkableCells) > 0 {
+		return walkableCells[rand.Intn(len(walkableCells))]
+	}
+	log.Printf("No walkable cells or paths anywhere on board.\n")
+	return nil
 }

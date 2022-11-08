@@ -205,36 +205,29 @@ func getPath(state GameState, grid *Grid) *Path {
 
 // Function that returns the next direction to move based on the path we get from getPath.
 func getNextDirection(state GameState, path *Path) BattlesnakeMoveResponse {
-	// Return left if the next cell is to the left of the head.
-	if path.Current().X < path.Next().X && path.Current().Y == path.Next().Y {
-		// If we are wrapping around the grid, then we want to move left.
+	if path.Current().Y == path.Next().Y && (path.Current().X < path.Next().X || path.Current().X > path.Next().X) {
 		if path.Current().X == 0 && path.Next().X == state.Board.Width-1 {
 			return BattlesnakeMoveResponse{Move: "left"}
 		} 
-		return BattlesnakeMoveResponse{Move: "right"}
-	}
-	// Return right if the next cell is to the right of the head.
-	if path.Current().X > path.Next().X && path.Current().Y == path.Next().Y {
-		// If we are wrapping around the grid, then we want to move right.
 		if path.Current().X == state.Board.Width-1 && path.Next().X == 0 {
 			return BattlesnakeMoveResponse{Move: "right"}
 		} 
+		if path.Current().X < path.Next().X {
+			return BattlesnakeMoveResponse{Move: "right"}
+		}
 		return BattlesnakeMoveResponse{Move: "left"}
 	}
-	// Return up if the next cell is above the head.
-	if path.Current().X == path.Next().X && path.Current().Y < path.Next().Y {
-		// If we are wrapping around the grid, then we want to move up.
+
+	if path.Current().X == path.Next().X && (path.Current().Y < path.Next().Y || path.Current().Y > path.Next().Y) {
 		if path.Current().Y == 0 && path.Next().Y == state.Board.Height-1 {
 			return BattlesnakeMoveResponse{Move: "down"}
 		} 
-		return BattlesnakeMoveResponse{Move: "up"}
-	}
-	// Return down if the next cell is below the head.
-	if path.Current().X == path.Next().X && path.Current().Y > path.Next().Y {
-		// If we are wrapping around the grid, then we want to move down.
 		if path.Current().Y == state.Board.Height-1 && path.Next().Y == 0 {
 			return BattlesnakeMoveResponse{Move: "up"}
 		} 
+		if path.Current().Y < path.Next().Y {
+			return BattlesnakeMoveResponse{Move: "up"}
+		}
 		return BattlesnakeMoveResponse{Move: "down"}
 	}
 	return BattlesnakeMoveResponse{Move: "up"}

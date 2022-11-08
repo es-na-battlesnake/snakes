@@ -2,8 +2,6 @@ package main
 
 // TODO: #121 Make it so we don't pick a destination cell that is in a hazard.
 // TODO: #122 Add some aggressive snake logic. i.e. adjust the cost of cells next to snake heads differently if they are smaller than us.
-// TODO: Move the targetCell logic into its own function.
-// TODO: I notice errors/panics sometimes when we can't decide on a targetCell. We need to account for those cases.
 
 // function that creates a new grid from that contains all the snakes body parts as not walkable.
 func createSnakeMap(state GameState) BattlesnakeMoveResponse {
@@ -18,13 +16,12 @@ func createSnakeMap(state GameState) BattlesnakeMoveResponse {
 	changeHazardsCost(state, grid)
 	// Print the grid to the console. Useful for debugging.
 	// printGrid(state, grid)
-	// Get the path from the head to a destination cell. Destination cell is determined in the getPath function.
+	// Get the path from the head to a destination cell.
 	path := getPath(state, grid)
 	// Return the next move (left, right, up, down) based on the path previously calculated.
 	return getNextDirection(state, path)
 }
 
-// Add snakes to the grid as not walkable.
 func addSnakesToGrid(state GameState, grid *Grid) {
 	// Iterate over all the snakes in the game state.
 	for _, snake := range state.Board.Snakes {
@@ -45,8 +42,8 @@ func addSnakesToGrid(state GameState, grid *Grid) {
 				grid.Get(otherSnake.Body[len(otherSnake.Body)-1].X, otherSnake.Body[len(otherSnake.Body)-1].Y).Walkable = true
 			}
 		}
-	// Update each snakes health with the health from this turn. 
-	 updateSnakeHealth(state)
+		// Update each snakes health with the health from this turn.
+		updateSnakeHealth(state)
 	}
 
 	// Iterrate over all the the other snakes heads.
@@ -98,13 +95,30 @@ func changeHazardsCost(state GameState, grid *Grid) {
 	}
 }
 
-// Function used to GetPath the best path from Head.
-// There is or may be quite a lot of logic in this function that we use to determine the best path.
-// In most cases we pick a destination cell that is walkable and reachable.
-// If we are low on health we want to move towards food.
-// The tragetCell logic should probably be moved to a different function.
 func getPath(state GameState, grid *Grid) *Path {
-	// Get the path from the grid using the GetPath function.
+	targetCell := getTargetCell(state, grid)
+
+	return grid.GetPathFromCells(grid.Get(state.You.Head.X, state.You.Head.Y), grid.Get(targetCell.X, targetCell.Y), false, false, state.isWrapped())
+
+	// Print the path and related points to the console. Useful for debugging.
+	// To use this you'll need change the above line to declare a variable called path.
+	// i.e. path := grid.GetPathFromCells....
+	/*
+		log.Printf("Target Cell: %v", targetCell)
+		log.Printf("Head Coordinates")
+		log.Println(state.You.Head.X, state.You.Head.Y)
+		log.Printf("Target Coordinates")
+		log.Println(targetCell.X, targetCell.Y)
+		log.Printf("This is the path")
+		log.Println(path)
+		log.Println(path.Current())
+		log.Println(path.Next().X, path.Next().Y)
+		log.Println(getNextDirection(state, path))
+		return path
+	*/
+}
+
+func getTargetCell(state GameState, grid *Grid) *Cell {
 	var targetCell *Cell
 	var walkableCells []*Cell
 	// If our health is less than 85 we want to set our target cell to be the coordinates of the closest food.
@@ -145,7 +159,7 @@ func getPath(state GameState, grid *Grid) *Path {
 		}
 	}
 
-	if state.You.Head.Y < (state.Board.Height / 2) && targetCell == nil {
+	if state.You.Head.Y < (state.Board.Height/2) && targetCell == nil {
 		// Create a list of walkable cells in the top half of the board.
 		// Iterate over all the cells in the top half of the board.
 		for x := 0; x < state.Board.Width; x++ {
@@ -156,8 +170,8 @@ func getPath(state GameState, grid *Grid) *Path {
 			}
 			targetCell = chooseTargetCell(walkableCells)
 		}
-	} 
-	if state.You.Head.Y >= (state.Board.Height / 2) && targetCell == nil {
+	}
+	if state.You.Head.Y >= (state.Board.Height/2) && targetCell == nil {
 		// Create a list of walkable cells in the bottom half of the board.
 		// Iterate over all the cells in the bottom half of the board.
 		for x := 0; x < state.Board.Width; x++ {
@@ -182,25 +196,7 @@ func getPath(state GameState, grid *Grid) *Path {
 		}
 		targetCell = chooseTargetCell(walkableCells)
 	}
-
-	return grid.GetPathFromCells(grid.Get(state.You.Head.X, state.You.Head.Y), grid.Get(targetCell.X, targetCell.Y), false, false, state.isWrapped())
-
-	// Print the path and related points to the console. Useful for debugging.
-	// To use this you'll need change the above line to declare a variable called path.
-	// i.e. path := grid.GetPathFromCells....
-	/*
-		log.Printf("Target Cell: %v", targetCell)
-		log.Printf("Head Coordinates")
-		log.Println(state.You.Head.X, state.You.Head.Y)
-		log.Printf("Target Coordinates")
-		log.Println(targetCell.X, targetCell.Y)
-		log.Printf("This is the path")
-		log.Println(path)
-		log.Println(path.Current())
-		log.Println(path.Next().X, path.Next().Y)
-		log.Println(getNextDirection(state, path))
-		return path
-	*/
+	return targetCell
 }
 
 // Function that returns the next direction to move based on the path we get from getPath.
@@ -208,10 +204,10 @@ func getNextDirection(state GameState, path *Path) BattlesnakeMoveResponse {
 	if path.Current().Y == path.Next().Y && (path.Current().X < path.Next().X || path.Current().X > path.Next().X) {
 		if path.Current().X == 0 && path.Next().X == state.Board.Width-1 {
 			return BattlesnakeMoveResponse{Move: "left"}
-		} 
+		}
 		if path.Current().X == state.Board.Width-1 && path.Next().X == 0 {
 			return BattlesnakeMoveResponse{Move: "right"}
-		} 
+		}
 		if path.Current().X < path.Next().X {
 			return BattlesnakeMoveResponse{Move: "right"}
 		}
@@ -221,10 +217,10 @@ func getNextDirection(state GameState, path *Path) BattlesnakeMoveResponse {
 	if path.Current().X == path.Next().X && (path.Current().Y < path.Next().Y || path.Current().Y > path.Next().Y) {
 		if path.Current().Y == 0 && path.Next().Y == state.Board.Height-1 {
 			return BattlesnakeMoveResponse{Move: "down"}
-		} 
+		}
 		if path.Current().Y == state.Board.Height-1 && path.Next().Y == 0 {
 			return BattlesnakeMoveResponse{Move: "up"}
-		} 
+		}
 		if path.Current().Y < path.Next().Y {
 			return BattlesnakeMoveResponse{Move: "up"}
 		}

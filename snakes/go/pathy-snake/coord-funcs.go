@@ -1,59 +1,35 @@
 package main
 
 func (c Coord) onBottomEdge() bool {
-	if c.Y == 0 {
-		return true
-	}
-	return false
+	return c.Y == 0
 }
 
 func (c Coord) onLeftEdge() bool {
-	if c.X == 0 {
-		return true
-	}
-	return false
+	return c.X == 0
 }
 
 func (c Coord) onRightEdge(state GameState) bool {
-	if c.X == state.Board.Width-1 {
-		return true
-	}
-	return false
+	return c.X == state.Board.Width-1
 }
 
 func (c Coord) onTopEdge(state GameState) bool {
-	if c.Y == state.Board.Height-1 {
-		return true
-	}
-	return false
+	return c.Y == state.Board.Height-1
 }
 
 func (c Coord) inBottomLeft() bool {
-	if c.X == 0 && c.Y == 0 {
-		return true
-	}
-	return false
+	return c.X == 0 && c.Y == 0
 }
 
 func (coord Coord) inBottomRight(state GameState) bool {
-	if coord.X == state.Board.Width-1 && coord.Y == 0 {
-		return true
-	}
-	return false
+	return coord.X == state.Board.Width-1 && coord.Y == 0
 }
 
 func (c Coord) inTopLeft(state GameState) bool {
-	if c.X == 0 && c.Y == state.Board.Height-1 {
-		return true
-	}
-	return false
+	return c.X == 0 && c.Y == state.Board.Height-1
 }
 
 func (c Coord) inTopRight(state GameState) bool {
-	if c.X == state.Board.Width-1 && c.Y == state.Board.Height-1 {
-		return true
-	}
-	return false
+	return c.X == state.Board.Width-1 && c.Y == state.Board.Height-1
 }
 
 func (c Coord) isNextToSnakeHead(state GameState) bool {

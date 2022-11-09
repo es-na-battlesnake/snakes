@@ -21,7 +21,7 @@ jobs:
     steps:
       # Execute IssueOps branch deployment logic, hooray!
       # This will be used to "gate" all future steps below and conditionally trigger steps/deployments
-      - uses: github/branch-deploy@v3.0.1
+      - uses: github/branch-deploy@v3.0.3
         id: branch-deploy
         with:
           trigger: ".deploy"
@@ -83,7 +83,7 @@ jobs:
 
       - name: Build the Docker image
         if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' && steps.check-file.outputs.full-deploy == 'true' }}
-        run: docker build . --file Dockerfile --tag ghcr.io/es-na-battlesnake/code-snake:${{ github.sha }}
+        run: docker build . --file Dockerfile --tag ghcr.io/es-na-battlesnake/code-snake:${{ github.sha }} --tag ghcr.io/es-na-battlesnake/code-snake:last-deploy
 
       - name: Login to GitHub Container Registry
         if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' && steps.check-file.outputs.full-deploy == 'true' }}
@@ -95,7 +95,7 @@ jobs:
 
       - name: Push Docker image
         if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' && steps.check-file.outputs.full-deploy == 'true' }}
-        run: docker push ghcr.io/es-na-battlesnake/code-snake:${{ github.sha }}
+        run: docker push --all-tags ghcr.io/es-na-battlesnake/code-snake
       
       - name: 'Login via Azure CLI'
         if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' && steps.check-file.outputs.full-deploy == 'true' }}

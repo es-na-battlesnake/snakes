@@ -46,7 +46,7 @@ jobs:
       - name: Get the safe-deploy output
         run: echo "${{ steps.safe-deploy.outputs.result }}"
       - name: Post comment
-        uses: mshick/add-pr-comment@v1
+        uses: mshick/add-pr-comment@v2
         if: ${{ steps.safe-deploy.outputs.result }}
         with:
           message: |

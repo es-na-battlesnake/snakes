@@ -44,7 +44,8 @@ jobs:
       
       # use github cli to get changed files on current branch
       - name: Get files changing in the Pull Request
-        if: ${{ steps.branch-deploy.outputs.continue == 'true' }}
+        # if branch deploy continue is true and the branch is not main
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.ref != 'main' }}
         id: changed-files-on-pr
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -53,7 +54,7 @@ jobs:
       
       # check if changed files require a full deployment
       - name: Check changed files
-        if: ${{ steps.branch-deploy.outputs.continue == 'true' }}
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' }} && steps.branch-deploy.outputs.ref != 'main' }}
         id: check-file
         run: |
           for file in $(cat changed-files.txt); do

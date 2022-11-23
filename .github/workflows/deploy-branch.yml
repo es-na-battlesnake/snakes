@@ -54,18 +54,21 @@ jobs:
               break
             fi
           done
+
       # NOOP deployment logic
       - name: noop deploy
         if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop == 'true' }}
         run: |
           echo "We do not currently have a noop deploy configured. A proper noop deploy may be added in the future."
           echo "DEPLOY_MESSAGE=We do not currently have a noop deploy configured. A proper noop deploy may be added in the future." >> $GITHUB_ENV
+
       # NOOP Message if a full deployment is required     
       - name: Check if full deployment is required
         if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop == 'true' && steps.check-file.outputs.full-deploy == 'true' }}
         run: |
           echo "Full Deployment Required"
           echo "DEPLOY_MESSAGE=Full Deployment Required." >> $GITHUB_ENV
+
       # NOOP Message if a full deployment is not required
       - name: Check if full deployment is not required
         if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop == 'true' && steps.check-file.outputs.full-deploy != 'true' }}

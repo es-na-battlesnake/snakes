@@ -1,15 +1,5 @@
 name: "Deploy"
 
-env:
-  AZURE_CONTAINER_REGISTRY: MY_REGISTRY_NAME # set this to the name of your container registry
-  PROJECT_NAME: MY_PROJECT_NAME              # set this to your project's name
-  RESOURCE_GROUP: MY_RESOURCE_GROUP          # set this to the resource group containing your AKS cluster
-  CLUSTER_NAME: MY_CLUSTER_NAME              # set this to the name of your AKS cluster
-  REGISTRY_URL: MY_REGISTRY_URL              # set this to the URL of your registry
-  # If you bake using helm:
-  CHART_PATH: MY_HELM_FILE                   # set this to the path to your helm file
-  CHART_OVERRIDE_PATH: MY_OVERRIDE_FILES     # set this to an array of override file paths
-
 # The workflow to execute on is comments that are newly created
 on:
   issue_comment:
@@ -64,31 +54,18 @@ jobs:
               break
             fi
           done
-
-      # if deploying main branch, set full-deploy to true
-      - name: Check if main branch
-        if: ${{ steps.branch-deploy.outputs.continue == 'true' }}
-        id: check-main
-        run: |
-          if [[ ${{ steps.branch-deploy.outputs.branch }} == "main" ]]; then
-            echo "Full Production Deployment Required"
-            echo "::set-output name=full-deploy::true"
-          fi
-
       # NOOP deployment logic
       - name: noop deploy
         if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop == 'true' }}
         run: |
           echo "We do not currently have a noop deploy configured. A proper noop deploy may be added in the future."
           echo "DEPLOY_MESSAGE=We do not currently have a noop deploy configured. A proper noop deploy may be added in the future." >> $GITHUB_ENV
-
       # NOOP Message if a full deployment is required     
       - name: Check if full deployment is required
         if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop == 'true' && steps.check-file.outputs.full-deploy == 'true' }}
         run: |
           echo "Full Deployment Required"
           echo "DEPLOY_MESSAGE=Full Deployment Required." >> $GITHUB_ENV
-
       # NOOP Message if a full deployment is not required
       - name: Check if full deployment is not required
         if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop == 'true' && steps.check-file.outputs.full-deploy != 'true' }}
@@ -116,7 +93,7 @@ jobs:
       - name: Push Docker image
         if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' && steps.check-file.outputs.full-deploy == 'true' }}
         run: docker push --all-tags ghcr.io/es-na-battlesnake/code-snake
-
+      
       - name: 'Login via Azure CLI'
         if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' && steps.check-file.outputs.full-deploy == 'true' }}
         uses: azure/login@v1
@@ -126,40 +103,32 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }} 
           enable-AzPSSession: true
 
-      - name: 'Build image on ACR'
+      - name: Delete existing deployment if deployment workflow changes or delete is true
         if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' && steps.check-file.outputs.full-deploy == 'true' }}
-        uses: azure/CLI@v1
-        with:
-          azcliversion: 2.9.1
-          inlineScript: |
-            az configure --defaults acr=${{ env.AZURE_CONTAINER_REGISTRY }}
-            az acr build -t  -t ${{ env.REGISTRY_URL }}/${{ env.PROJECT_NAME }}:${{ github.sha }}
-
-      - name: Gets K8s context
-        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' && steps.check-file.outputs.full-deploy == 'true' }}
-        uses: azure/aks-set-context@4e5aec273183a197b181314721843e047123d9fa
-        with:
-            creds: ${{ secrets.AZURE_CREDENTIALS }}
-            resource-group: ${{ env.RESOURCE_GROUP }}
-            cluster-name: ${{ env.CLUSTER_NAME }}
-        id: login
+        run: |
+          az container list | grep code-snake || echo "No deployment found" && exit 0
+          # if ${{ github.event.inputs.delete }} = true then 
+          if [ "${{ github.event.inputs.delete }}" = "true" ]; then
+            echo "Deleting existing deployment due to true flag"
+            az container list | grep code-snake && az container delete --yes --name code-snake --ids "/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/snekResourceGroup/providers/Microsoft.ContainerInstance/containerGroups/code-snake"
+            exit 0
+          fi
+          # File based detection
+          for file in $(cat changed-files.txt); do
+            if [[ $file == ".github/workflows/docker-image.yml" ]]; then
+              az container list | grep code-snake && az container delete --yes --name code-snake --ids "/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/snekResourceGroup/providers/Microsoft.ContainerInstance/containerGroups/code-snake"
+            fi
+          done
       
-      - name: Configure deployment
-        uses: azure/k8s-bake@773b6144a3732e3bf4c78b146a0bb9617b2e016b
+      - name: 'Deploy to Azure Container Instances'
+        if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' && steps.check-file.outputs.full-deploy == 'true' }}
+        uses: 'azure/aci-deploy@v1'
         with:
-          renderEngine: 'helm'
-          helmChart: ${{ env.CHART_PATH }}
-          overrideFiles: ${{ env.CHART_OVERRIDE_PATH }}
-          overrides: |     
-            replicas:2
-          helm-version: 'latest' 
-        id: bake
-
-      - name: Deploys application
-        uses: Azure/k8s-deploy@c8fbd76ededaad2799c054a9fd5d0fa5d4e9aee4
-        with:
-          manifests: ${{ steps.bake.outputs.manifestsBundle }}
-          images: |
-            ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.PROJECT_NAME }}:${{ github.sha }}
-          imagepullsecrets: |
-            ${{ env.PROJECT_NAME }}
+          resource-group: snekResourceGroup
+          dns-name-label: code-snek
+          image: ghcr.io/es-na-battlesnake/code-snake:${{ github.sha }}
+          name: code-snake
+          location: 'west us 3'
+          ports: '4567 4568 4569 4570 4571 8080 8081'
+          restart-policy: OnFailure
+          ip-address: Public

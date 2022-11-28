@@ -1,14 +1,7 @@
 package main
 
-import (
-	"log"
-	"math/rand"
-)
-
 // TODO: #121 Make it so we don't pick a destination cell that is in a hazard.
 // TODO: #122 Add some aggressive snake logic. i.e. adjust the cost of cells next to snake heads differently if they are smaller than us.
-// TODO: Move the targetCell logic into its own function.
-// TODO: I notice errors/panics sometimes when we can't decide on a targetCell. We need to account for those cases.
 
 // function that creates a new grid from that contains all the snakes body parts as not walkable.
 func createSnakeMap(state GameState) BattlesnakeMoveResponse {
@@ -23,13 +16,12 @@ func createSnakeMap(state GameState) BattlesnakeMoveResponse {
 	changeHazardsCost(state, grid)
 	// Print the grid to the console. Useful for debugging.
 	// printGrid(state, grid)
-	// Get the path from the head to a destination cell. Destination cell is determined in the getPath function.
+	// Get the path from the head to a destination cell.
 	path := getPath(state, grid)
 	// Return the next move (left, right, up, down) based on the path previously calculated.
 	return getNextDirection(state, path)
 }
 
-// Add snakes to the grid as not walkable.
 func addSnakesToGrid(state GameState, grid *Grid) {
 	// Iterate over all the snakes in the game state.
 	for _, snake := range state.Board.Snakes {
@@ -40,11 +32,8 @@ func addSnakesToGrid(state GameState, grid *Grid) {
 		}
 	}
 
-	// Clear any map that might exist between games.
-	if state.Turn <= 3 {
-		snakeHealths = make(map[string]int)
-		updateSnakeHealth(state)
-	}
+	// Clear any snake health map that might exist between games.
+	clearSnakeHealths(state)
 	// If a snake did not eat food on the previous turn, we can make their tail walkable.
 	if state.Turn > 3 {
 		for _, otherSnake := range state.Board.Snakes {
@@ -53,77 +42,29 @@ func addSnakesToGrid(state GameState, grid *Grid) {
 				grid.Get(otherSnake.Body[len(otherSnake.Body)-1].X, otherSnake.Body[len(otherSnake.Body)-1].Y).Walkable = true
 			}
 		}
-	// Update each snakes health with the health from this turn. 
-	 updateSnakeHealth(state)
+		// Update each snakes health with the health from this turn.
+		updateSnakeHealth(state)
 	}
 
 	// Iterrate over all the the other snakes heads.
 	for _, otherSnake := range state.Board.Snakes {
 		if otherSnake.ID != state.You.ID {
-			// Check that other snake is on the edge of the board.
-			// Added to avoid panics (out of bounds) when the head is at the edge of the board.
-			// Then set the cost of the cells next to the head to higher cost.
-			if otherSnake.Head.X-1 >= 0 {
-				// If the snake is longer than us, then we want to avoid walking on cells next to their heads.
-				if otherSnake.Length >= state.You.Length {
-					grid.Get(otherSnake.Head.X-1, otherSnake.Head.Y).Walkable = false
-				} else {
-					grid.Get(otherSnake.Head.X-1, otherSnake.Head.Y).Cost = 1.5
-				}
+			left := otherSnake.Head.cellLeft(state)
+			right := otherSnake.Head.cellRight(state)
+			above := otherSnake.Head.cellAbove(state)
+			below := otherSnake.Head.cellBelow(state)
+			if otherSnake.isLargerThanUs(state) {
+				grid.Get(left.X, left.Y).Walkable = false
+				grid.Get(right.X, right.Y).Walkable = false
+				grid.Get(above.X, above.Y).Walkable = false
+				grid.Get(below.X, below.Y).Walkable = false
+				continue
 			}
-			if otherSnake.Head.X+1 <= state.Board.Width-1 {
-				if otherSnake.Length >= state.You.Length {
-					grid.Get(otherSnake.Head.X+1, otherSnake.Head.Y).Walkable = false
-				} else {
-					grid.Get(otherSnake.Head.X+1, otherSnake.Head.Y).Cost = 1.5
-				}
-			}
-			if otherSnake.Head.Y-1 >= 0 {
-				if otherSnake.Length >= state.You.Length {
-					grid.Get(otherSnake.Head.X, otherSnake.Head.Y-1).Walkable = false
-				} else {
-					grid.Get(otherSnake.Head.X, otherSnake.Head.Y-1).Cost = 1.5
-				}
-			}
-			if otherSnake.Head.Y+1 <= state.Board.Height-1 {
-				if otherSnake.Length >= state.You.Length {
-					grid.Get(otherSnake.Head.X, otherSnake.Head.Y+1).Walkable = false
-				} else {
-					grid.Get(otherSnake.Head.X, otherSnake.Head.Y+1).Cost = 1.5
-				}
-			}
-			// If the snakes head is on the edge of the board.
-			// We want to set the cells opposite to the head to not be walkable.
-			if onEdge(otherSnake.Head.X, otherSnake.Head.Y, state.Board.Width, state.Board.Height) {
-				if otherSnake.Head.X == 0 {
-					if otherSnake.Length >= state.You.Length {
-						grid.Get(state.Board.Width-1, otherSnake.Head.Y).Walkable = false
-					} else {
-						grid.Get(state.Board.Width-1, otherSnake.Head.Y).Cost = 1.5
-					}
-				}
-				if otherSnake.Head.X == state.Board.Width-1 {
-					if otherSnake.Length >= state.You.Length {
-						grid.Get(0, otherSnake.Head.Y).Walkable = false
-					} else {
-						grid.Get(0, otherSnake.Head.Y).Cost = 1.5
-					}
-				}
-				if otherSnake.Head.Y == 0 {
-					if otherSnake.Length >= state.You.Length {
-						grid.Get(otherSnake.Head.X, state.Board.Height-1).Walkable = false
-					} else {
-						grid.Get(otherSnake.Head.X, state.Board.Height-1).Cost = 1.5
-					}
-				}
-				if otherSnake.Head.Y == state.Board.Height-1 {
-					if otherSnake.Length >= state.You.Length {
-						grid.Get(otherSnake.Head.X, 0).Walkable = false
-					} else {
-						grid.Get(otherSnake.Head.X, 0).Cost = 1.5
-					}
-				}
-			}
+			// If the other snake is smaller than us, we want to make the cells next to their head walkable.
+			grid.Get(left.X, left.Y).Cost = 1.5
+			grid.Get(right.X, right.Y).Cost = 1.5
+			grid.Get(above.X, above.Y).Cost = 1.5
+			grid.Get(below.X, below.Y).Cost = 1.5
 		}
 	}
 	// Make sure our own head is walkable. We need to do this because the getPath function
@@ -146,77 +87,40 @@ func changeHazardsCost(state GameState, grid *Grid) {
 	// Iterate over all the hazards in the game state.
 	for _, hazard := range state.Board.Hazards {
 		// Set the hazard cell cost to a higher value.
-		if state.Game.Map == "arcade_maze" || state.Game.Map == "hz_rivers_bridges" || state.Game.Map == "hz_islands_bridges" {
+		if state.isArcadeMaze() || state.isRiversBridges() || state.isRiversBridges() {
 			grid.Get(hazard.X, hazard.Y).Walkable = false
-		} else {
-			grid.Get(hazard.X, hazard.Y).Cost = 5
+			continue
 		}
+		grid.Get(hazard.X, hazard.Y).Cost = 5
 	}
 }
 
-// Function to print the grid to the console.
-func printGrid(state GameState, grid *Grid) {
-	// Print the grid to the console.
-	log.Println(grid)
-}
-
-// Function used to GetPath the best path from Head.
-// There is or may be quite a lot of logic in this function that we use to determine the best path.
-// In most cases we pick a destination cell that is walkable and reachable.
-// If we are low on health we want to move towards food.
-// The tragetCell logic should probably be moved to a different function.
 func getPath(state GameState, grid *Grid) *Path {
-	// Get the path from the grid using the GetPath function.
-	// If game mode is wrapped set a bool to true else set it to false.
-	var wrapped bool
-	if state.Game.Ruleset.Name == "wrapped" {
-		wrapped = true
-	} else {
-		wrapped = false
-	}
-	var targetCell *Cell
-	if state.You.Head.Y < (state.Board.Height / 2) {
-		// Create a list of walkable cells in the top half of the board.
-		// Iterate over all the cells in the top half of the board.
-		var walkableCells []*Cell
-		for x := 0; x < state.Board.Width; x++ {
-			for y := state.Board.Height / 2; y < state.Board.Height; y++ {
-				if grid.Get(x, y).Walkable {
-					// If we can create a path to the cell, add it to the list.
-					// If GetPathFromCells returns an error, then don't add the cell to the list.
-					if grid.GetPathFromCells(grid.Get(state.You.Head.X, state.You.Head.Y), grid.Get(x, y), false, false, wrapped).Next() != nil {
-						walkableCells = append(walkableCells, grid.Get(x, y))
-					}
-				}
-			}
-			if len(walkableCells) > 0 {
-				targetCell = walkableCells[rand.Intn(len(walkableCells))]
-			} else {
-				log.Printf("No walkable cells in top half of board.\n")
-			}
-		}
-	} else {
-		// Create a list of walkable cells in the bottom half of the board.
-		// Iterate over all the cells in the bottom half of the board.
-		var walkableCells []*Cell
-		for x := 0; x < state.Board.Width; x++ {
-			for y := 0; y < state.Board.Height/2; y++ {
-				if grid.Get(x, y).Walkable {
-					// If we can create a path to the cell, add it to the list.
-					// If GetPathFromCells returns an error, then don't add the cell to the list.
-					if grid.GetPathFromCells(grid.Get(state.You.Head.X, state.You.Head.Y), grid.Get(x, y), false, false, wrapped).Next() != nil {
-						walkableCells = append(walkableCells, grid.Get(x, y))
-					}
-				}
-			}
-		}
-		if len(walkableCells) > 0 {
-			targetCell = walkableCells[rand.Intn(len(walkableCells))]
-		} else {
-			log.Printf("No walkable cells in bottom half of board.\n")
-		}
-	}
+	targetCell := getTargetCell(state, grid)
 
+	return grid.GetPathFromCells(grid.Get(state.You.Head.X, state.You.Head.Y), grid.Get(targetCell.X, targetCell.Y), false, false, state.isWrapped())
+
+	// Print the path and related points to the console. Useful for debugging.
+	// To use this you'll need change the above line to declare a variable called path.
+	// i.e. path := grid.GetPathFromCells....
+	/*
+		log.Printf("Target Cell: %v", targetCell)
+		log.Printf("Head Coordinates")
+		log.Println(state.You.Head.X, state.You.Head.Y)
+		log.Printf("Target Coordinates")
+		log.Println(targetCell.X, targetCell.Y)
+		log.Printf("This is the path")
+		log.Println(path)
+		log.Println(path.Current())
+		log.Println(path.Next().X, path.Next().Y)
+		log.Println(getNextDirection(state, path))
+		return path
+	*/
+}
+
+func getTargetCell(state GameState, grid *Grid) *Cell {
+	var targetCell *Cell
+	var walkableCells []*Cell
 	// If our health is less than 85 we want to set our target cell to be the coordinates of the closest food.
 	if state.You.Health < 85 && len(state.Board.Food) > 0 {
 		// Iterate over all the food in the game state.
@@ -227,7 +131,7 @@ func getPath(state GameState, grid *Grid) *Path {
 				continue
 			}
 			// Find the cell closest to our head and set it to targetCell.
-			if grid.GetPathFromCells(grid.Get(state.You.Head.X, state.You.Head.Y), grid.Get(food.X, food.Y), false, false, wrapped).Next() != nil {
+			if grid.GetPathFromCells(grid.Get(state.You.Head.X, state.You.Head.Y), grid.Get(food.X, food.Y), false, false, state.isWrapped()).Next() != nil {
 				targetFoodCell = append(targetFoodCell, grid.Get(food.X, food.Y))
 			}
 		}
@@ -238,8 +142,8 @@ func getPath(state GameState, grid *Grid) *Path {
 			var closestFoodCell *Cell
 			var closestDistance int
 			for _, food := range state.Board.Food {
-				// Skip the food if it is isNextToLarger.
-				if isNextToLarger(food.X, food.Y, state) || isSurrounded(food.X, food.Y, state) {
+				// Skip the food if it is isNextToSnakeHead.
+				if food.isNextToSnakeHead(state) || food.Surrounded(state) {
 					continue
 				}
 				// Get the manhattan distance between the head and the food.
@@ -255,110 +159,72 @@ func getPath(state GameState, grid *Grid) *Path {
 		}
 	}
 
-	// If we don't have a target cell, we can't get a path.
-	// Attempt to get a targetCell from anywhere on the board.
-	var walkableCells []*Cell
-	if targetCell == nil {
+	if state.You.Head.Y < (state.Board.Height/2) && targetCell == nil {
+		// Create a list of walkable cells in the top half of the board.
+		// Iterate over all the cells in the top half of the board.
 		for x := 0; x < state.Board.Width; x++ {
-			for y := 0; y < state.Board.Height; y++ {
-				if grid.Get(x, y).Walkable {
-					// If we can create a path to the cell, add it to the list.
-					// If GetPathFromCells returns an error, then don't add the cell to the list.
-					if grid.GetPathFromCells(grid.Get(state.You.Head.X, state.You.Head.Y), grid.Get(x, y), false, false, wrapped).Next() != nil {
-						walkableCells = append(walkableCells, grid.Get(x, y))
-					}
+			for y := state.Board.Height / 2; y < state.Board.Height; y++ {
+				if grid.Get(x, y).Walkable && grid.HasNext(state.You.Head.X, state.You.Head.Y, x, y, state.isWrapped()) {
+					walkableCells = append(walkableCells, grid.Get(x, y))
+				}
+			}
+			targetCell = chooseTargetCell(walkableCells)
+		}
+	}
+	if state.You.Head.Y >= (state.Board.Height/2) && targetCell == nil {
+		// Create a list of walkable cells in the bottom half of the board.
+		// Iterate over all the cells in the bottom half of the board.
+		for x := 0; x < state.Board.Width; x++ {
+			for y := 0; y < state.Board.Height/2; y++ {
+				if grid.Get(x, y).Walkable && grid.HasNext(state.You.Head.X, state.You.Head.Y, x, y, state.isWrapped()) {
+					walkableCells = append(walkableCells, grid.Get(x, y))
 				}
 			}
 		}
-		if len(walkableCells) > 0 {
-			targetCell = walkableCells[rand.Intn(len(walkableCells))]
-		} else {
-			log.Printf("No walkable cells or paths anywhere on board.\n")
-		}
+		targetCell = chooseTargetCell(walkableCells)
 	}
 
-	path := grid.GetPathFromCells(grid.Get(state.You.Head.X, state.You.Head.Y), grid.Get(targetCell.X, targetCell.Y), false, false, wrapped)
-
-	// Print the path and related points to the console. Useful for debugging.
-	/*
-		log.Printf("Target Cell: %v", targetCell)
-		log.Printf("Head Coordinates")
-		log.Println(state.You.Head.X, state.You.Head.Y)
-		log.Printf("Target Coordinates")
-		log.Println(targetCell.X, targetCell.Y)
-		log.Printf("This is the path")
-		log.Println(path)
-		log.Println(path.Current())
-		log.Println(path.Next().X, path.Next().Y)
-		log.Println(getNextDirection(state, path))
-	*/
-
-	return path
+	// If we don't have a target cell, we can't get a path.
+	// Attempt to get a targetCell from anywhere on the board.
+	if targetCell == nil {
+		for x := 0; x < state.Board.Width; x++ {
+			for y := 0; y < state.Board.Height; y++ {
+				if grid.Get(x, y).Walkable && grid.HasNext(state.You.Head.X, state.You.Head.Y, x, y, state.isWrapped()) {
+					walkableCells = append(walkableCells, grid.Get(x, y))
+				}
+			}
+		}
+		targetCell = chooseTargetCell(walkableCells)
+	}
+	return targetCell
 }
 
 // Function that returns the next direction to move based on the path we get from getPath.
 func getNextDirection(state GameState, path *Path) BattlesnakeMoveResponse {
-	var nextMove string
-	// Return left if the next cell is to the left of the head.
-	if path.Current().X < path.Next().X && path.Current().Y == path.Next().Y {
-		// If we are wrapping around the grid, then we want to move left.
+	if path.Current().Y == path.Next().Y && (path.Current().X < path.Next().X || path.Current().X > path.Next().X) {
 		if path.Current().X == 0 && path.Next().X == state.Board.Width-1 {
-			nextMove = "left"
-		} else {
-			nextMove = "right"
+			return BattlesnakeMoveResponse{Move: "left"}
 		}
-	}
-	// Return right if the next cell is to the right of the head.
-	if path.Current().X > path.Next().X && path.Current().Y == path.Next().Y {
-		// If we are wrapping around the grid, then we want to move right.
 		if path.Current().X == state.Board.Width-1 && path.Next().X == 0 {
-			nextMove = "right"
-		} else {
-			nextMove = "left"
+			return BattlesnakeMoveResponse{Move: "right"}
 		}
+		if path.Current().X < path.Next().X {
+			return BattlesnakeMoveResponse{Move: "right"}
+		}
+		return BattlesnakeMoveResponse{Move: "left"}
 	}
-	// Return up if the next cell is above the head.
-	if path.Current().X == path.Next().X && path.Current().Y < path.Next().Y {
-		// If we are wrapping around the grid, then we want to move up.
+
+	if path.Current().X == path.Next().X && (path.Current().Y < path.Next().Y || path.Current().Y > path.Next().Y) {
 		if path.Current().Y == 0 && path.Next().Y == state.Board.Height-1 {
-			nextMove = "down"
-		} else {
-			nextMove = "up"
+			return BattlesnakeMoveResponse{Move: "down"}
 		}
-	}
-	// Return down if the next cell is below the head.
-	if path.Current().X == path.Next().X && path.Current().Y > path.Next().Y {
-		// If we are wrapping around the grid, then we want to move down.
 		if path.Current().Y == state.Board.Height-1 && path.Next().Y == 0 {
-			nextMove = "up"
-		} else {
-			nextMove = "down"
+			return BattlesnakeMoveResponse{Move: "up"}
 		}
+		if path.Current().Y < path.Next().Y {
+			return BattlesnakeMoveResponse{Move: "up"}
+		}
+		return BattlesnakeMoveResponse{Move: "down"}
 	}
-	return BattlesnakeMoveResponse{
-		Move: nextMove,
-	}
-}
-
-// Keep track of each snake's length between turns. 
-// We use this to determine if a snake ate food or not.
-var snakeHealths = make(map[string]int)
-
-// Function to check if a snake ate food on the previous turn. 
-func didSnakeEatFood(snake Battlesnake, state GameState) bool {
-	// If the snakes health is greater than the previous turn, they ate food.
-	var ate bool
-	if int(snake.Health) >= snakeHealths[snake.ID] && state.Turn != 0 {
-		ate = true
-	} else {
-		ate = false
-	}
-	return ate
-}
-
-// Function to loop through all snakes and update their health.
-func updateSnakeHealth(state GameState) {
-	for _, snake := range state.Board.Snakes {
-		snakeHealths[snake.ID] = int(snake.Health)
-	}
+	return BattlesnakeMoveResponse{Move: "up"}
 }

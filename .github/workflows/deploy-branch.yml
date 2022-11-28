@@ -132,6 +132,6 @@ jobs:
           image: ghcr.io/es-na-battlesnake/code-snake:${{ github.sha }}
           name: code-snake
           location: 'west us 3'
-          ports: '4567 4568 4569 4570 4571 8080 8081'
+          ports: '4567 8081'
           restart-policy: OnFailure
           ip-address: Public

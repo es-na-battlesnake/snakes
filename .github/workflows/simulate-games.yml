@@ -59,7 +59,7 @@ jobs:
         result-encoding: string
 
     - name: Post comment
-      uses: mshick/add-pr-comment@v1
+      uses: mshick/add-pr-comment@v2
       with:
         message: |
             🤖 🐍:

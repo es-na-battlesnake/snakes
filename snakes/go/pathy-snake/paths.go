@@ -622,3 +622,8 @@ func (p *Path) AtStart() bool {
 func (p *Path) AtEnd() bool {
 	return p.CurrentIndex >= len(p.Cells)-1
 }
+
+// Function to return wether the Grid has a next cell in the path. Accepts a grid and x and y coordinates.
+func (m *Grid) HasNext(headX, headY, x, y int, wrapped bool) bool {
+	return m.GetPathFromCells(m.Get(headX, headY), m.Get(x, y), false, false, wrapped) != nil
+}

@@ -22,22 +22,7 @@ spec:
           image: ghcr.io/es-na-battlesnake/code-snake
           ports:
             - name: go-8081
-              containerPort: 8080
-              protocol: TCP
-            - name: go-8080
-              containerPort: 8080
-              protocol: TCP
-            - name: ruby-4571
-              containerPort: 4571
-              protocol: TCP
-            - name: ruby-4570
-              containerPort: 4570
-              protocol: TCP
-            - name: ruby-4569
-              containerPort: 4569
-              protocol: TCP
-            - name: ruby-4568
-              containerPort: 4568
+              containerPort: 8081
               protocol: TCP
             - name: ruby-4567
               containerPort: 4567

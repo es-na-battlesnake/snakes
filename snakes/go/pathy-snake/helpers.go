@@ -73,10 +73,24 @@ func containsCoord(array []Coord, coord Coord) bool {
 }
 
 // function to choose a target cell from an array of grid cells
-func chooseTargetCell(walkableCells []*Cell) *Cell {
-	if len(walkableCells) > 0 {
-		return walkableCells[rand.Intn(len(walkableCells))]
+func chooseTargetCell(state GameState, grid *Grid, walkableCells []*Cell) *Cell {
+	if len(walkableCells) == 0 {
+		log.Printf("No walkable cells or paths anywhere on board.\n")
+		return nil
 	}
-	log.Printf("No walkable cells or paths anywhere on board.\n")
-	return nil
+
+	maxArea := 0
+	bestCell := walkableCells[0]
+
+	for _, cell := range walkableCells {
+		visited := make(map[*Cell]bool)
+		area := floodFill(state, grid, cell, visited)
+
+		if area > maxArea {
+			maxArea = area
+			bestCell = cell
+		}
+	}
+
+	return bestCell
 }

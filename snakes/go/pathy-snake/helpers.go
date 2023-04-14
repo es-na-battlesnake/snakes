@@ -6,7 +6,6 @@ import (
 	"log"
 	"strings"
 	"strconv"
-	"math/rand"
 )
 
 // This function helps ensure that user input is clearly marked in log entries, and that

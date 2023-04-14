@@ -168,7 +168,7 @@ func getTargetCell(state GameState, grid *Grid) *Cell {
 					walkableCells = append(walkableCells, grid.Get(x, y))
 				}
 			}
-			targetCell = chooseTargetCell(walkableCells)
+			targetCell = chooseTargetCell(state, grid, walkableCells)
 		}
 	}
 	if state.You.Head.Y >= (state.Board.Height/2) && targetCell == nil {
@@ -181,7 +181,7 @@ func getTargetCell(state GameState, grid *Grid) *Cell {
 				}
 			}
 		}
-		targetCell = chooseTargetCell(walkableCells)
+		targetCell = chooseTargetCell(state, grid, walkableCells)
 	}
 
 	// If we don't have a target cell, we can't get a path.

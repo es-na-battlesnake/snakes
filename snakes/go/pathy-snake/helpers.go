@@ -8,6 +8,9 @@ import (
 	"strconv"
 )
 
+// Max floodfill depth
+const maxDepth = 10
+
 // This function helps ensure that user input is clearly marked in log entries, and that
 // a malicious user cannot cause confusion in other ways. Intended to be used with log.Printf.
 func sanatizeInput(s string) string {
@@ -83,7 +86,7 @@ func chooseTargetCell(state GameState, grid *Grid, walkableCells []*Cell) *Cell 
 
     for _, cell := range walkableCells {
         visited := make(map[*Cell]bool)
-        area := floodFill(state, grid, cell, visited)
+        area := floodFill(state, grid, cell, visited, 0, maxDepth)
 
         if area > maxArea {
             maxArea = area

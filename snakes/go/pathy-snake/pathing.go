@@ -164,7 +164,7 @@ func getTargetCell(state GameState, grid *Grid) *Cell {
 		// Iterate over all the cells in the top half of the board.
 		for x := 0; x < state.Board.Width; x++ {
 			for y := state.Board.Height / 2; y < state.Board.Height; y++ {
-				if grid.Get(x, y).Walkable && grid.HasNext(state.You.Head.X, state.You.Head.Y, x, y, state.isWrapped()) {
+				if grid.Get(x, y).Walkable && grid.HasNext(state.You.Head.X, state.You.Head.Y, x, y, state.isWrapped()) && !isCellInHazard(state, grid.Get(x, y)) {
 					walkableCells = append(walkableCells, grid.Get(x, y))
 				}
 			}
@@ -176,7 +176,7 @@ func getTargetCell(state GameState, grid *Grid) *Cell {
 		// Iterate over all the cells in the bottom half of the board.
 		for x := 0; x < state.Board.Width; x++ {
 			for y := 0; y < state.Board.Height/2; y++ {
-				if grid.Get(x, y).Walkable && grid.HasNext(state.You.Head.X, state.You.Head.Y, x, y, state.isWrapped()) {
+				if grid.Get(x, y).Walkable && grid.HasNext(state.You.Head.X, state.You.Head.Y, x, y, state.isWrapped()) && !isCellInHazard(state, grid.Get(x, y)) {
 					walkableCells = append(walkableCells, grid.Get(x, y))
 				}
 			}
@@ -197,6 +197,41 @@ func getTargetCell(state GameState, grid *Grid) *Cell {
 		targetCell = chooseTargetCell(walkableCells)
 	}
 	return targetCell
+}
+
+// Check if the cell is in a hazard.
+func isCellInHazard(state GameState, cell *Cell) bool {
+    for _, hazard := range state.Board.Hazards {
+        if hazard.X == cell.X && hazard.Y == cell.Y {
+            return true
+        }
+    }
+    return false
+}
+
+// Flood fill function
+func floodFill(state GameState, grid *Grid, cell *Cell, visited map[*Cell]bool) int {
+	if _, ok := visited[cell]; ok {
+		return 0
+	}
+
+	visited[cell] = true
+
+	adjacentCells := []*Cell{
+		grid.Get(cell.X, (cell.Y+1)%state.Board.Height),
+		grid.Get(cell.X, (cell.Y-1+state.Board.Height)%state.Board.Height),
+		grid.Get((cell.X+1)%state.Board.Width, cell.Y),
+		grid.Get((cell.X-1+state.Board.Width)%state.Board.Width, cell.Y),
+	}
+
+	count := 1
+	for _, adjCell := range adjacentCells {
+		if adjCell.Walkable && !isCellInHazard(state, adjCell) {
+			count += floodFill(state, grid, adjCell, visited)
+		}
+	}
+
+	return count
 }
 
 // Function that returns the next direction to move based on the path we get from getPath.

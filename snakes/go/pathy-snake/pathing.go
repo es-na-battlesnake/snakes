@@ -210,29 +210,30 @@ func isCellInHazard(state GameState, cell *Cell) bool {
 }
 
 // Flood fill function
-func floodFill(state GameState, grid *Grid, cell *Cell, visited map[*Cell]bool) int {
-	if _, ok := visited[cell]; ok {
-		return 0
-	}
+func floodFill(state GameState, grid *Grid, cell *Cell, visited map[*Cell]bool, depth, maxDepth int) int {
+    if _, ok := visited[cell]; ok || depth > maxDepth {
+        return 0
+    }
 
-	visited[cell] = true
+    visited[cell] = true
 
-	adjacentCells := []*Cell{
-		grid.Get(cell.X, (cell.Y+1)%state.Board.Height),
-		grid.Get(cell.X, (cell.Y-1+state.Board.Height)%state.Board.Height),
-		grid.Get((cell.X+1)%state.Board.Width, cell.Y),
-		grid.Get((cell.X-1+state.Board.Width)%state.Board.Width, cell.Y),
-	}
+    adjacentCells := []*Cell{
+        grid.Get(cell.X, (cell.Y+1)%state.Board.Height),
+        grid.Get(cell.X, (cell.Y-1+state.Board.Height)%state.Board.Height),
+        grid.Get((cell.X+1)%state.Board.Width, cell.Y),
+        grid.Get((cell.X-1+state.Board.Width)%state.Board.Width, cell.Y),
+    }
 
-	count := 1
-	for _, adjCell := range adjacentCells {
-		if adjCell.Walkable && !isCellInHazard(state, adjCell) {
-			count += floodFill(state, grid, adjCell, visited)
-		}
-	}
+    count := 1
+    for _, adjCell := range adjacentCells {
+        if adjCell.Walkable && !isCellInHazard(state, adjCell) {
+            count += floodFill(state, grid, adjCell, visited, depth+1, maxDepth)
+        }
+    }
 
-	return count
+    return count
 }
+
 
 // Function that returns the next direction to move based on the path we get from getPath.
 func getNextDirection(state GameState, path *Path) BattlesnakeMoveResponse {

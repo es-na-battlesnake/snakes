@@ -194,7 +194,7 @@ func getTargetCell(state GameState, grid *Grid) *Cell {
 				}
 			}
 		}
-		targetCell = chooseTargetCell(walkableCells)
+		targetCell = chooseTargetCell(state, grid, walkableCells)
 	}
 	return targetCell
 }

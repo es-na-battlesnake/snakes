@@ -103,66 +103,30 @@ def move(board)
   # Cells within 1 cell of any snake body
   @snakes_bodies_neighbors = @snakes_bodies.map { |s| adjacent_cells(s[:x], s[:y]) }.flatten
 
+  def to_i_coords(x, y)
+    [x.to_i, y.to_i]
+  end
 
-  # Function to determine the direction between two cell x,y coordinates from the perspective of the snake
   def direction_between(x1, y1, x2, y2)
-    # Set values to_i
-    x1 = x1.to_i
-    y1 = y1.to_i
-    x2 = x2.to_i
-    y2 = y2.to_i
-    if x1 < x2
-      'right'
-    elsif x1 > x2
-      'left'
-    elsif y1 < y2
-      'up'
-    elsif y1 > y2
-      'down'
-    end
+    x1, y1, x2, y2 = to_i_coords(x1, y1, x2, y2)
+    return 'right' if x1 < x2
+    return 'left' if x1 > x2
+    return 'up' if y1 < y2
+    return 'down' if y1 > y2
   end
 
-  # Function to determine the two possible directions between two cell x,y coordinates from the perspective of the snake (x1, y1)
   def possible_directions_between(x1, y1, x2, y2)
-    # Set values to_i
-    x1 = x1.to_i
-    y1 = y1.to_i
-    x2 = x2.to_i
-    y2 = y2.to_i
-    if x1 < x2
-      if y1 < y2
-        %w[right up]
-      elsif y1 > y2
-        %w[right down]
-      end
-    elsif x1 > x2
-      if y1 < y2
-        %w[left down]
-      elsif y1 > y2
-        %w[left up]
-      end
-    end
+    x1, y1, x2, y2 = to_i_coords(x1, y1, x2, y2)
+    horizontal = x1 < x2 ? 'right' : 'left'
+    vertical = y1 < y2 ? 'up' : 'down'
+    [horizontal, vertical]
   end
 
-  # Function to determine the opposite direction between two cell x,y coordinates from the perspective of the snake
   def opposite_direction(x1, y1, x2, y2)
-    # Set values to_i
-    x1 = x1.to_i
-    y1 = y1.to_i
-    x2 = x2.to_i
-    y2 = y2.to_i
-    if x1 < x2
-      'left'
-    elsif x1 > x2
-      'right'
-    elsif y1 < y2
-      'down'
-    elsif y1 > y2
-      'up'
-    end
+    direction = direction_between(x1, y1, x2, y2)
+    invert_direction(direction)
   end
 
-  # Invert directions
   def invert_direction(direction)
     case direction
     when 'up'
@@ -176,22 +140,14 @@ def move(board)
     end
   end
 
-
-  # Given an x,y coordinate on the edge of the board, return the x,y coordinates of the cell on the opposite side of the board
   def opposite_edge_cell(x, y)
-    # Set values to_i
-    x = x.to_i
-    y = y.to_i
-    if x == 0
-      { x: @width - 1, y: y }
-    elsif x == @width - 1
-      { x: 0, y: y }
-    elsif y == 0
-      { x: x, y: @height - 1 }
-    elsif y == @height - 1
-      { x: x, y: 0 }
-    end
+    x, y = to_i_coords(x, y)
+    return { x: @width - 1, y: y } if x == 0
+    return { x: 0, y: y } if x == @width - 1
+    return { x: x, y: @height - 1 } if y == 0
+    return { x: x, y: 0 } if y == @height - 1
   end
+
 
   # Function to find the neighbors of a given cell x,y coordinates
   def neighbors_of(x, y)

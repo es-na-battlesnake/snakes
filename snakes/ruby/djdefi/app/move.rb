@@ -103,8 +103,8 @@ def move(board)
   # Cells within 1 cell of any snake body
   @snakes_bodies_neighbors = @snakes_bodies.map { |s| adjacent_cells(s[:x], s[:y]) }.flatten
 
-  def to_i_coords(x, y)
-    [x.to_i, y.to_i]
+  def to_i_coords(x1, y1, x2, y2)
+    [x1.to_i, y1.to_i, x2.to_i, y2.to_i]
   end
 
   def direction_between(x1, y1, x2, y2)
@@ -147,7 +147,6 @@ def move(board)
     return { x: x, y: @height - 1 } if y == 0
     return { x: x, y: 0 } if y == @height - 1
   end
-
 
   # Function to find the neighbors of a given cell x,y coordinates
   def neighbors_of(x, y)

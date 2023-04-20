@@ -366,39 +366,22 @@ end
   end
     
   
-  # If game mode is 'wrapped', if our head is on the edge of the map, find the cell on the opposite side of the map and add it to the @possible_turns
-  if @game_mode == 'wrapped'
-    if @head[:x] == 0
-      opposite_edge = opposite_edge_cell(@head[:x], @head[:y])
-      @turn_score_array.select { |cell| cell[:x] == opposite_edge[:x] && cell[:y] == opposite_edge[:y] && (cell[:score]).positive? }.each do |cell|
-        # invert the direction of the cell
-        cell[:direction] = invert_direction(cell[:direction])
-        @possible_turns << cell
-      end
-    elsif @head[:x] == @width - 1
-      opposite_edge = opposite_edge_cell(@head[:x], @head[:y])
-      @turn_score_array.select { |cell| cell[:x] == opposite_edge[:x] && cell[:y] == opposite_edge[:y] && (cell[:score]).positive? }.each do |cell|
-        # invert the direction of the cell
-        cell[:direction] = invert_direction(cell[:direction])
-        @possible_turns << cell
-      end
-    elsif @head[:y] == 0
-      opposite_edge = opposite_edge_cell(@head[:x], @head[:y])
-      @turn_score_array.select { |cell| cell[:x] == opposite_edge[:x] && cell[:y] == opposite_edge[:y] && (cell[:score]).positive? }.each do |cell|
-        # invert the direction of the cell
-        cell[:direction] = invert_direction(cell[:direction])
-        @possible_turns << cell
-      end
-    elsif @head[:y] == @height - 1
-      opposite_edge = opposite_edge_cell(@head[:x], @head[:y])
-      @turn_score_array.select { |cell| cell[:x] == opposite_edge[:x] && cell[:y] == opposite_edge[:y] && (cell[:score]).positive? }.each do |cell|
-        # invert the direction of the cell
-        cell[:direction] = invert_direction(cell[:direction])
-        @possible_turns << cell
-      end
+  def process_wrapped_edge(x, y)
+    opposite_edge = opposite_edge_cell(x, y)
+    @turn_score_array.select { |cell| cell[:x] == opposite_edge[:x] && cell[:y] == opposite_edge[:y] && (cell[:score]).positive? }.each do |cell|
+      # invert the direction of the cell
+      cell[:direction] = invert_direction(cell[:direction])
+      @possible_turns << cell
     end
   end
 
+  if @game_mode == 'wrapped'
+    if @head[:x] == 0 || @head[:x] == @width - 1
+      process_wrapped_edge(@head[:x], @head[:y])
+    elsif @head[:y] == 0 || @head[:y] == @height - 1
+      process_wrapped_edge(@head[:x], @head[:y])
+    end
+  end
 
   # Load directions in @possible_turns into @possible_moves
   @possible_moves = @possible_turns.map { |cell| cell[:direction] }

@@ -276,7 +276,7 @@ def update_types(cell, types)
   ].each do |type, collection|
     if collection.is_a?(Array)
       types << type if find_matching_cell(collection, cell[:x], cell[:y])
-    else
+    elsif collection
       types << type if collection.call(cell[:x], cell[:y])
     end
   end

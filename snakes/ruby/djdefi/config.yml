@@ -9,13 +9,13 @@ hazard_adjacent:
   standard: -7
 food:
   wrapped: 55
-  standard: 15
+  standard: 55
 food_hazard:
   wrapped: 0
   standard: 2
 food_adjacent:
   wrapped: 20
-  standard: 2
+  standard: 20
 shared_neighbor:
   wrapped: 0
   standard: 0
@@ -30,7 +30,7 @@ shared_same_length_snake:
   standard: -10
 empty:
   wrapped: 55
-  standard: 8
+  standard: 80
 snake_head:
   wrapped: -2
   standard: -2

@@ -204,72 +204,38 @@ def move(board)
   # Cell base score
   @cell_base_score = 1000
 
-  # If game mode is wrapped, use the following score multiplier array
-  if @game_mode == 'wrapped'
-    #puts '@@@ Using wrapped game mode score multiplier'
-    @score_multiplier = {
-      'wall' => 0,
-      'hazard' => -550,
-      'hazard_adjacent' => 0,
-      'food' => 55,
-      'food_hazard' => 0,
-      'food_adjacent' => 20,
-      'shared_neighbor' => 0,
-      'shared_shorter_snake' => 45,
-      'shared_longer_snake' => -80,
-      'shared_same_length_snake' => -75,
-      'empty' => 55,
-      'snake_head' => -2,
-      'snake_body' => -2,
-      'snake_body_neighbor' => -20,
-      'corner' => -1,
-      'other_snake_head' => -2,
-      'other_snake_body' => -30,
-      'other_snake_head_neighbor' => -0,
-      'body' => -100,
-      'head' => -4,
-      'tail' => 2,
-      'my_tail' => 6,
-      'my_tail_neighbor' => 20,
-      'edge' => 0,
-      'edge_adjacent' => 0,
-      'head_neighbor' => 0,
-      'three_head_neighbor' => -2,
-      'shorter_snake_heads' => 4
-    }
-  else
-    # Set score multiplier for each type of cell
-    @score_multiplier = {
-      'wall' => -5,
-      'hazard' => -15,
-      'hazard_adjacent' => -7,
-      'food' => 15,
-      'food_hazard' => 2,
-      'food_adjacent' => 2,
-      'shared_neighbor' => 0,
-      'shared_shorter_snake' => 5,
-      'shared_longer_snake' => -50,
-      'shared_same_length_snake' => -5,
-      'empty' => 8,
-      'snake_head' => -2,
-      'snake_body' => -2,
-      'snake_body_neighbor' => -10,
-      'corner' => -1,
-      'other_snake_head' => -2,
-      'other_snake_body' => -130,
-      'other_snake_head_neighbor' => -0,
-      'body' => -5,
-      'head' => -4,
-      'tail' => 2,
-      'my_tail' => 76,
-      'my_tail_neighbor' => 12,
-      'edge' => -4,
-      'edge_adjacent' => -1,
-      'head_neighbor' => 0,
-      'three_head_neighbor' => -2,
-      'shorter_snake_heads' => 0
-    }
-  end
+  # Set score multiplier for each type of cell
+  @score_multiplier = {
+    'wall' => @game_mode == 'wrapped' ? 0 : -5,
+    'hazard' => @game_mode == 'wrapped' ? -550 : -15,
+    'hazard_adjacent' => @game_mode == 'wrapped' ? 0 : -7,
+    'food' => @game_mode == 'wrapped' ? 55 : 15,
+    'food_hazard' => @game_mode == 'wrapped' ? 0 : 2,
+    'food_adjacent' => @game_mode == 'wrapped' ? 20 : 2,
+    'shared_neighbor' => 0,
+    'shared_shorter_snake' => @game_mode == 'wrapped' ? 45 : 5,
+    'shared_longer_snake' => @game_mode == 'wrapped' ? -80 : -50,
+    'shared_same_length_snake' => @game_mode == 'wrapped' ? -75 : -5,
+    'empty' => @game_mode == 'wrapped' ? 55 : 8,
+    'snake_head' => -2,
+    'snake_body' => -2,
+    'snake_body_neighbor' => @game_mode == 'wrapped' ? -20 : -10,
+    'corner' => -1,
+    'other_snake_head' => -2,
+    'other_snake_body' => @game_mode == 'wrapped' ? -30 : -130,
+    'other_snake_head_neighbor' => 0,
+    'body' => @game_mode == 'wrapped' ? -100 : -5,
+    'head' => -4,
+    'tail' => 2,
+    'my_tail' => @game_mode == 'wrapped' ? 6 : 76,
+    'my_tail_neighbor' => @game_mode == 'wrapped' ? 20 : 12,
+    'edge' => @game_mode == 'wrapped' ? 0 : -4,
+    'edge_adjacent' => @game_mode == 'wrapped' ? 0 : -1,
+    'head_neighbor' => 0,
+    'three_head_neighbor' => -2,
+    'shorter_snake_heads' => @game_mode == 'wrapped' ? 4 : 0
+  }
+
 
   # Create an array of all of this turn's cells. Each cell is a hash with x and y coordinates, a set of types, and the direction of the cell realative to the snake's head.
   # A cell may have multiple types, such as a wall, a hazard, a food, a food_hazard, a shared_neighbor, a snake body, or a snake head.

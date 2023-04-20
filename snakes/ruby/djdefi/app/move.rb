@@ -6,25 +6,15 @@ $stdout.sync = true
 def move(board)
   start_time = Time.now
   @health_threshold = 99.clamp(0, 100)
-
   @height, @width = board[:board][:height].to_i, board[:board][:width].to_i
   @snakes, @food, @hazards = board[:board][:snakes] || [], board[:board][:food] || [], board[:board][:hazards] || []
   @health, @length, @game_mode = board[:you][:health].to_i, board[:you][:length].to_i, board[:game][:ruleset][:name]
-
   @snake_tails = @snakes.map { |snake| snake[:body][-1] }
   @my_tail = [board[:you][:body][-1]]
-
   @board_hash = @height.times.flat_map { |i| @width.times.map { |j| { x: j, y: i } } }
-
-  @head = board[:you][:head]
-  @body = board[:you][:body].map { |b| { x: b[:x], y: b[:y] } }
-
-  @snakes_heads = @snakes.map { |s| s[:head] }
-  @snakes_bodies = @snakes.flat_map { |s| s[:body] } + @body
-
-  @snakes_heads_not_my_head = @snakes_heads - [@head]
-  @snakes_bodies_not_my_body = @snakes_bodies - @body
-
+  @head, @body = board[:you][:head], board[:you][:body].map { |b| { x: b[:x], y: b[:y] } }
+  @snakes_heads, @snakes_bodies = @snakes.map { |s| s[:head] }, @snakes.flat_map { |s| s[:body] } + @body
+  @snakes_heads_not_my_head, @snakes_bodies_not_my_body = @snakes_heads - [@head], @snakes_bodies - @body
   @food_hazards = @food.select { |f| @hazards.any? { |h| f[:x] == h[:x] && f[:y] == h[:y] } }
 
   def adjacent_cells(x, y)
@@ -57,27 +47,70 @@ def move(board)
 
   # Function to check if a cell is a wall
   def is_wall?(x, y)
-    # If game mode is wrapped, set false, else perform wall check
-    if @game_mode == 'wrapped'
-      false
-    else
-      if x.negative? || y.negative? || x > @width || y > @height
-        true
-      else
-        false
-      end
-    end
+    return false if @game_mode == 'wrapped'
+    x.negative? || y.negative? || x > @width || y > @height
   end
-
-  # Function to check if a cell is a snake body
+  
   def is_snake?(x, y)
-    @snakes_bodies.select { |c| c[:x] == x && c[:y] == y }.empty? && @snakes_heads.select do |c|
-      c[:x] == x && c[:y] == y
-    end.empty? && @body.select do |c|
-                    c[:x] == x && c[:y] == y
-                  end.empty?
+    !(@snakes_bodies + @snakes_heads + @body).any? { |c| c[:x] == x && c[:y] == y }
+  end
+  
+  @all_occupied_cells = (@snakes_heads + @snakes_bodies + @head.to_a + @body).flatten
+
+  # x, y coordinates hash of all empty cells on the board
+  @empty_cells = @board_hash - @all_occupied_cells + @food
+
+  # x, y coordinates of each corner cell
+  @corners = [{ x: 0, y: 0 }, { x: @width - 1, y: 0 }, { x: 0, y: @height - 1 },
+              { x: @width - 1, y: @height - 1 }]
+
+  # x, y coordinates array of every cell around the edge of the board
+  @edges = @width.times.map { |x| [{ x: x, y: 0 }, { x: x, y: @height - 1 }] }.flatten + @height.times.map do |y| [{ x: 0, y: y }, { x: @width - 1, y: y }] end.flatten
+
+  # x, y coordinates array of every cell adjacent to cells on the edge of the board
+  @edge_adjacent_cells = @edges.each_with_object([]) do |e, a|
+    a << adjacent_cells(e[:x], e[:y])
+  end.flatten
+
+  # x, y coordinates array of every cell adjacent to hazard cells
+  @hazard_adjacent_cells = @hazards.each_with_object([]) do |h, a|
+    a << adjacent_cells(h[:x], h[:y])
+  end.flatten
+
+  # Cells within 1 cell of any snake body
+  @snakes_bodies_neighbors = @snakes_bodies.map { |s| adjacent_cells(s[:x], s[:y]) }.flatten
+
+  def adjacent_cells(x, y)
+    x, y = x.to_i, y.to_i
+    [{ x: x - 1, y: y }, { x: x + 1, y: y }, { x: x, y: y - 1 }, { x: x, y: y + 1 }]
   end
 
+  @head_neighbors = adjacent_cells(@head[:x], @head[:y])
+  @other_snakes_head_neighbors = @snakes_heads_not_my_head.flat_map { |s| adjacent_cells(s[:x], s[:y]) }
+  @shared_neighbors = @head_neighbors & @other_snakes_head_neighbors
+
+  @snakes_info = @snakes.map do |s|
+    { id: s[:id], name: s[:name], length: s[:body].length, head: s[:head],
+      head_neighbors: adjacent_cells(s[:head][:x], s[:head][:y]) }
+  end
+
+  @id = board[:you][:id]
+  @shorter_snake_heads = @snakes_heads.select { |h| @snakes.any? { |s| s[:length] < @length && h[:x] == s[:head][:x] && h[:y] == s[:head][:y] } }
+  @shared_longer_snakes = @shared_neighbors.select { |s| @snakes.any? { |snake| snake[:length] > @length && s[:x] == snake[:head][:x] && s[:y] == snake[:head][:y] } }
+  @shared_shorter_snakes = @shared_neighbors.select { |s| @snakes.any? { |snake| snake[:length] < @length && s[:x] == snake[:head][:x] && s[:y] == snake[:head][:y] } }
+  @shared_same_length_snakes = @shared_neighbors.select { |s| @snakes.any? { |snake| snake[:length] == @length && s[:x] == snake[:head][:x] && s[:y] == snake[:head][:y] } }
+  @my_snake = @snakes.select { |s| s[:id] == board[:you][:id] }
+
+  # Function to check if a cell is a wall
+  def is_wall?(x, y)
+    return false if @game_mode == 'wrapped'
+    x.negative? || y.negative? || x > @width || y > @height
+  end
+  
+  def is_snake?(x, y)
+    !(@snakes_bodies + @snakes_heads + @body).any? { |c| c[:x] == x && c[:y] == y }
+  end
+  
   @all_occupied_cells = (@snakes_heads + @snakes_bodies + @head.to_a + @body).flatten
 
   # x, y coordinates hash of all empty cells on the board
@@ -128,16 +161,7 @@ def move(board)
   end
 
   def invert_direction(direction)
-    case direction
-    when 'up'
-      'down'
-    when 'down'
-      'up'
-    when 'left'
-      'right'
-    when 'right'
-      'left'
-    end
+    { up: :down, down: :up, left: :right, right: :left }.invert[direction]
   end
 
   def opposite_edge_cell(x, y)
@@ -160,36 +184,12 @@ def move(board)
   @cell_base_score = 1000
 
   # Set score multiplier for each type of cell
-  @score_multiplier = {
-    'wall' => @game_mode == 'wrapped' ? 0 : -5,
-    'hazard' => @game_mode == 'wrapped' ? -550 : -15,
-    'hazard_adjacent' => @game_mode == 'wrapped' ? 0 : -7,
-    'food' => @game_mode == 'wrapped' ? 55 : 15,
-    'food_hazard' => @game_mode == 'wrapped' ? 0 : 2,
-    'food_adjacent' => @game_mode == 'wrapped' ? 20 : 2,
-    'shared_neighbor' => 0,
-    'shared_shorter_snake' => @game_mode == 'wrapped' ? 45 : 5,
-    'shared_longer_snake' => @game_mode == 'wrapped' ? -80 : -60,
-    'shared_same_length_snake' => @game_mode == 'wrapped' ? -75 : -10,
-    'empty' => @game_mode == 'wrapped' ? 55 : 8,
-    'snake_head' => -2,
-    'snake_body' => -2,
-    'snake_body_neighbor' => @game_mode == 'wrapped' ? -20 : -10,
-    'corner' => -1,
-    'other_snake_head' => -2,
-    'other_snake_body' => @game_mode == 'wrapped' ? -20 : -100,
-    'other_snake_head_neighbor' => 0,
-    'body' => @game_mode == 'wrapped' ? -100 : -5,
-    'head' => -4,
-    'tail' => 2,
-    'my_tail' => @game_mode == 'wrapped' ? 10 : 80,
-    'my_tail_neighbor' => @game_mode == 'wrapped' ? 30 : 20,
-    'edge' => @game_mode == 'wrapped' ? 0 : -4,
-    'edge_adjacent' => @game_mode == 'wrapped' ? 0 : -1,
-    'head_neighbor' => 0,
-    'three_head_neighbor' => -2,
-    'shorter_snake_heads' => @game_mode == 'wrapped' ? 4 : 5
-  }
+  # Load values from included config file
+  @score_multiplier = YAML.load_file('config.yml')
+  # Pull in values for current game mode
+  @score_multiplier.each do |k, v|
+    @score_multiplier[k] = v[@game_mode]
+  end
 
   # Create an array of all of this turn's cells. Each cell is a hash with x and y coordinates, a set of types, and the direction of the cell realative to the snake's head.
   # A cell may have multiple types, such as a wall, a hazard, a food, a food_hazard, a shared_neighbor, a snake body, or a snake head.
@@ -236,30 +236,28 @@ def update_types(cell, types)
   end
 end
 
-@turn_score_array = []
-@board_hash.each do |cell|
+def cell_score(types)
+  types.any? ? types.map { |type| @score_multiplier[type] }.reduce(:+) + @cell_base_score : @cell_base_score
+end
+
+def process_cell(cell)
   types = []
   update_types(cell, types)
 
-  direction = direction_between(@head[:x], @head[:y], cell[:x], cell[:y])
-  opposite_direction = opposite_direction(@head[:x], @head[:y], cell[:x], cell[:y])
-  possible_directions = possible_directions_between(@head[:x], @head[:y], cell[:x], cell[:y])
-  neighbors = neighbors_of(cell[:x], cell[:y])
-
-  score = types.any? ? types.map { |type| @score_multiplier[type] }.reduce(:+) + @cell_base_score : @cell_base_score
-
-  @turn_score_array << cell.merge(
+  x1, y1 = @head[:x], @head[:y]
+  x2, y2 = cell[:x], cell[:y]
+  
+  cell.merge(
     types: types,
-    score: score,
-    direction: direction,
-    possible_directions: possible_directions,
-    opposite_direction: opposite_direction,
-    neighbors: neighbors
+    score: cell_score(types),
+    direction: direction_between(x1, y1, x2, y2),
+    possible_directions: possible_directions_between(x1, y1, x2, y2),
+    opposite_direction: opposite_direction(x1, y1, x2, y2),
+    neighbors: neighbors_of(x2, y2)
   )
 end
 
-  # puts "Turn score array is: #{@turn_score_array}"
-
+@turn_score_array = @board_hash.map { |cell| process_cell(cell) }
 
   # Direction of highest score cell in the @turn_score_array
   @highest_score_direction = @turn_score_array.max_by { |cell| cell[:score] }[:direction]
@@ -282,36 +280,27 @@ end
   # For each direction, find the number of empty or food cells in that direction, and the total score of all cells in that direction
   # takes the @@turn_score_array as input
   def direction_scores(turn_score_array)
-    # Sum the score of each cell for each direction
-    @direction_scores = {
-      'left' => turn_score_array.select { |cell| cell[:direction] == 'left' }.map { |cell| cell[:score] }.reduce(:+),
-      'right' => turn_score_array.select { |cell| cell[:direction] == 'right' }.map { |cell| cell[:score] }.reduce(:+),
-      'up' => turn_score_array.select { |cell| cell[:direction] == 'up' }.map { |cell| cell[:score] }.reduce(:+),
-      'down' => turn_score_array.select { |cell| cell[:direction] == 'down' }.map { |cell| cell[:score] }.reduce(:+)
-    }
+    @direction_scores = {}
+    %w[left right up down].each do |dir|
+      @direction_scores[dir] = turn_score_array.select { |cell| cell[:direction] == dir }.map { |cell| cell[:score] }.reduce(:+)
+    end
   end
-
-    # For each possible direction, find the number of empty or food cells in that direction, and the total score of all cells in that direction
-    def direction_scores_possible(turn_score_array)
-      # Sum the score of each cell for each direction
-      @direction_scores_possible = {
-        'left' => turn_score_array.select { |cell| cell[:possible_directions].include?('left') }.map { |cell| cell[:score] }.reduce(:+),
-        'right' => turn_score_array.select { |cell| cell[:possible_directions].include?('right') }.map { |cell| cell[:score] }.reduce(:+),
-        'up' => turn_score_array.select { |cell| cell[:possible_directions].include?('up') }.map { |cell| cell[:score] }.reduce(:+),
-        'down' => turn_score_array.select { |cell| cell[:possible_directions].include?('down') }.map { |cell| cell[:score] }.reduce(:+)
-      }
+  
+  def direction_scores_possible(turn_score_array)
+    @direction_scores_possible = {}
+    %w[left right up down].each do |dir|
+      @direction_scores_possible[dir] = turn_score_array.select { |cell| cell[:possible_directions].include?(dir) }.map { |cell| cell[:score] }.reduce(:+)
     end
-
-    # For each set of two possible directions, find the number of empty or food cells in that set of directions, and the total score of all cells in that direction
-    def direction_scores_possible_2(turn_score_array)
-      # Sum the score of each cell for each direction
-      @direction_scores_possible_2 = {
-        'left_up' => turn_score_array.select { |cell| cell[:possible_directions].include?('left') && cell[:possible_directions].include?('up') }.map { |cell| cell[:score] }.reduce(:+),
-        'left_down' => turn_score_array.select { |cell| cell[:possible_directions].include?('left') && cell[:possible_directions].include?('down') }.map { |cell| cell[:score] }.reduce(:+),
-        'right_up' => turn_score_array.select { |cell| cell[:possible_directions].include?('right') && cell[:possible_directions].include?('up') }.map { |cell| cell[:score] }.reduce(:+),
-        'right_down' => turn_score_array.select { |cell| cell[:possible_directions].include?('right') && cell[:possible_directions].include?('down') }.map { |cell| cell[:score] }.reduce(:+)
-      }
+  end
+  
+  def direction_scores_possible_2(turn_score_array)
+    @direction_scores_possible_2 = {}
+    pairs = [%w[left up], %w[left down], %w[right up], %w[right down]]
+    pairs.each do |pair|
+      key = pair.join('_')
+      @direction_scores_possible_2[key] = turn_score_array.select { |cell| pair.all? { |dir| cell[:possible_directions].include?(dir) } }.map { |cell| cell[:score] }.reduce(:+)
     end
+  end  
 
   @possible_turns = []
   # Select my possible turns from the @turn_score_array. A possible turn is a direction to a head_neighbor that has a score greater than 0.
@@ -319,7 +308,6 @@ end
     @possible_turns << cell
   end
     
-  
   def process_wrapped_edge(x, y)
     opposite_edge = opposite_edge_cell(x, y)
     @turn_score_array.select { |cell| cell[:x] == opposite_edge[:x] && cell[:y] == opposite_edge[:y] && (cell[:score]).positive? }.each do |cell|
@@ -390,70 +378,21 @@ end
     @move_direction = @highest_score[:direction]
   end
 
-  #puts "Move direction is: #{@move_direction} - highest score is: #{@highest_score[:score]} - turn is: #{@highest_score[:types]} to the #{@highest_score[:direction]}"
-
-  #TODO Function to use A* to find the safest path to food
-  # A safe path is one that stays away from longer snakes, bodies, and hazards
-  
-
   # Output the end time in ms
   end_time = Time.now
   puts "End time is: #{end_time} - took #{end_time - start_time} seconds"
 
   debug = false
-# Debug output, only if debug is true
   if debug
-
-  puts "Possible moves are: 
-  #{@possible_moves}"
-
-  puts "possible_turns are: 
-  #{@possible_turns}"
-
-  puts "Highest score is #{@highest_score}"
-
-  # Most common cell types from @turn_score_array and their counts and scores
-  @turn_score_array.group_by { |cell| cell[:types] }.map { |types, cells| [types, cells.count] }.sort_by { |types, count| count }.reverse.each do |types, count|
-    puts "Most common #{types} - #{count}"
+    puts "Possible moves: #{@possible_moves}\npossible_turns: #{@possible_turns}\nHighest score: #{@highest_score}"
+    turn_data = @turn_score_array.group_by { |cell| cell[:types] }.map { |types, cells| [types, cells.count, cells.map { |cell| cell[:score] }.reduce(:+)] }.sort_by { |types, count, score| [count, score] }.reverse
+    turn_data.first(5).each { |types, count| puts "Most common #{types} - #{count}" }
+    turn_data.last(5).each { |types, count| puts "Least common #{types} - #{count}" }
+    scores_data = @turn_score_array.group_by { |cell| cell[:score] }.map { |score, cells| [score, cells.count] }
+    scores_data.sort_by(&:first).reverse.first(5).each { |score, count| puts "highest scores #{score} - #{count}" }
+    scores_data.sort_by(&:first).first(5).each { |score, count| puts "lowest scores #{score} - #{count}" }
+    turn_data.each { |types, count, score| puts "Most common #{types} - #{score}" }
   end
-
-  # Least common 5 cell types from @turn_score_array and their counts
-  @turn_score_array.group_by { |cell| cell[:types] }.map { |types, cells| [types, cells.count] }.sort_by { |types, count| count }.first(5).each do |types, count|
-    puts "Least common #{types} - #{count}"
-  end
-
-  # Top 5 highest scores from @turn_score_array and their counts
-  @turn_score_array.group_by { |cell| cell[:score] }.map { |score, cells| [score, cells.count] }.sort_by { |score, count| score }.reverse.first(5).each do |score, count|
-    puts "highest scores #{score} - #{count}"
-  end
-
-  # Lowest 5 scores from @turn_score_array and their counts
-  @turn_score_array.group_by { |cell| cell[:score] }.map { |score, cells| [score, cells.count] }.sort_by { |score, count| score }.first(5).each do |score, count|
-    puts "lowest scores #{score} - #{count}"
-  end
-
-  # Most common cell types and score combinations from @turn_score_array
-  @turn_score_array.group_by { |cell| cell[:types] }.map { |types, cells| [types, cells.map { |cell| cell[:score] }.reduce(:+)] }.sort_by { |types, score| score }.reverse.each do |types, score|
-    puts "Most common #{types} - #{score}"
-  end
-end
-
-  # TODO:
-  # Generate a ascii representation of the board
-  # Cells are placed in their x,y coordianres on a grid the of size @width x @height
-  # Each cell is represented by a single character
-  # Board edges are represented by '#'
-  # Food is represented by 'F'
-  # Snake head is represented by 'H'
-  # Snake body is represented by 'B'
-  # Snake tail is represented by 'T'
-  # Empty cells are represented by '0'
-  # Snake head neighbors are represented by 'h'
-  # Snake body neighbors are represented by 'b'
-  # Hazard cells are represented by 'X'
-
-  
-
 
   puts "MOVE: #{@move_direction} - TURN: #{board[:turn]}"
   { "move": @move_direction }

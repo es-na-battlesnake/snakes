@@ -170,28 +170,27 @@ def move(board)
     'food_adjacent' => @game_mode == 'wrapped' ? 20 : 2,
     'shared_neighbor' => 0,
     'shared_shorter_snake' => @game_mode == 'wrapped' ? 45 : 5,
-    'shared_longer_snake' => @game_mode == 'wrapped' ? -80 : -50,
-    'shared_same_length_snake' => @game_mode == 'wrapped' ? -75 : -5,
+    'shared_longer_snake' => @game_mode == 'wrapped' ? -80 : -60,
+    'shared_same_length_snake' => @game_mode == 'wrapped' ? -75 : -10,
     'empty' => @game_mode == 'wrapped' ? 55 : 8,
     'snake_head' => -2,
     'snake_body' => -2,
     'snake_body_neighbor' => @game_mode == 'wrapped' ? -20 : -10,
     'corner' => -1,
     'other_snake_head' => -2,
-    'other_snake_body' => @game_mode == 'wrapped' ? -30 : -130,
+    'other_snake_body' => @game_mode == 'wrapped' ? -20 : -100,
     'other_snake_head_neighbor' => 0,
     'body' => @game_mode == 'wrapped' ? -100 : -5,
     'head' => -4,
     'tail' => 2,
-    'my_tail' => @game_mode == 'wrapped' ? 6 : 76,
-    'my_tail_neighbor' => @game_mode == 'wrapped' ? 20 : 12,
+    'my_tail' => @game_mode == 'wrapped' ? 10 : 80,
+    'my_tail_neighbor' => @game_mode == 'wrapped' ? 30 : 20,
     'edge' => @game_mode == 'wrapped' ? 0 : -4,
     'edge_adjacent' => @game_mode == 'wrapped' ? 0 : -1,
     'head_neighbor' => 0,
     'three_head_neighbor' => -2,
-    'shorter_snake_heads' => @game_mode == 'wrapped' ? 4 : 0
+    'shorter_snake_heads' => @game_mode == 'wrapped' ? 4 : 5
   }
-
 
   # Create an array of all of this turn's cells. Each cell is a hash with x and y coordinates, a set of types, and the direction of the cell realative to the snake's head.
   # A cell may have multiple types, such as a wall, a hazard, a food, a food_hazard, a shared_neighbor, a snake body, or a snake head.

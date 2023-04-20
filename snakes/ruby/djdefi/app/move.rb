@@ -3,163 +3,49 @@
 $VERBOSE = nil
 $stdout.sync = true
 
-# This function is called on every turn of a game. It's how your Battlesnake decides where to move.
-# Valid moves are "up", "down", "left", or "right".
-# TODO: Use the information in board to decide your next move.
 def move(board)
-  # Record the start time of the turn
   start_time = Time.now
+  @health_threshold = 99.clamp(0, 100)
 
-  # Health find threshold variable clamped to 0-100
-  @health_threshold = 99
-  @health_threshold.clamp(0, 100)
+  @height, @width = board[:board][:height].to_i, board[:board][:width].to_i
+  @snakes, @food, @hazards = board[:board][:snakes] || [], board[:board][:food] || [], board[:board][:hazards] || []
+  @health, @length, @game_mode = board[:you][:health].to_i, board[:you][:length].to_i, board[:game][:ruleset][:name]
 
-  #puts board
+  @snake_tails = @snakes.map { |snake| snake[:body][-1] }
+  @my_tail = [board[:you][:body][-1]]
 
-  # Example board object:
-  # {:game=>{:id=>"f767ba58-945c-4f5a-b5b6-12990dc27ab1", :ruleset=>{:name=>"standard", :version=>"v1.0.17"}, :timeout=>500}, :turn=>0, :board=>{:height=>11, :width=>11, :snakes=>[{:id=>"gs_9PwkMwt7S3CtB9vFGjVbH39V", :name=>"ruby-danger-noodle", :latency=>"", :health=>100, :body=>[{:x=>9, :y=>9}, {:x=>9, :y=>9}, {:x=>9, :y=>9}], :head=>{:x=>9, :y=>9}, :length=>3, :shout=>""}, {:id=>"gs_qrT8RGkMKCyYCtpphtkTfQkX", :name=>"LoopSnake", :latency=>"", :health=>100, :body=>[{:x=>9, :y=>1}, {:x=>9, :y=>1}, {:x=>9, :y=>1}], :head=>{:x=>9, :y=>1}, :length=>3, :shout=>""}], :food=>[{:x=>8, :y=>10}, {:x=>8, :y=>2}, {:x=>5, :y=>5}], :hazards=>[]}, :you=>{:id=>"gs_9PwkMwt7S3CtB9vFGjVbH39V", :name=>"ruby-danger-noodle", :latency=>"", :health=>100, :body=>[{:x=>9, :y=>9}, {:x=>9, :y=>9}, {:x=>9, :y=>9}], :head=>{:x=>9, :y=>9}, :length=>3, :shout=>""}}
+  @board_hash = @height.times.flat_map { |i| @width.times.map { |j| { x: j, y: i } } }
 
-  # Puts board height and width
-  @height = board[:board][:height].to_i
-  @width = board[:board][:width].to_i
-
-  # Puts all the snakes in an array
-  @snakes = board[:board][:snakes] || []
-  # puts "There are the following snakes: #{@snakes}"
-
-  # Puts all the food in an array
-  @food = board[:board][:food] || []
-   #puts "There is food at: #{@food}"
-
-  # Our health
-  @health = board[:you][:health].to_i
-
-  # Puts all the hazards in an array
-  @hazards = board[:board][:hazards] || []
-  # puts "There are hazards at: #{@hazards}"
-
-  # Puts the snakes length
-  @length = board[:you][:length].to_i
-  # puts "My length is: #{@length}"
-
-  # Puts the ruleset name
-  @game_mode = board[:game][:ruleset][:name]
-
-  # Puts the tail cells of all the snakes
-  @snake_tails = []
-  @snakes.each do |snake|
-    @snake_tails << snake[:body][-1]
-  end
-
-  # My tail coordinates
-  @my_tail = [{:x => board[:you][:body][-1][:x], :y => board[:you][:body][-1][:y]}]
-  #puts "My tail is: #{@my_tail}"
-
-  # Puts x, y coordinates hash of all cells on the board
-  @board_hash = board[:board][:height].to_i.times.map do |i|
-    board[:board][:width].to_i.times.map do |j|
-      { x: j, y: i }
-    end
-  end.flatten
-
-  # Puts x, y coordinates hash of my snake's head
   @head = board[:you][:head]
-  # Set @head x and y to_i
-  @head[:x] = @head[:x].to_i
-  @head[:y] = @head[:y].to_i
+  @body = board[:you][:body].map { |b| { x: b[:x], y: b[:y] } }
 
-  # Puts x, y coordinates hash of my snake's body
-  @body = board[:you][:body].map { |b| { x: b[:x], y: b[:y] } }.flatten
+  @snakes_heads = @snakes.map { |s| s[:head] }
+  @snakes_bodies = @snakes.flat_map { |s| s[:body] } + @body
 
-  # Puts where all other snakes bodies and heads are
-  @snakes_bodies = board[:board][:snakes].map { |s| s[:body] }.flatten + @body || []
+  @snakes_heads_not_my_head = @snakes_heads - [@head]
+  @snakes_bodies_not_my_body = @snakes_bodies - @body
 
-  # Puts where all snakes heads are
-  @snakes_heads = board[:board][:snakes].map { |s| s[:head] }.flatten || []
+  @food_hazards = @food.select { |f| @hazards.any? { |h| f[:x] == h[:x] && f[:y] == h[:y] } }
 
-  # Puts where all snakes heads are, but not my head
-  @snakes_heads_not_my_head = board[:board][:snakes].map { |s| s[:head] }.flatten - [@head] || []
-  # Remove my head from the snakes heads
-  @snakes_heads_not_my_head.delete(@head)  
-
-  # Puts where all snakes bodies are, but not my body
-  @snakes_bodies_not_my_body = board[:board][:snakes].map { |s| s[:body] }.flatten - @body || []
-  # Remove my body from the snakes bodies
-  @snakes_bodies_not_my_body.delete(@body)
-
-  # Puts where all food cells which are also hazard cells
-  @food_hazards = @food.select do |f|
-    @hazards.any? do |h|
-      f[:x] == h[:x] && f[:y] == h[:y]
-    end
-  end
-
-  # Function to determine x,y coordinate pair hash of each cell adjacent to the head
   def adjacent_cells(x, y)
-    # Set x and y coordinates to_i
-    x = x.to_i
-    y = y.to_i
+    x, y = x.to_i, y.to_i
     [{ x: x - 1, y: y }, { x: x + 1, y: y }, { x: x, y: y - 1 }, { x: x, y: y + 1 }]
   end
 
-  # Function to determine x,y coordinate pair hash of each cell adjacent to the head within 3 cells
-  def adjacent_cells_3(x, y)
-    # Set x and y coordinates to_i
-    x = x.to_i
-    y = y.to_i
-    [{ x: x - 1, y: y }, { x: x + 1, y: y }, { x: x, y: y - 1 }, { x: x, y: y + 1 }, { x: x - 1, y: y - 1 }, { x: x - 1, y: y + 1 }, { x: x + 1, y: y - 1 }, { x: x + 1, y: y + 1 }]
-  end
-
-  # Food adjacent cells
-  @food_adjacent_cells = @food.map { |f| adjacent_cells(f[:x], f[:y]) }.flatten
-
   @head_neighbors = adjacent_cells(@head[:x], @head[:y])
+  @other_snakes_head_neighbors = @snakes_heads_not_my_head.flat_map { |s| adjacent_cells(s[:x], s[:y]) }
+  @shared_neighbors = @head_neighbors & @other_snakes_head_neighbors
 
-  @three_head_neighbors = adjacent_cells_3(@head[:x], @head[:y])
-
-  @other_snakes_head_neighbors = @snakes_heads_not_my_head.map { |s| adjacent_cells(s[:x], s[:y]) }.flatten
-
-  # Shared neighbors are cells which are in both @head_neighbors and @other_snakes_head_neighbors
-  @shared_neighbors = @head_neighbors.select { |h| @other_snakes_head_neighbors.include?(h) }
-  #puts "Shared neighbors are: #{@shared_neighbors}"
-
-  # Id, Name, total Lengths, Coordinates of all snakes heads
-  @snakes_info = board[:board][:snakes].map do |s|
+  @snakes_info = @snakes.map do |s|
     { id: s[:id], name: s[:name], length: s[:body].length, head: s[:head],
       head_neighbors: adjacent_cells(s[:head][:x], s[:head][:y]) }
   end
 
-  # My snake id
   @id = board[:you][:id]
-
-  # Puts where all heads of shorter snakes are
-  @shorter_snake_heads = board[:board][:snakes].map { |s| s[:head] }.flatten.select do |h|
-    @snakes.any? do |s|
-      s[:length] < @length && h[:x] == s[:head][:x] && h[:y] == s[:head][:y]
-    end
-  end
-
-
-  # @shared_longer_snakes are cells which are in both @head_neighbors and @other_snakes_head_neighbors and where the length of the neighboring snake is longer than my snake
-  @shared_longer_snakes = @shared_neighbors.select do |s|
-    @snakes.any? do |s|
-      s[:length] > @length && s[:head][:x] == s[:head][:x] && s[:head][:y] == s[:head][:y]
-    end
-  end
-
-  # @shared_shorter_snakes are cells which are in both @head_neighbors and @other_snakes_head_neighbors and where the length of the neighboring snake is shorter than my snake
-  @shared_shorter_snakes = @shared_neighbors.select do |s|
-    @snakes.any? do |s|
-      s[:length] < @length && s[:head][:x] == s[:head][:x] && s[:head][:y] == s[:head][:y]
-    end
-  end
-
-  # @shared_same_length_snakes are cells which are in both @head_neighbors and @other_snakes_head_neighbors and where the length of the neighboring snake is the same as my snake
-  @shared_same_length_snakes = @shared_neighbors.select do |s|
-    @snakes.any? do |s|
-      s[:length] == @length && s[:head][:x] == s[:head][:x] && s[:head][:y] == s[:head][:y]
-    end
-  end
+  @shorter_snake_heads = @snakes_heads.select { |h| @snakes.any? { |s| s[:length] < @length && h[:x] == s[:head][:x] && h[:y] == s[:head][:y] } }
+  @shared_longer_snakes = @shared_neighbors.select { |s| @snakes.any? { |snake| snake[:length] > @length && s[:x] == snake[:head][:x] && s[:y] == snake[:head][:y] } }
+  @shared_shorter_snakes = @shared_neighbors.select { |s| @snakes.any? { |snake| snake[:length] < @length && s[:x] == snake[:head][:x] && s[:y] == snake[:head][:y] } }
+  @shared_same_length_snakes = @shared_neighbors.select { |s| @snakes.any? { |snake| snake[:length] == @length && s[:x] == snake[:head][:x] && s[:y] == snake[:head][:y] } }
 
   # Each time the snake eats a piece of food, its tail grows longer, making the game increasingly difficult.
   # The user controls the direction of the snake's head (up, down, left, or right), and the snake's body follows. The player cannot stop the snake from moving while the game is in progress.

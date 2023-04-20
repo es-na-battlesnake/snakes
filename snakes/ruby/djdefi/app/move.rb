@@ -389,74 +389,68 @@ def move(board)
   # A cell may have multiple types, such as a wall, a hazard, a food, a food_hazard, a shared_neighbor, a snake body, or a snake head.
   # The direction is the direction of the cell relative to the snake's head.
 
-  @turn_score_array = []
-  @board_hash.each do |cell|
-    # Check what types this cell's x and y coordinates are
-    types = []
+def find_matching_cell(cells, x, y)
+  cells.find { |c| c[:x] == x && c[:y] == y }
+end
 
-    # Check if the cell is a wall
-    types << 'wall' if is_wall?(cell[:x], cell[:y])
-    types << 'corner' if @corners.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
-    types << 'other_snake_head' if @snakes_heads.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
-    types << 'other_snake_body' if @snakes_bodies.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
-    types << 'body' if @body.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
-    types << 'tail' if @snake_tails.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
-    types << 'my_tail' if @my_tail.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
-    types << 'my_tail_neighbor' if @my_tail_neighbors.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
-    # types << 'head' if @head.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
-    types << 'food' if @food.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
-    types << 'food_hazard' if @food_hazards.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
-    types << 'hazard' if @hazards.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
-    types << 'shared_neighbor' if @shared_neighbors.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
-    types << 'shared_shorter_snake' if @shared_shorter_snakes.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
-    types << 'shared_longer_snake' if @shared_longer_snakes.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
-    types << 'shared_same_length_snake' if @shared_same_length_snakes.select do |c|
-                                             c[:x] == cell[:x] && c[:y] == cell[:y]
-                                           end.any?
-    types << 'empty' if @empty_cells.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
-    types << 'head_neighbor' if @head_neighbors.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
-    types << 'edge' if @edges.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
-    types << 'other_snake_head_neighbor' if @other_snakes_head_neighbors.select do |c| c[:x] == cell[:x] && c[:y] == cell[:y] end.any?
-    types << 'snake_body_neighbor' if @snakes_bodies_neighbors.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
-    types << 'food_adjacent' if @food_adjacent_cells.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
-    types << 'hazard_adjacent' if @hazard_adjacent_cells.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
-    types << 'edge_adjacent' if @edge_adjacent_cells.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
-    types << 'three_head_neighbor' if @three_head_neighbors.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
-    types << 'shorter_snake_heads' if @shorter_snake_heads.select { |c| c[:x] == cell[:x] && c[:y] == cell[:y] }.any?
-    
-
-    # Determine the direction between this cell and the snake's head
-    direction = direction_between(@head[:x], @head[:y], cell[:x], cell[:y])
-
-    # Determine the opposite direction between this cell and the snake's head
-    opposite_direction = opposite_direction(@head[:x], @head[:y], cell[:x], cell[:y])
-
-    # Determine the possible directions between this cell and the snake's head
-    possible_directions = possible_directions_between(@head[:x], @head[:y], cell[:x], cell[:y])
-
-    # Determine the neighbors of this cell
-    neighbors = neighbors_of(cell[:x], cell[:y])
-
-    # Add x, y coordinates, types, and direction to the cell
-    cell[:x] = cell[:x]
-    cell[:y] = cell[:y]
-    cell[:types] = types
-    # Each cell has a score, which is the sum of the @cell_base_score and score_multiplier for each type of cell
-    cell[:score] = if types.any?
-                     types.map do |type|
-                       @score_multiplier[type]
-                     end.reduce(:+) + @cell_base_score
-                   else
-                     @cell_base_score
-                   end
-    cell[:direction] = direction
-    cell[:possible_directions] = possible_directions
-    cell[:opposite_direction] = opposite_direction
-    cell[:neighbors] = neighbors
-
-    # Add the cell to the turn_score_array
-    @turn_score_array << cell
+def update_types(cell, types)
+  [
+    ['wall', method(:is_wall?)],
+    ['corner', @corners],
+    ['other_snake_head', @snakes_heads],
+    ['other_snake_body', @snakes_bodies],
+    ['body', @body],
+    ['tail', @snake_tails],
+    ['my_tail', @my_tail],
+    ['my_tail_neighbor', @my_tail_neighbors],
+    # ['head', @head],
+    ['food', @food],
+    ['food_hazard', @food_hazards],
+    ['hazard', @hazards],
+    ['shared_neighbor', @shared_neighbors],
+    ['shared_shorter_snake', @shared_shorter_snakes],
+    ['shared_longer_snake', @shared_longer_snakes],
+    ['shared_same_length_snake', @shared_same_length_snakes],
+    ['empty', @empty_cells],
+    ['head_neighbor', @head_neighbors],
+    ['edge', @edges],
+    ['other_snake_head_neighbor', @other_snakes_head_neighbors],
+    ['snake_body_neighbor', @snakes_bodies_neighbors],
+    ['food_adjacent', @food_adjacent_cells],
+    ['hazard_adjacent', @hazard_adjacent_cells],
+    ['edge_adjacent', @edge_adjacent_cells],
+    ['three_head_neighbor', @three_head_neighbors],
+    ['shorter_snake_heads', @shorter_snake_heads]
+  ].each do |type, collection|
+    if collection.is_a?(Array)
+      types << type if find_matching_cell(collection, cell[:x], cell[:y])
+    else
+      types << type if collection.call(cell[:x], cell[:y])
+    end
   end
+end
+
+@turn_score_array = []
+@board_hash.each do |cell|
+  types = []
+  update_types(cell, types)
+
+  direction = direction_between(@head[:x], @head[:y], cell[:x], cell[:y])
+  opposite_direction = opposite_direction(@head[:x], @head[:y], cell[:x], cell[:y])
+  possible_directions = possible_directions_between(@head[:x], @head[:y], cell[:x], cell[:y])
+  neighbors = neighbors_of(cell[:x], cell[:y])
+
+  score = types.any? ? types.map { |type| @score_multiplier[type] }.reduce(:+) + @cell_base_score : @cell_base_score
+
+  @turn_score_array << cell.merge(
+    types: types,
+    score: score,
+    direction: direction,
+    possible_directions: possible_directions,
+    opposite_direction: opposite_direction,
+    neighbors: neighbors
+  )
+end
 
   # puts "Turn score array is: #{@turn_score_array}"
 

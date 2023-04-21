@@ -86,17 +86,15 @@ post '/end' do
   file_path = 'model_data.json'
 
   if File.exist?(file_path)
-    # If the file exists, load the existing JSON array and append the new data
-    existing_data = JSON.parse(File.read(file_path))
-    existing_data << model_data
+    # If the file exists, append the new data on a new line
+    File.open(file_path, 'a') do |file|
+      file.puts model_data.to_json
+    end
   else
-    # If the file doesn't exist, create a new JSON array
-    existing_data = [model_data]
-  end
-
-  # Save the updated JSON array to the file
-  File.open(file_path, 'w') do |file|
-    file.puts existing_data.to_json
+    # If the file doesn't exist, create a new file and write the data on a new line
+    File.open(file_path, 'w') do |file|
+      file.puts model_data.to_json
+    end
   end
   
   "OK\n"

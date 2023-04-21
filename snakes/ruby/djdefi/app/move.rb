@@ -237,7 +237,8 @@ def update_types(cell, types)
 end
 
 def cell_score(types)
-  types.any? ? types.map { |type| @score_multiplier[type] }.reduce(:+) + @cell_base_score : @cell_base_score
+  score = types.any? ? types.map { |type| @score_multiplier[type] || 0 }.reduce(:+) : 0
+  score += @cell_base_score
 end
 
 def process_cell(cell)

@@ -1,35 +1,36 @@
+---
 wall:
   wrapped: 0
   standard: -5
 hazard:
-  wrapped: -550
+  wrapped: -447
   standard: -15
 hazard_adjacent:
   wrapped: 0
   standard: -7
 food:
-  wrapped: 55
+  wrapped: 52
   standard: 55
 food_hazard:
   wrapped: 0
   standard: 2
 food_adjacent:
-  wrapped: 20
+  wrapped: 17
   standard: 20
 shared_neighbor:
   wrapped: 0
   standard: 0
 shared_shorter_snake:
-  wrapped: 45
+  wrapped: 42
   standard: 5
 shared_longer_snake:
-  wrapped: -80
+  wrapped: -81
   standard: -60
 shared_same_length_snake:
-  wrapped: -75
+  wrapped: -77
   standard: -10
 empty:
-  wrapped: 55
+  wrapped: 61
   standard: 80
 snake_head:
   wrapped: -2
@@ -38,7 +39,7 @@ snake_body:
   wrapped: -2
   standard: -2
 snake_body_neighbor:
-  wrapped: -20
+  wrapped: -19
   standard: -10
 corner:
   wrapped: -1
@@ -47,13 +48,13 @@ other_snake_head:
   wrapped: -2
   standard: -2
 other_snake_body:
-  wrapped: -20
+  wrapped: -23
   standard: -100
 other_snake_head_neighbor:
   wrapped: 0
   standard: 0
 body:
-  wrapped: -100
+  wrapped: -101
   standard: -5
 head:
   wrapped: -4
@@ -62,10 +63,10 @@ tail:
   wrapped: 2
   standard: 2
 my_tail:
-  wrapped: 10
+  wrapped: 14
   standard: 80
 my_tail_neighbor:
-  wrapped: 30
+  wrapped: 26
   standard: 20
 edge:
   wrapped: 0

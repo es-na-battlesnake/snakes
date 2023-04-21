@@ -3,6 +3,7 @@
 require 'rack'
 require 'rack/contrib'
 require 'sinatra'
+require 'json'
 
 require_relative './util'
 require_relative './move'
@@ -75,5 +76,28 @@ post '/end' do
     end
   end
 
+  # Log the relevant end game details and hash of `config.yml` into an AI training database.
+  # This is a great way to train your AI to play better.
+  model_game_data = { game_id: request[:game][:id], ruleset: request[:game][:ruleset][:name], turn: request[:turn], your_health: request[:you][:health], snakes: request[:board][:snakes] }
+  model_config_data = { config: YAML.load_file('config.yml') }
+  model_data = model_game_data.merge(model_config_data)
+
+  # Log the data to the database (a file in this case)
+  file_path = 'model_data.json'
+
+  if File.exist?(file_path)
+    # If the file exists, load the existing JSON array and append the new data
+    existing_data = JSON.parse(File.read(file_path))
+    existing_data << model_data
+  else
+    # If the file doesn't exist, create a new JSON array
+    existing_data = [model_data]
+  end
+
+  # Save the updated JSON array to the file
+  File.open(file_path, 'w') do |file|
+    file.puts existing_data.to_json
+  end
+  
   "OK\n"
 end

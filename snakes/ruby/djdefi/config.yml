@@ -1,85 +1,85 @@
 ---
 wall:
-  wrapped: 0
-  standard: -5
+  wrapped: 0.7945235515051419
+  standard: 32
 hazard:
-  wrapped: -447
-  standard: -15
+  wrapped: 1071
+  standard: 51
 hazard_adjacent:
-  wrapped: 0
-  standard: -7
+  wrapped: 0.22516724187994153
+  standard: 44
 food:
-  wrapped: 52
-  standard: 55
+  wrapped: 440
+  standard: 474
 food_hazard:
-  wrapped: 0
-  standard: 2
+  wrapped: 0.36436015337142524
+  standard: 8
 food_adjacent:
-  wrapped: 17
-  standard: 20
+  wrapped: 16
+  standard: 99
 shared_neighbor:
-  wrapped: 0
-  standard: 0
+  wrapped: 0.4059317884469572
+  standard: 0.94047378935678
 shared_shorter_snake:
-  wrapped: 42
-  standard: 5
+  wrapped: 91
+  standard: 35
 shared_longer_snake:
-  wrapped: -81
-  standard: -60
+  wrapped: 114
+  standard: 406
 shared_same_length_snake:
-  wrapped: -77
-  standard: -10
+  wrapped: 35
+  standard: 85
 empty:
-  wrapped: 61
-  standard: 80
+  wrapped: 540
+  standard: 656
 snake_head:
-  wrapped: -2
-  standard: -2
-snake_body:
-  wrapped: -2
-  standard: -2
-snake_body_neighbor:
-  wrapped: -19
-  standard: -10
-corner:
-  wrapped: -1
-  standard: -1
-other_snake_head:
-  wrapped: -2
-  standard: -2
-other_snake_body:
-  wrapped: -23
-  standard: -100
-other_snake_head_neighbor:
-  wrapped: 0
-  standard: 0
-body:
-  wrapped: -101
-  standard: -5
-head:
-  wrapped: -4
-  standard: -4
-tail:
   wrapped: 2
-  standard: 2
-my_tail:
-  wrapped: 14
-  standard: 80
-my_tail_neighbor:
-  wrapped: 26
-  standard: 20
-edge:
-  wrapped: 0
-  standard: -4
-edge_adjacent:
-  wrapped: 0
-  standard: -1
-head_neighbor:
-  wrapped: 0
-  standard: 0
-three_head_neighbor:
-  wrapped: -2
-  standard: -2
-shorter_snake_heads:
-  wrapped: 4
   standard: 5
+snake_body:
+  wrapped: 19
+  standard: 12
+snake_body_neighbor:
+  wrapped: 3
+  standard: 78
+corner:
+  wrapped: 1
+  standard: 7
+other_snake_head:
+  wrapped: 19
+  standard: 8
+other_snake_body:
+  wrapped: 220
+  standard: 187
+other_snake_head_neighbor:
+  wrapped: 0.5614954845045719
+  standard: 0.3362880440486058
+body:
+  wrapped: 458
+  standard: 15
+head:
+  wrapped: 21
+  standard: 24
+tail:
+  wrapped: 8
+  standard: 14
+my_tail:
+  wrapped: 106
+  standard: 1
+my_tail_neighbor:
+  wrapped: 9
+  standard: 39
+edge:
+  wrapped: 0.21365123720377976
+  standard: 30
+edge_adjacent:
+  wrapped: 0.9854073096370418
+  standard: 0
+head_neighbor:
+  wrapped: 0.9701050851672562
+  standard: 0.9215745459363369
+three_head_neighbor:
+  wrapped: 2
+  standard: 4
+shorter_snake_heads:
+  wrapped: 23
+  standard: 33

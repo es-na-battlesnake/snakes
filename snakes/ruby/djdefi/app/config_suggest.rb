@@ -21,25 +21,25 @@ class ConfigEvolver < Darwinning::Evolver
     # Extract the configuration values from the member's genes
     config = {}
     member.genes.each do |gene|
-        key = gene.name.split("_").map(&:capitalize).join(" ")
-        config[key] = gene.value
+      key = gene.name.split("_").map(&:capitalize).join(" ")
+      config[key] = gene.value
     end
-
+  
     # Find the model data that matches the configuration
     matching_data = model_data_raw.select do |data|
-        data['config'] == config
+      data['config'] == config
     end
-
+  
     # Calculate the fitness as the average number of turns survived
     if matching_data.empty?
-        fitness = 0
+      fitness = 0
     else
-        fitness = matching_data.map { |data| data['turns_survived'] }.reduce(:+) / matching_data.size.to_f
+      fitness = matching_data.map { |data| data['turns_survived'] }.reduce(:+) / matching_data.size.to_f
     end
-
+  
     # Return the fitness value
     fitness
-end
+  end
 
 # Load model_data.json
 model_data_raw = []

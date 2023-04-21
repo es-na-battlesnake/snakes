@@ -18,11 +18,27 @@ class ConfigEvolver < Darwinning::Evolver
   attr_accessor :model_data_raw
 
   def fitness_function(member)
-    # Implement your fitness function here
-    # The higher the fitness value, the better the member
-    # Use member.genes to access the config values and calculate the fitness
-    # based on the performance of the model with the given config values
-  end
+    # Extract the configuration values from the member's genes
+    config = {}
+    member.genes.each do |gene|
+        key = gene.name.split("_").map(&:capitalize).join(" ")
+        config[key] = gene.value
+    end
+
+    # Find the model data that matches the configuration
+    matching_data = model_data_raw.select do |data|
+        data['config'] == config
+    end
+
+    # Calculate the fitness as the average number of turns survived
+    if matching_data.empty?
+        fitness = 0
+    else
+        fitness = matching_data.map { |data| data['turns_survived'] }.reduce(:+) / matching_data.size.to_f
+    end
+
+    # Return the fitness value
+    fitness
 end
 
 # Load model_data.json

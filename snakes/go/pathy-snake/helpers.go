@@ -7,6 +7,7 @@ import (
 	"strings"
 	"strconv"
 	"math/rand"
+	"math"
 )
 
 // This function helps ensure that user input is clearly marked in log entries, and that
@@ -78,5 +79,98 @@ func chooseTargetCell(walkableCells []*Cell) *Cell {
 		return walkableCells[rand.Intn(len(walkableCells))]
 	}
 	log.Printf("No walkable cells or paths anywhere on board.\n")
+	return nil
+}
+
+// function to choose a random target cell that is walkable
+func chooseRandomWalkableTargetCell(grid *Grid, state GameState) *Cell {
+	// Iterate over all the cells in the grid.
+	for _, cell := range grid.CellsByWalkable(true) {
+		// Set the target cell to be the first walkable cell that is not our head.
+		if cell.X != state.You.Head.X && cell.Y != state.You.Head.Y {
+			return cell
+		}
+	}
+	log.Printf("No walkable cells or paths anywhere on board.\n")
+	return nil
+}
+
+// function to choose a random target cell
+func chooseRandomTargetCell(grid *Grid) *Cell {
+	// choose a random cell from the grid.
+	return grid.AllCells()[rand.Intn(len(grid.AllCells()))]
+}
+
+// function to choose nearest food
+func chooseNearestFood(grid *Grid, state GameState) *Cell {
+	var closestFoodCell *Cell
+	closestDistance := math.MaxInt32
+
+	for _, food := range state.Board.Food {
+		if !grid.Get(food.X, food.Y).Walkable {
+			continue
+		}
+
+		distance := abs(food.X - state.You.Head.X) + abs(food.Y - state.You.Head.Y)
+
+		if distance < closestDistance && !food.isNextToSnakeHead(state) && !food.Surrounded(state) {
+			closestDistance = distance
+			closestFoodCell = grid.Get(food.X, food.Y)
+		}
+	}
+
+	return closestFoodCell
+}
+
+// function to move away from larger snakes
+func moveAwayFromLargerSnakes(grid *Grid, state GameState) *Cell {
+	var walkableCells []*Cell
+	// Iterate over all the snakes in the game state.
+	for _, snake := range state.Board.Snakes {
+		// Skip the snake if it is our snake or if it is smaller than us.
+		if snake.ID == state.You.ID || snake.Length < state.You.Length {
+			continue
+		}
+		// Iterate over all the body parts of the snake.
+		for _, bodyPart := range snake.Body {
+			// Skip the body part if it is isNextToSnakeHead.
+			if bodyPart.isNextToSnakeHead(state) {
+				continue
+			}
+			// Get the manhattan distance between the head and the body part.
+			distance := abs(bodyPart.X-state.You.Head.X) + abs(bodyPart.Y-state.You.Head.Y)
+			// If the distance is less than the closest distance, then set the body part to be the closest body part.
+			if distance < 3 {
+				// Iterate over all the cells in the grid.
+				for _, cell := range grid.CellsByWalkable(true) {
+					// Get the manhattan distance between the cell and the body part.
+					distance := abs(cell.X-bodyPart.X) + abs(cell.Y-bodyPart.Y)
+					// If the distance is less than the closest distance, then set the cell to be the closest cell.
+					if distance < 3 {
+						walkableCells = append(walkableCells, cell)
+					}
+				}
+			}
+		}
+	}
+	// If we have more than one cell, then pick the cell that is furthest away from the larger snakes.
+	if len(walkableCells) >= 1 {
+		// Iterate over all the cells in the grid.
+		// Keep track of the one that is furthest away from the larger snakes.
+		var furthestCell *Cell
+		var furthestDistance int
+		for _, cell := range walkableCells {
+			// Get the manhattan distance between the head and the cell.
+			distance := abs(cell.X-state.You.Head.X) + abs(cell.Y-state.You.Head.Y)
+			// If the distance is greater than the furthest distance, then set the cell to be the furthest cell.
+			if distance > furthestDistance || furthestDistance == 0 {
+				furthestDistance = distance
+				furthestCell = cell
+			}
+		}
+		// Set the target cell to be the furthest cell.
+		return furthestCell
+	}
+	// If we have no cells, then return nil.
 	return nil
 }

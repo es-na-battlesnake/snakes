@@ -54,17 +54,17 @@ func addSnakesToGrid(state GameState, grid *Grid) {
 			above := otherSnake.Head.cellAbove(state)
 			below := otherSnake.Head.cellBelow(state)
 			if otherSnake.isLargerThanUs(state) {
-				grid.Get(left.X, left.Y).Walkable = false
-				grid.Get(right.X, right.Y).Walkable = false
-				grid.Get(above.X, above.Y).Walkable = false
-				grid.Get(below.X, below.Y).Walkable = false
+				grid.Get(left.X, left.Y).Cost = 5
+				grid.Get(right.X, right.Y).Cost = 5
+				grid.Get(above.X, above.Y).Cost = 5
+				grid.Get(below.X, below.Y).Cost = 5
 				continue
 			}
 			// If the other snake is smaller than us, we want to make the cells next to their head walkable.
-			grid.Get(left.X, left.Y).Cost = 1.5
-			grid.Get(right.X, right.Y).Cost = 1.5
-			grid.Get(above.X, above.Y).Cost = 1.5
-			grid.Get(below.X, below.Y).Cost = 1.5
+			grid.Get(left.X, left.Y).Cost = 1
+			grid.Get(right.X, right.Y).Cost = 1
+			grid.Get(above.X, above.Y).Cost = 1
+			grid.Get(below.X, below.Y).Cost = 1
 		}
 	}
 	// Make sure our own head is walkable. We need to do this because the getPath function
@@ -120,43 +120,9 @@ func getPath(state GameState, grid *Grid) *Path {
 
 func getTargetCell(state GameState, grid *Grid) *Cell {
 	var targetCell *Cell
-	var walkableCells []*Cell
 	// If our health is less than 85 we want to set our target cell to be the coordinates of the closest food.
 	if state.You.Health < 85 && len(state.Board.Food) > 0 {
-		// Iterate over all the food in the game state.
-		var targetFoodCell []*Cell
-		for _, food := range state.Board.Food {
-			// Continue if food not walkable.
-			if !grid.Get(food.X, food.Y).Walkable {
-				continue
-			}
-			// Find the cell closest to our head and set it to targetCell.
-			if grid.GetPathFromCells(grid.Get(state.You.Head.X, state.You.Head.Y), grid.Get(food.X, food.Y), false, false, state.isWrapped()).Next() != nil {
-				targetFoodCell = append(targetFoodCell, grid.Get(food.X, food.Y))
-			}
-		}
-		// If we have more than one food, then pick the closest food to our head via manhattan distance.
-		if len(targetFoodCell) >= 1 {
-			// Iterate over all the food in the game state.
-			// Keep track of the one that is closest to our head.
-			var closestFoodCell *Cell
-			var closestDistance int
-			for _, food := range state.Board.Food {
-				// Skip the food if it is isNextToSnakeHead.
-				if food.isNextToSnakeHead(state) || food.Surrounded(state) {
-					continue
-				}
-				// Get the manhattan distance between the head and the food.
-				distance := abs(food.X-state.You.Head.X) + abs(food.Y-state.You.Head.Y)
-				// If the distance is less than the closest distance, then set the food to be the closest food.
-				if distance < closestDistance || closestDistance == 0 {
-					closestDistance = distance
-					closestFoodCell = grid.Get(food.X, food.Y)
-				}
-			}
-			// Set the target cell to be the closest food cell.
-			targetCell = closestFoodCell
-		}
+		targetCell = chooseNearestFood(grid, state)
 	}
 
 	if state.You.Head.Y < (state.Board.Height/2) && targetCell == nil {
@@ -184,8 +150,7 @@ func getTargetCell(state GameState, grid *Grid) *Cell {
 		targetCell = chooseTargetCell(state, grid, walkableCells)
 	}
 
-	// If we don't have a target cell, we can't get a path.
-	// Attempt to get a targetCell from anywhere on the board.
+	// If we still don't have a target cell, then just pick a random cell.
 	if targetCell == nil {
 		for x := 0; x < state.Board.Width; x++ {
 			for y := 0; y < state.Board.Height; y++ {
@@ -196,6 +161,7 @@ func getTargetCell(state GameState, grid *Grid) *Cell {
 		}
 		targetCell = chooseTargetCell(state, grid, walkableCells)
 	}
+
 	return targetCell
 }
 

@@ -1,8 +1,5 @@
 name: Snake-deploy
 "on":
-    push:
-        branches:
-            - main
     workflow_dispatch: {}
 env:
     ACR_RESOURCE_GROUP: acrworkflow1669243560679

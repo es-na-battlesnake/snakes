@@ -54,17 +54,17 @@ func addSnakesToGrid(state GameState, grid *Grid) {
 			above := otherSnake.Head.cellAbove(state)
 			below := otherSnake.Head.cellBelow(state)
 			if otherSnake.isLargerThanUs(state) {
-				grid.Get(left.X, left.Y).Walkable = false
-				grid.Get(right.X, right.Y).Walkable = false
-				grid.Get(above.X, above.Y).Walkable = false
-				grid.Get(below.X, below.Y).Walkable = false
+				grid.Get(left.X, left.Y).Cost = 5
+				grid.Get(right.X, right.Y).Cost = 5
+				grid.Get(above.X, above.Y).Cost = 5
+				grid.Get(below.X, below.Y).Cost = 5
 				continue
 			}
 			// If the other snake is smaller than us, we want to make the cells next to their head walkable.
-			grid.Get(left.X, left.Y).Cost = 1.5
-			grid.Get(right.X, right.Y).Cost = 1.5
-			grid.Get(above.X, above.Y).Cost = 1.5
-			grid.Get(below.X, below.Y).Cost = 1.5
+			grid.Get(left.X, left.Y).Cost = 1
+			grid.Get(right.X, right.Y).Cost = 1
+			grid.Get(above.X, above.Y).Cost = 1
+			grid.Get(below.X, below.Y).Cost = 1
 		}
 	}
 	// Make sure our own head is walkable. We need to do this because the getPath function
@@ -125,10 +125,10 @@ func getTargetCell(state GameState, grid *Grid) *Cell {
 		targetCell = chooseNearestFood(grid, state)
 	}
 
-	// If targetCell is nil, then move in a direction that is further away from the larger snakes.
-	if targetCell == nil {
-		targetCell = moveAwayFromLargerSnakes(grid, state)
-	}
+	// // If targetCell is nil, then move in a direction that is further away from the larger snakes.
+	// if targetCell == nil {
+	// 	targetCell = moveAwayFromLargerSnakes(grid, state)
+	// }
 
 	// If we still don't have a target cell, then just pick a random walkable cell.
 	if targetCell == nil {

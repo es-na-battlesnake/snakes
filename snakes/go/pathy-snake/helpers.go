@@ -84,8 +84,19 @@ func chooseTargetCell(walkableCells []*Cell) *Cell {
 
 // function to choose a random target cell that is walkable
 func chooseRandomWalkableTargetCell(grid *Grid, state GameState) *Cell {
-	// Iterate over all the cells in the grid.
-	for _, cell := range grid.CellsByWalkable(true) {
+	// randomize the order of the walkable cells so we don't always choose the same one.
+	walkableCells := grid.CellsByWalkable(true)
+	rand.Shuffle(len(walkableCells), func(i, j int) { walkableCells[i], walkableCells[j] = walkableCells[j], walkableCells[i] })
+
+	// Iterate over all the walkableCells.
+	for _, cell := range walkableCells {
+		// Make sure there is a path to the cell we chose.
+		path := grid.GetPathFromCells(grid.Get(state.You.Head.X, state.You.Head.Y), grid.Get(cell.X, cell.Y), false, false, state.isWrapped())
+
+		if path.Length() == 0 {
+			continue
+		}
+
 		// Set the target cell to be the first walkable cell that is not our head.
 		if cell.X != state.You.Head.X && cell.Y != state.You.Head.Y {
 			return cell

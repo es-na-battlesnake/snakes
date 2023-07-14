@@ -125,42 +125,8 @@ func getTargetCell(state GameState, grid *Grid) *Cell {
 		targetCell = chooseNearestFood(grid, state)
 	}
 
-	if state.You.Head.Y < (state.Board.Height/2) && targetCell == nil {
-		// Create a list of walkable cells in the top half of the board.
-		// Iterate over all the cells in the top half of the board.
-		for x := 0; x < state.Board.Width; x++ {
-			for y := state.Board.Height / 2; y < state.Board.Height; y++ {
-				if grid.Get(x, y).Walkable && grid.HasNext(state.You.Head.X, state.You.Head.Y, x, y, state.isWrapped()) && !isCellInHazard(state, grid.Get(x, y)) {
-					walkableCells = append(walkableCells, grid.Get(x, y))
-				}
-			}
-			targetCell = chooseTargetCell(state, grid, walkableCells)
-		}
-	}
-	if state.You.Head.Y >= (state.Board.Height/2) && targetCell == nil {
-		// Create a list of walkable cells in the bottom half of the board.
-		// Iterate over all the cells in the bottom half of the board.
-		for x := 0; x < state.Board.Width; x++ {
-			for y := 0; y < state.Board.Height/2; y++ {
-				if grid.Get(x, y).Walkable && grid.HasNext(state.You.Head.X, state.You.Head.Y, x, y, state.isWrapped()) && !isCellInHazard(state, grid.Get(x, y)) {
-					walkableCells = append(walkableCells, grid.Get(x, y))
-				}
-			}
-		}
-		targetCell = chooseTargetCell(state, grid, walkableCells)
-	}
-
-	// If we still don't have a target cell, then just pick a random cell.
-	if targetCell == nil {
-		for x := 0; x < state.Board.Width; x++ {
-			for y := 0; y < state.Board.Height; y++ {
-				if grid.Get(x, y).Walkable && grid.HasNext(state.You.Head.X, state.You.Head.Y, x, y, state.isWrapped()) {
-					walkableCells = append(walkableCells, grid.Get(x, y))
-				}
-			}
-		}
-		targetCell = chooseTargetCell(state, grid, walkableCells)
-	}
+	walkableCells := grid.CellsByWalkable(true)
+	targetCell = chooseTargetCell(state, grid, walkableCells)
 
 	return targetCell
 }

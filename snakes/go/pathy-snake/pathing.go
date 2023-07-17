@@ -14,6 +14,8 @@ func createSnakeMap(state GameState) BattlesnakeMoveResponse {
 	addFoodToGrid(state, grid)
 	// Change the hazards cost to a higher value.
 	changeHazardsCost(state, grid)
+	// Mark cells surrounded by snakes as not walkable.
+	markSurroundedCells(state, grid)
 	// Print the grid to the console. Useful for debugging.
 	// printGrid(state, grid)
 	// Get the path from the head to a destination cell.
@@ -92,6 +94,22 @@ func changeHazardsCost(state GameState, grid *Grid) {
 			continue
 		}
 		grid.Get(hazard.X, hazard.Y).Cost = 5
+	}
+}
+
+// Function to mark cells that are surrounded by snakes as not walkable.
+func markSurroundedCells(state GameState, grid *Grid) {
+	walkableCells := grid.CellsByWalkable(true)
+
+	for _, cell := range walkableCells {
+		coord := Coord{X: cell.X, Y: cell.Y}
+		// contiune if the coord is our head so that our head is always walkable.
+		if coord == state.You.Head {
+			continue
+		}
+		if coord.Surrounded(state) {
+			cell.Walkable = false
+		}
 	}
 }
 

@@ -83,6 +83,23 @@ func chooseTargetCell(state GameState, grid *Grid, walkableCells []*Cell) *Cell 
         return nil
     }
 
+	// remove cells that we don't have a path to since there is no point in targeting them
+	for i := len(walkableCells) - 1; i >= 0; i-- {
+		path := grid.GetPathFromCells(grid.Get(state.You.Head.X, state.You.Head.Y), walkableCells[i], false, false, state.isWrapped())
+		if path.Length() == 0 {
+			// remove the cell from the array
+			walkableCells = append(walkableCells[:i], walkableCells[i+1:]...)
+		}
+	}
+
+	// remove our head from the walkable cells so we don't try and target it
+	for i := len(walkableCells) - 1; i >= 0; i-- {
+		if walkableCells[i].X == state.You.Head.X && walkableCells[i].Y == state.You.Head.Y {
+			// remove the cell from the array
+			walkableCells = append(walkableCells[:i], walkableCells[i+1:]...)
+		}
+	}
+
     maxArea := 0
     bestCell := walkableCells[0]
 

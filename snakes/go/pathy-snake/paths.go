@@ -627,3 +627,35 @@ func (p *Path) AtEnd() bool {
 func (m *Grid) HasNext(headX, headY, x, y int, wrapped bool) bool {
 	return m.GetPathFromCells(m.Get(headX, headY), m.Get(x, y), false, false, wrapped) != nil
 }
+
+// Function to return cell to the left of the current cell.
+func (m *Grid) cellLeft(cell *Cell, wrapped bool) *Cell {
+	if wrapped && cell.X == 0 {
+		return m.Get(m.Width()-1, cell.Y)
+	}
+	return m.Get(cell.X-1, cell.Y)
+}
+
+// Function to return cell to the right of the current cell.
+func (m *Grid) cellRight(cell *Cell, wrapped bool) *Cell {
+	if wrapped && cell.X == m.Width()-1 {
+		return m.Get(0, cell.Y)
+	}
+	return m.Get(cell.X+1, cell.Y)
+}
+
+// Function to return cell above the current cell.
+func (m *Grid) cellDown(cell *Cell, wrapped bool) *Cell {
+	if wrapped && cell.Y == 0 {
+		return m.Get(cell.X, m.Height()-1)
+	}
+	return m.Get(cell.X, cell.Y-1)
+}
+
+// Function to return cell below the current cell.
+func (m *Grid) cellUp(cell *Cell, wrapped bool) *Cell {
+	if wrapped && cell.Y == m.Height()-1 {
+		return m.Get(cell.X, 0)
+	}
+	return m.Get(cell.X, cell.Y+1)
+}

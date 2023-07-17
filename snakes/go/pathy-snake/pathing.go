@@ -152,11 +152,18 @@ func floodFill(state GameState, grid *Grid, cell *Cell, visited map[*Cell]bool, 
     visited[cell] = true
 
     adjacentCells := []*Cell{
-        grid.Get(cell.X, (cell.Y+1)%state.Board.Height),
-        grid.Get(cell.X, (cell.Y-1+state.Board.Height)%state.Board.Height),
-        grid.Get((cell.X+1)%state.Board.Width, cell.Y),
-        grid.Get((cell.X-1+state.Board.Width)%state.Board.Width, cell.Y),
+		grid.cellDown(cell, state.isWrapped()),
+		grid.cellUp(cell, state.isWrapped()),
+		grid.cellLeft(cell, state.isWrapped()),
+		grid.cellRight(cell, state.isWrapped()),
     }
+
+	// remove nil from adjacentCells. nil happens when the cell is on the edge of the board and we are not playing on a wrapped board.
+	for i := len(adjacentCells) - 1; i >= 0; i-- {
+		if adjacentCells[i] == nil {
+			adjacentCells = append(adjacentCells[:i], adjacentCells[i+1:]...)
+		}
+	}
 
     count := 1
     for _, adjCell := range adjacentCells {

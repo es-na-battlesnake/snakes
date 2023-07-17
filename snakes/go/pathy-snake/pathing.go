@@ -126,7 +126,9 @@ func getTargetCell(state GameState, grid *Grid) *Cell {
 	}
 
 	walkableCells := grid.CellsByWalkable(true)
-	targetCell = chooseTargetCell(state, grid, walkableCells)
+	if targetCell == nil {
+		targetCell = chooseTargetCell(state, grid, walkableCells)
+	}
 
 	return targetCell
 }

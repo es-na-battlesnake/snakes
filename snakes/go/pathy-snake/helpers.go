@@ -77,27 +77,23 @@ func containsCoord(array []Coord, coord Coord) bool {
 }
 
 // function to choose a target cell from an array of grid cells
-func chooseTargetCell(state GameState, grid *Grid, walkableCells []*Cell) *Cell {
-    if len(walkableCells) == 0 {
-        log.Printf("No walkable cells or paths anywhere on board.\n")
-        return nil
-    }
+func chooseTargetCell(state GameState, grid *Grid) *Cell {
+	// get the cells next to our snake head since we can only move to those cells
+	walkableCells := grid.AdjacentCells(grid.Get(state.You.Head.X, state.You.Head.Y), state.isWrapped())
 
-	// remove cells that we don't have a path to since there is no point in targeting them
+	// remove any cells that are not walkable
 	for i := len(walkableCells) - 1; i >= 0; i-- {
-		path := grid.GetPathFromCells(grid.Get(state.You.Head.X, state.You.Head.Y), walkableCells[i], false, false, state.isWrapped())
-		if path.Length() == 0 {
-			// remove the cell from the array
+		if !walkableCells[i].Walkable {
 			walkableCells = append(walkableCells[:i], walkableCells[i+1:]...)
 		}
 	}
 
-	// remove our head from the walkable cells so we don't try and target it
-	for i := len(walkableCells) - 1; i >= 0; i-- {
-		if walkableCells[i].X == state.You.Head.X && walkableCells[i].Y == state.You.Head.Y {
-			// remove the cell from the array
-			walkableCells = append(walkableCells[:i], walkableCells[i+1:]...)
-		}
+	// if there are no walkable cells, return nil and if there is only one walkable cell, return that cell
+    if len(walkableCells) < 1 {
+        log.Printf("No walkable cells or paths anywhere on board.\n")
+        return nil
+    } else if len(walkableCells) == 1 {
+		return walkableCells[0]
 	}
 
     maxArea := 0
@@ -106,8 +102,8 @@ func chooseTargetCell(state GameState, grid *Grid, walkableCells []*Cell) *Cell 
     for _, cell := range walkableCells {
         visited := make(map[*Cell]bool)
         area := floodFill(state, grid, cell, visited, 0, maxDepth)
-
-        if area > maxArea {
+		
+		if area > maxArea {
             maxArea = area
             bestCell = cell
         }

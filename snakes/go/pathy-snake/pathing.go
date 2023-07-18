@@ -9,10 +9,10 @@ func createSnakeMap(state GameState) BattlesnakeMoveResponse {
 	//log.Printf("Creating Snake Map")
 	grid := NewGrid(state.Board.Width, state.Board.Height, 0, 0)
 	// Add snakes to the grid.
-	addSnakesToGrid(state, grid)
-	// Add food to the grid.
 	addFoodToGrid(state, grid)
 	// Change the hazards cost to a higher value.
+	addSnakesToGrid(state, grid)
+	// Add food to the grid.
 	changeHazardsCost(state, grid)
 	// Mark cells surrounded by snakes as not walkable.
 	markSurroundedCells(state, grid)
@@ -57,8 +57,8 @@ func addSnakesToGrid(state GameState, grid *Grid) {
 			below := otherSnake.Head.cellBelow(state)
 			if otherSnake.isLargerThanUs(state) {
 				grid.Get(left.X, left.Y).Cost = 5
-				grid.Get(right.X, right.Y).Cost = 5
-				grid.Get(above.X, above.Y).Cost = 5
+				grid.Get(right.X, right.Y).Cost = 5	
+				grid.Get(above.X, above.Y).Cost = 5	
 				grid.Get(below.X, below.Y).Cost = 5
 				continue
 			}
@@ -143,9 +143,8 @@ func getTargetCell(state GameState, grid *Grid) *Cell {
 		targetCell = chooseNearestFood(grid, state)
 	}
 
-	walkableCells := grid.CellsByWalkable(true)
 	if targetCell == nil {
-		targetCell = chooseTargetCell(state, grid, walkableCells)
+		targetCell = chooseTargetCell(state, grid)
 	}
 
 	return targetCell
@@ -169,12 +168,13 @@ func floodFill(state GameState, grid *Grid, cell *Cell, visited map[*Cell]bool, 
 
     visited[cell] = true
 
-    adjacentCells := []*Cell{
-		grid.cellDown(cell, state.isWrapped()),
-		grid.cellUp(cell, state.isWrapped()),
-		grid.cellLeft(cell, state.isWrapped()),
-		grid.cellRight(cell, state.isWrapped()),
-    }
+    adjacentCells := grid.AdjacentCells(cell, state.isWrapped())
+	// remove cells that are not walkable from adjacentCells.
+	for i := len(adjacentCells) - 1; i >= 0; i-- {
+		if !adjacentCells[i].Walkable {
+			adjacentCells = append(adjacentCells[:i], adjacentCells[i+1:]...)
+		}
+	}
 
 	// remove nil from adjacentCells. nil happens when the cell is on the edge of the board and we are not playing on a wrapped board.
 	for i := len(adjacentCells) - 1; i >= 0; i-- {
@@ -183,13 +183,18 @@ func floodFill(state GameState, grid *Grid, cell *Cell, visited map[*Cell]bool, 
 		}
 	}
 
+	// remove our own head from adjacentCells.
+	for i := len(adjacentCells) - 1; i >= 0; i-- {
+		if adjacentCells[i].X == state.You.Head.X && adjacentCells[i].Y == state.You.Head.Y {
+			adjacentCells = append(adjacentCells[:i], adjacentCells[i+1:]...)
+		}
+	}
     count := 1
     for _, adjCell := range adjacentCells {
         if adjCell.Walkable && !isCellInHazard(state, adjCell) {
             count += floodFill(state, grid, adjCell, visited, depth+1, maxDepth)
         }
     }
-
     return count
 }
 

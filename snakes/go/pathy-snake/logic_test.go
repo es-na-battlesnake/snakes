@@ -2,17 +2,17 @@ package main
 
 import (
 	"testing"
-	// "log"
-	// "io/ioutil"
-	// "os"
+	"log"
+	"io/ioutil"
+	"os"
 )
 
 // Ignore log output when testing.
 // Comment this function out to see log output when testing.
-// func TestMain(m *testing.M) {
-// 		log.SetOutput(ioutil.Discard)
-// 		os.Exit(m.Run())
-// }
+func TestMain(m *testing.M) {
+		log.SetOutput(ioutil.Discard)
+		os.Exit(m.Run())
+}
 
 func TestNeckAvoidance(t *testing.T) {
 	// Arrange

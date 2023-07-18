@@ -659,3 +659,21 @@ func (m *Grid) cellUp(cell *Cell, wrapped bool) *Cell {
 	}
 	return m.Get(cell.X, cell.Y+1)
 }
+
+// Function to return adjacent cells to the current cell.
+func (m *Grid) AdjacentCells(cell *Cell, wrapped bool) []*Cell {
+	cells := []*Cell{}
+	if c := m.cellLeft(cell, wrapped); c != nil {
+		cells = append(cells, c)
+	}
+	if c := m.cellRight(cell, wrapped); c != nil {
+		cells = append(cells, c)
+	}
+	if c := m.cellUp(cell, wrapped); c != nil {
+		cells = append(cells, c)
+	}
+	if c := m.cellDown(cell, wrapped); c != nil {
+		cells = append(cells, c)
+	}
+	return cells
+}

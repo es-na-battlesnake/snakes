@@ -2,17 +2,17 @@ package main
 
 import (
 	"testing"
-	"log"
-	"io/ioutil"
-	"os"
+	// "log"
+	// "io/ioutil"
+	// "os"
 )
 
 // Ignore log output when testing.
 // Comment this function out to see log output when testing.
-func TestMain(m *testing.M) {
-		log.SetOutput(ioutil.Discard)
-		os.Exit(m.Run())
-}
+// func TestMain(m *testing.M) {
+// 		log.SetOutput(ioutil.Discard)
+// 		os.Exit(m.Run())
+// }
 
 func TestNeckAvoidance(t *testing.T) {
 	// Arrange
@@ -814,6 +814,42 @@ func TestTailWalkable4(t *testing.T) {
 					Food:   []Coord{{X: 5, Y: 4}},
 				},
 				Turn: 9999999,
+				You: me,
+			}
+			nextMove := move(state)
+			// Assert never move up
+			if nextMove.Move != "down" {
+				t.Errorf("Tail incorrectly set as walkable, %s", nextMove.Move)
+			}
+		}
+	}
+}
+
+// Test flood fill is working as desired
+func TestFloodFill(t *testing.T) {
+	for i := 0; i < 1000; i++ {
+		for i := 0; i < 1; i++ {	
+			// Arrange
+			me := Battlesnake{
+				Head: Coord{X: 5, Y: 9},
+				Body: []Coord{{X: 5, Y: 9}, {X: 4, Y: 9}, {X: 3, Y: 9}, {X: 2, Y: 9}, {X: 1, Y: 9}, {X: 0, Y: 9}, {X: 0, Y: 8}, {X: 0, Y: 7}, {X: 0, Y: 6}, {X: 0, Y: 5}, {X: 0, Y: 4}, {X: 1, Y: 4}, {X: 1, Y: 5}},
+				Health: 100,
+				ID: "me",
+			}
+			other := Battlesnake{
+				Head: Coord{X: 7, Y: 9},
+				Body: []Coord{{X: 7, Y: 9},{X: 7, Y: 10}, {X: 8, Y: 10}, {X: 9, Y: 10}, {X: 9, Y: 9}, {X: 8, Y: 9}, {X: 8, Y: 8}, {X: 7, Y: 8}, {X: 7, Y: 7}, {X: 7, Y: 6}, {X: 6, Y: 6}, {X: 6, Y: 5}, {X: 6, Y: 4}, {X: 6, Y: 3}, {X: 6, Y: 2}, {X: 6, Y: 1}, {X: 6, Y: 0}, {X: 5, Y: 0} },
+				Health: 100,
+				ID: "other",
+			}
+			state := GameState{
+				Board: Board{
+					Snakes: []Battlesnake{me, other},
+					Height: 11,
+					Width:  11,
+					Food:   []Coord{{X: 0, Y: 1}, {X: 0, Y: 2}},
+				},
+				Turn: 0,
 				You: me,
 			}
 			nextMove := move(state)

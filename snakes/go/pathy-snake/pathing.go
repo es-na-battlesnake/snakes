@@ -57,8 +57,8 @@ func addSnakesToGrid(state GameState, grid *Grid) {
 			below := otherSnake.Head.cellBelow(state)
 			if otherSnake.isLargerThanUs(state) {
 				grid.Get(left.X, left.Y).Cost = 5
-				grid.Get(right.X, right.Y).Cost = 5	
-				grid.Get(above.X, above.Y).Cost = 5	
+				grid.Get(right.X, right.Y).Cost = 5
+				grid.Get(above.X, above.Y).Cost = 5
 				grid.Get(below.X, below.Y).Cost = 5
 				continue
 			}

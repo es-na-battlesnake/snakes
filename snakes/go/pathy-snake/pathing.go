@@ -62,11 +62,6 @@ func addSnakesToGrid(state GameState, grid *Grid) {
 				grid.Get(below.X, below.Y).Cost = 5
 				continue
 			}
-			// If the other snake is smaller than us, we want to make the cells next to their head walkable.
-			grid.Get(left.X, left.Y).Cost = 1
-			grid.Get(right.X, right.Y).Cost = 1
-			grid.Get(above.X, above.Y).Cost = 1
-			grid.Get(below.X, below.Y).Cost = 1
 		}
 	}
 	// Make sure our own head is walkable. We need to do this because the getPath function
@@ -139,7 +134,7 @@ func getPath(state GameState, grid *Grid) *Path {
 func getTargetCell(state GameState, grid *Grid) *Cell {
 	var targetCell *Cell
 	// If our health is less than 85 we want to set our target cell to be the coordinates of the closest food.
-	if state.You.Health < 85 && len(state.Board.Food) > 0 {
+	if state.You.Health < 75 && len(state.Board.Food) > 0 {
 		targetCell = chooseNearestFood(grid, state)
 	}
 
@@ -169,33 +164,52 @@ func floodFill(state GameState, grid *Grid, cell *Cell, visited map[*Cell]bool, 
     visited[cell] = true
 
     adjacentCells := grid.AdjacentCells(cell, state.isWrapped())
-	// remove cells that are not walkable from adjacentCells.
-	for i := len(adjacentCells) - 1; i >= 0; i-- {
-		if !adjacentCells[i].Walkable {
-			adjacentCells = append(adjacentCells[:i], adjacentCells[i+1:]...)
-		}
-	}
+	adjacentCells = removeNonWalkableCells(adjacentCells)
+	adjacentCells = removeNilCells(adjacentCells)
+	adjacentCells = removeOwnHeadFromCells(adjacentCells, state)
 
-	// remove nil from adjacentCells. nil happens when the cell is on the edge of the board and we are not playing on a wrapped board.
-	for i := len(adjacentCells) - 1; i >= 0; i-- {
-		if adjacentCells[i] == nil {
-			adjacentCells = append(adjacentCells[:i], adjacentCells[i+1:]...)
-		}
-	}
-
-	// remove our own head from adjacentCells.
-	for i := len(adjacentCells) - 1; i >= 0; i-- {
-		if adjacentCells[i].X == state.You.Head.X && adjacentCells[i].Y == state.You.Head.Y {
-			adjacentCells = append(adjacentCells[:i], adjacentCells[i+1:]...)
-		}
-	}
     count := 1
     for _, adjCell := range adjacentCells {
         if adjCell.Walkable && !isCellInHazard(state, adjCell) {
             count += floodFill(state, grid, adjCell, visited, depth+1, maxDepth)
+			if cell.Cost >= 5 {
+				count -= 3
+			}
         }
     }
+	// if the adjacent cell is cost 5 or more and we are depth 0 then we want to subtract 10 from the count.
+	if depth == 0 && cell.Cost >= 5 {
+		count -= 20
+	}
+
     return count
+}
+
+func removeNonWalkableCells(cells []*Cell) []*Cell {
+	for i := len(cells) - 1; i >= 0; i-- {
+		if !cells[i].Walkable {
+			cells = append(cells[:i], cells[i+1:]...)
+		}
+	}
+	return cells
+}
+
+func removeNilCells(cells []*Cell) []*Cell {
+	for i := len(cells) - 1; i >= 0; i-- {
+		if cells[i] == nil {
+			cells = append(cells[:i], cells[i+1:]...)
+		}
+	}
+	return cells
+}
+
+func removeOwnHeadFromCells(cells []*Cell, state GameState) []*Cell {
+	for i := len(cells) - 1; i >= 0; i-- {
+		if cells[i].X == state.You.Head.X && cells[i].Y == state.You.Head.Y {
+			cells = append(cells[:i], cells[i+1:]...)
+		}
+	}
+	return cells
 }
 
 

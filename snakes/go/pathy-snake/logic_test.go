@@ -826,7 +826,7 @@ func TestTailWalkable4(t *testing.T) {
 }
 
 // Test flood fill is working as desired
-func TestFloodFill(t *testing.T) {
+func TestFloodFill1(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		for i := 0; i < 1; i++ {	
 			// Arrange
@@ -855,7 +855,156 @@ func TestFloodFill(t *testing.T) {
 			nextMove := move(state)
 			// Assert never move up
 			if nextMove.Move != "down" {
-				t.Errorf("Tail incorrectly set as walkable, %s", nextMove.Move)
+				t.Errorf("Flood fill choose a direction that doesn't seem to be the best, %s", nextMove.Move)
+			}
+		}
+	}
+}
+
+func TestFloodFill2(t *testing.T) {
+	for i := 0; i < 1000; i++ {
+		for i := 0; i < 1; i++ {	
+			// Arrange
+			me := Battlesnake{
+				Head: Coord{X: 1, Y: 3},
+				Body: []Coord{{X: 1, Y: 3}, {X: 0, Y: 3}, {X: 0, Y: 4}, {X: 0, Y: 5}, {X: 1, Y: 5}},
+				Health: 100,
+				ID: "me",
+				Length: 5,
+			}
+			other := Battlesnake{
+				Head: Coord{X: 2, Y: 4},
+				Body: []Coord{{X: 2, Y: 4},{X: 3, Y: 4}, {X: 3, Y: 5}, {X: 4, Y: 5}, {X: 4, Y: 4}},
+				Health: 100,
+				ID: "other",
+				Length: 5,
+			}
+			state := GameState{
+				Board: Board{
+					Snakes: []Battlesnake{me, other},
+					Height: 11,
+					Width:  11,
+					Food:   []Coord{{X: 2, Y: 1}, {X: 1, Y: 10}},
+				},
+				Turn: 0,
+				You: me,
+			}
+			nextMove := move(state)
+			// Assert never move up
+			if nextMove.Move != "down" {
+				t.Errorf("Flood fill choose a direction that doesn't seem to be the best, %s", nextMove.Move)
+			}
+		}
+	}
+}
+
+func TestFloodFill3(t *testing.T) {
+	for i := 0; i < 1; i++ {
+		for i := 0; i < 1; i++ {	
+			// Arrange
+			me := Battlesnake{
+				Head: Coord{X: 10, Y: 3},
+				Body: []Coord{{X: 10, Y: 3}, {X: 9, Y: 3}, {X: 8, Y: 3}, {X: 7, Y: 3}, {X: 6, Y: 3}, {X: 6, Y: 4}},
+				Health: 100,
+				ID: "me",
+				Length: 6,
+			}
+			other := Battlesnake{
+				Head: Coord{X: 8, Y: 5},
+				Body: []Coord{{X: 8, Y: 5},{X: 8, Y: 6}, {X: 8, Y: 7}, {X: 8, Y: 8}, {X: 8, Y: 9}, {X: 8, Y: 10}, {X: 7, Y: 10}, {X: 6, Y: 10}},
+				Health: 100,
+				ID: "other",
+				Length: 8,
+			}
+			state := GameState{
+				Board: Board{
+					Snakes: []Battlesnake{me, other},
+					Height: 11,
+					Width:  11,
+					Food:   []Coord{{X: 10, Y: 4}, {X: 10, Y: 10}, {X: 9, Y: 10}},
+				},
+				Turn: 0,
+				You: me,
+			}
+			nextMove := move(state)
+			// Assert never move up
+			if nextMove.Move != "down" {
+				t.Errorf("Flood fill choose a direction that doesn't seem to be the best, %s", nextMove.Move)
+			}
+		}
+	}
+}
+
+
+func TestFloodFill4(t *testing.T) {
+	for i := 0; i < 1; i++ {
+		for i := 0; i < 1; i++ {	
+			// Arrange
+			me := Battlesnake{
+				Head: Coord{X: 10, Y: 9},
+				Body: []Coord{{X: 10, Y: 9}, {X: 9, Y: 9}, {X: 8, Y: 9}, {X: 8, Y: 10}, {X: 7, Y: 10}, {X: 6, Y: 10}, {X: 5, Y: 10}, {X: 5, Y: 9}, {X: 4, Y: 9}, {X: 4, Y: 10}, {X: 3, Y: 10}},
+				Health: 100,
+				ID: "me",
+				Length: 11,
+			}
+			other := Battlesnake{
+				Head: Coord{X: 6, Y: 5},
+				Body: []Coord{{X: 6, Y: 5},{X: 6, Y: 4}, {X: 7, Y: 4}, {X: 8, Y: 4}, {X: 8, Y: 3}, {X: 8, Y: 2}, {X: 7, Y: 2}, {X: 7, Y: 3}, {X: 6, Y: 3}, {X: 6, Y: 2}, {X: 5, Y: 2}, {X: 5, Y: 3}, {X: 4, Y: 3}, {X: 4, Y: 2}, {X: 4, Y: 1}, {X: 4, Y: 0}, {X: 3, Y: 0}, {X: 2, Y: 0}, {X: 2, Y: 1}, {X: 3, Y: 1}},
+				Health: 100,
+				ID: "other",
+				Length: 20,
+			}
+			state := GameState{
+				Board: Board{
+					Snakes: []Battlesnake{me, other},
+					Height: 11,
+					Width:  11,
+					Food:   []Coord{{X: 10, Y: 10}, {X: 10, Y: 1}, {X: 7, Y: 7}, {X: 5, Y: 8}},
+				},
+				Turn: 0,
+				You: me,
+			}
+			nextMove := move(state)
+			// Assert never move up
+			if nextMove.Move != "down" {
+				t.Errorf("Flood fill choose a direction that doesn't seem to be the best, %s", nextMove.Move)
+			}
+		}
+	}
+}
+
+func TestFloodFill5(t *testing.T) {
+	for i := 0; i < 1; i++ {
+		for i := 0; i < 1; i++ {	
+			// Arrange
+			me := Battlesnake{
+				Head: Coord{X: 4, Y: 3},
+				Body: []Coord{{X: 4, Y: 3}, {X: 4, Y: 2}, {X: 4, Y: 1}, {X: 3, Y: 1}, {X: 2, Y: 1}, {X: 2, Y: 2}, {X: 1, Y: 2}, {X: 0, Y: 2}, {X: 0, Y: 3}, {X: 0, Y: 4}, {X: 0, Y: 5}, {X: 0, Y: 6}, {X: 0, Y: 7}, {X: 0, Y: 8}, {X: 0, Y: 9}, {X: 0, Y: 10} },
+				Health: 100,
+				ID: "me",
+				Length: 16,
+			}
+			other := Battlesnake{
+				Head: Coord{X: 9, Y: 0},
+				Body: []Coord{{X: 9, Y: 0},{X: 9, Y: 1}, {X: 10, Y: 1}, {X: 10, Y: 2}, {X: 10, Y: 3}, {X: 9, Y: 3}, {X: 9, Y: 4}, {X: 9, Y: 5}, {X: 8, Y: 5}, {X: 8, Y: 4}, {X: 7, Y: 4}, {X: 7, Y: 3}, {X: 6, Y: 3}, {X: 6, Y: 4}, {X: 5, Y: 4}, {X: 4, Y: 4}, {X: 3, Y: 4}, {X: 3, Y: 5}, {X: 3, Y: 6}, {X: 3, Y: 7}, {X: 3, Y: 8}, {X: 2, Y: 8}},
+				Health: 100,
+				ID: "other",
+				Length: 22,
+			}
+			state := GameState{
+				Board: Board{
+					Snakes: []Battlesnake{me, other},
+					Height: 11,
+					Width:  11,
+					Food:   []Coord{{X: 7, Y: 0}, {X: 8, Y: 2}, {X: 5, Y: 7}},
+				},
+				Turn: 0,
+				You: me,
+			}
+			nextMove := move(state)
+			// Assert never move up
+			if nextMove.Move != "left" {
+				t.Errorf("Flood fill choose a direction that doesn't seem to be the best, %s", nextMove.Move)
 			}
 		}
 	}

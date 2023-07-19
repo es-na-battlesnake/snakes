@@ -11,7 +11,7 @@ import (
 )
 
 // Max floodfill depth
-const maxDepth = 20
+const maxDepth = 10
 
 // This function helps ensure that user input is clearly marked in log entries, and that
 // a malicious user cannot cause confusion in other ways. Intended to be used with log.Printf.

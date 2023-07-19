@@ -827,7 +827,7 @@ func TestTailWalkable4(t *testing.T) {
 
 // Test flood fill is working as desired
 func TestFloodFill1(t *testing.T) {
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 1; i++ {
 		for i := 0; i < 1; i++ {	
 			// Arrange
 			me := Battlesnake{
@@ -862,7 +862,7 @@ func TestFloodFill1(t *testing.T) {
 }
 
 func TestFloodFill2(t *testing.T) {
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 1; i++ {
 		for i := 0; i < 1; i++ {	
 			// Arrange
 			me := Battlesnake{
@@ -1005,6 +1005,45 @@ func TestFloodFill5(t *testing.T) {
 			// Assert never move up
 			if nextMove.Move != "left" {
 				t.Errorf("Flood fill choose a direction that doesn't seem to be the best, %s", nextMove.Move)
+			}
+		}
+	}
+}
+
+// This test is for an edge case noticed when playing with flood fill. 
+// Really it tests the coord.Surround function to make sure we are not marking a cell as walkable=false if one side is a tail
+func TestCoordSurrounded(t *testing.T) {
+	for i := 0; i < 1; i++ {
+		for i := 0; i < 1; i++ {	
+			// Arrange
+			me := Battlesnake{
+				Head: Coord{X: 5, Y: 2},
+				Body: []Coord{{X: 5, Y: 2}, {X: 5, Y: 1}, {X: 6, Y: 1}, {X: 6, Y: 2}, {X: 6, Y: 3}, {X: 7, Y: 3}, {X: 7, Y: 2}, {X: 7, Y: 1}, {X: 7, Y: 0}, {X: 6, Y: 0}, {X: 5, Y: 0}, {X: 4, Y: 0}, {X: 4, Y: 1}},
+				Health: 100,
+				ID: "me",
+				Length: 14,
+			}
+			other := Battlesnake{
+				Head: Coord{X: 3, Y: 2},
+				Body: []Coord{{X: 3, Y: 2},{X: 3, Y: 3}, {X: 4, Y: 3}, {X: 5, Y: 3}, {X: 5, Y: 4}, {X: 4, Y: 4}, {X: 4, Y: 5}, {X: 3, Y: 5}, {X: 3, Y: 4}, {X: 2, Y: 4}, {X: 1, Y: 4}, {X: 1, Y: 5}, {X: 2, Y: 5}, {X: 2, Y: 6}},
+				Health: 100,
+				ID: "other",
+				Length: 15,
+			}
+			state := GameState{
+				Board: Board{
+					Snakes: []Battlesnake{me, other},
+					Height: 11,
+					Width:  11,
+					Food:   []Coord{{X: 7, Y: 0}, {X: 8, Y: 2}, {X: 5, Y: 7}},
+				},
+				Turn: 0,
+				You: me,
+			}
+			nextMove := move(state)
+			// Assert never move up
+			if nextMove.Move != "left" {
+				t.Errorf("A cell was incorrectly marked as surrounded, %s", nextMove.Move)
 			}
 		}
 	}

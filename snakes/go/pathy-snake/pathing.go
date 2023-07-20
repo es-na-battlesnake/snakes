@@ -48,6 +48,11 @@ func addSnakesToGrid(state GameState, grid *Grid) {
 		updateSnakeHealth(state)
 	}
 
+	// If turn < 3 set our own tail to be walkable.
+	if state.Turn <= 3 {
+		grid.Get(state.You.Body[len(state.You.Body)-1].X, state.You.Body[len(state.You.Body)-1].Y).Walkable = true
+	}
+
 	// Iterrate over all the the other snakes heads.
 	for _, otherSnake := range state.Board.Snakes {
 		if otherSnake.ID != state.You.ID {

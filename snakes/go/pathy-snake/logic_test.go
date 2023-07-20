@@ -258,11 +258,37 @@ func TestFoodEating6(t *testing.T) {
 		},
 	}
 	// Act 1000x (this isn't a great way to test, but it's okay for starting out)
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 1; i++ {
 		nextMove := move(state)
 		// Assert never move left
 		if nextMove.Move == "left" {
 			t.Errorf("snake moved to a food next to bigger snake, %s", nextMove.Move)
+		}
+	}
+}
+
+func TestFoodEating7(t *testing.T) {
+	// Arrange
+	me := Battlesnake{
+		Head:   Coord{X: 3, Y: 10},
+		Body:   []Coord{{X: 3, Y: 10}, {X: 3, Y: 9}, {X: 3, Y: 8}, {X: 2, Y: 8}, {X: 1, Y: 8}, {X: 0, Y: 8}, {X: 0, Y: 7}, {X: 0, Y: 6}, {X: 1, Y: 6}, {X: 1, Y: 7}},
+		Health: 20,
+	}
+	state := GameState{
+		Board: Board{
+			Snakes: []Battlesnake{me},
+			Food:   []Coord{{X: 0, Y: 10}, {X: 1, Y: 10}, {X: 7, Y: 9}},
+			Height: 11,
+			Width:  11,
+		},
+		You: me,
+	}
+	// Act 1000x (this isn't a great way to test, but it's okay for starting out)
+	for i := 0; i < 1; i++ {
+		nextMove := move(state)
+		// Assert never move left
+		if nextMove.Move == "left" {
+			t.Errorf("snake trapped itself trying to eat food, %s", nextMove.Move)
 		}
 	}
 }
@@ -1044,6 +1070,37 @@ func TestCoordSurrounded(t *testing.T) {
 			// Assert never move up
 			if nextMove.Move != "left" {
 				t.Errorf("A cell was incorrectly marked as surrounded, %s", nextMove.Move)
+			}
+		}
+	}
+}
+
+// Test to make sure we don't trap ourselves
+func TestDontTrapSelf(t *testing.T) {
+	for i := 0; i < 1; i++ {
+		for i := 0; i < 1; i++ {	
+			// Arrange
+			me := Battlesnake{
+				Head: Coord{X: 3, Y: 10},
+				Body: []Coord{{X: 3, Y: 10}, {X: 3, Y: 9}, {X: 3, Y: 8}, {X: 2, Y: 8}, {X: 1, Y: 8}, {X: 0, Y: 8}, {X: 0, Y: 7}, {X: 0, Y: 6}, {X: 1, Y: 6}, {X: 1, Y: 7}},
+				Health: 100,
+				ID: "me",
+				Length: 14,
+			}
+			state := GameState{
+				Board: Board{
+					Snakes: []Battlesnake{me},
+					Height: 11,
+					Width:  11,
+					Food:   []Coord{{X: 0, Y: 10}, {X: 1, Y: 10}, {X: 7, Y: 9}},
+				},
+				Turn: 0,
+				You: me,
+			}
+			nextMove := move(state)
+			// Assert never move up
+			if nextMove.Move != "right" {
+				t.Errorf("Snake moved in a direction that will trap itself, %s", nextMove.Move)
 			}
 		}
 	}

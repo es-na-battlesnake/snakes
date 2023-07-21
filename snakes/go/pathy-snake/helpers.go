@@ -88,6 +88,17 @@ func chooseTargetCell(state GameState, grid *Grid) *Cell {
 		}
 	}
 
+	possibleCollisionCells := getOtherSnakeMoveToCells(state, grid)
+
+	// remove any walkable cells if they are in the possibleCollisionCells map but always keep at least one walkable cell
+	if len(walkableCells) > 1 {
+		for i := len(walkableCells) - 1; i >= 0; i-- {
+			if walkableCells[i] == possibleCollisionCells[0] {
+				walkableCells = append(walkableCells[:i], walkableCells[i+1:]...)
+			}
+		}
+	}	
+
 	// if there are no walkable cells, return nil and if there is only one walkable cell, return that cell
     if len(walkableCells) < 1 {
         log.Printf("No walkable cells or paths anywhere on board.\n")
@@ -153,10 +164,32 @@ func chooseNearestFood(grid *Grid, state GameState) *Cell {
 		}
 
 		distance := abs(food.X - state.You.Head.X) + abs(food.Y - state.You.Head.Y)
+		foodcell := grid.Get(food.X, food.Y)
 
-		if distance < closestDistance && !food.isNextToSnakeHead(state) && !food.Surrounded(state) {
+		// check if we have a path to the food
+		path := grid.GetPathFromCells(grid.Get(state.You.Head.X, state.You.Head.Y), grid.Get(foodcell.X, foodcell.Y), false, false, state.isWrapped())
+
+		if path == nil {
+			continue
+		}
+		// set the cell to be the next cell in the path
+		cell := path.Next()
+
+		if food.isNextToSnakeHead(state) {
+			continue
+		}
+
+		if food.Surrounded(state) {
+			continue
+		}
+
+		if isGoingToTrapSelf(state, grid, cell) {
+			continue
+		}
+
+		if distance < closestDistance {
 			closestDistance = distance
-			closestFoodCell = grid.Get(food.X, food.Y)
+			closestFoodCell = cell
 		}
 	}
 
@@ -214,4 +247,41 @@ func moveAwayFromLargerSnakes(grid *Grid, state GameState) *Cell {
 	}
 	// If we have no cells, then return nil.
 	return nil
+}
+
+// function that returns a list of cells that other snakes can move to.
+func getOtherSnakeMoveToCells(state GameState, grid *Grid) []*Cell{
+	// Create a list of cells that other snakes can move to.
+	// no map because we don't want to add the same cell twice.
+	var snakeCells []*Cell
+	// Iterate over all the snakes in the game state.
+	for _, snake := range state.Board.Snakes {
+		if snake.ID == state.You.ID {
+			continue
+		}
+		if snake.Length < state.You.Length {
+			continue
+		}
+		head := snake.Head
+		cells := grid.AdjacentCells(grid.Get(head.X, head.Y), state.isWrapped())
+		for _, cell := range cells {
+			snakeCells = append(snakeCells, cell)
+		}
+	}
+	return snakeCells
+}
+
+// write a function to check if we are going to trap ourselves
+func isGoingToTrapSelf(state GameState, grid *Grid, cell *Cell) bool {
+	tail := state.You.Body[len(state.You.Body)-1]
+
+	// set our head walkable to false. this simulates us moving to the cell
+	grid.Get(state.You.Head.X, state.You.Head.Y).Walkable = false
+	path := grid.GetPathFromCells(grid.Get(cell.X, cell.Y), grid.Get(tail.X, tail.Y), false, false, state.isWrapped())
+	// set our head walkable to true again so the grid is correct
+	grid.Get(state.You.Head.X, state.You.Head.Y).Walkable = true
+	if path == nil {
+		return true
+	}
+	return false
 }

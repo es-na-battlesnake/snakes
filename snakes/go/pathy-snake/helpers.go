@@ -88,17 +88,6 @@ func chooseTargetCell(state GameState, grid *Grid) *Cell {
 		}
 	}
 
-	possibleCollisionCells := getOtherSnakeMoveToCells(state, grid)
-
-	// remove any walkable cells if they are in the possibleCollisionCells map but always keep at least one walkable cell
-	if len(walkableCells) > 1 {
-		for i := len(walkableCells) - 1; i >= 0; i-- {
-			if walkableCells[i] == possibleCollisionCells[0] {
-				walkableCells = append(walkableCells[:i], walkableCells[i+1:]...)
-			}
-		}
-	}	
-
 	// if there are no walkable cells, return nil and if there is only one walkable cell, return that cell
     if len(walkableCells) < 1 {
         log.Printf("No walkable cells or paths anywhere on board.\n")
@@ -165,21 +154,19 @@ func chooseNearestFood(grid *Grid, state GameState) *Cell {
 
 		distance := abs(food.X - state.You.Head.X) + abs(food.Y - state.You.Head.Y)
 		foodcell := grid.Get(food.X, food.Y)
-
 		// check if we have a path to the food
 		path := grid.GetPathFromCells(grid.Get(state.You.Head.X, state.You.Head.Y), grid.Get(foodcell.X, foodcell.Y), false, false, state.isWrapped())
-
-		if path == nil {
+		if path == nil || path.Length() == 0 {
 			continue
 		}
 		// set the cell to be the next cell in the path
 		cell := path.Next()
 
-		if food.isNextToSnakeHead(state) {
+		if food.isNextToSnakeHead(state) {	
 			continue
 		}
 
-		if food.Surrounded(state) {
+		if food.Surrounded(state) {	
 			continue
 		}
 
@@ -280,7 +267,7 @@ func isGoingToTrapSelf(state GameState, grid *Grid, cell *Cell) bool {
 	path := grid.GetPathFromCells(grid.Get(cell.X, cell.Y), grid.Get(tail.X, tail.Y), false, false, state.isWrapped())
 	// set our head walkable to true again so the grid is correct
 	grid.Get(state.You.Head.X, state.You.Head.Y).Walkable = true
-	if path == nil {
+	if path == nil || path.Length() == 0 {
 		return true
 	}
 	return false

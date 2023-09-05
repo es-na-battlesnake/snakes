@@ -18,6 +18,6 @@ jobs:
       # Post a comment on newly opened PRs describing the deployment process and related PR steps to deploy
       - uses: actions/checkout@v3.0.2 
       - name: comment
-        uses: GrantBirki/comment@v2.0.5
+        uses: GrantBirki/comment@v2.0.6
         with:
           file: .github/new_pull_request.md

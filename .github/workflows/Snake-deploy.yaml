@@ -17,7 +17,7 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
-            - uses: azure/login@v1.4.7
+            - uses: azure/login@v1.5.1
               name: Azure login
               with:
                 client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -35,7 +35,7 @@ jobs:
             - buildImage
         steps:
             - uses: actions/checkout@v4
-            - uses: azure/login@v1.4.7
+            - uses: azure/login@v1.5.1
               name: Azure login
               with:
                 client-id: ${{ secrets.AZURE_CLIENT_ID }}

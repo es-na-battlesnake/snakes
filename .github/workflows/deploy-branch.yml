@@ -107,7 +107,7 @@ jobs:
       
       - name: 'Login via Azure CLI'
         if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' && (steps.check-file.outputs.full-deploy == 'true' || steps.deploy-main.outputs.full-deploy == 'true') }}
-        uses: azure/login@v1.5.1
+        uses: azure/login@v1.6.1
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}

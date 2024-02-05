@@ -4,6 +4,7 @@ source 'https://rubygems.org'
 
 gem 'activesupport'
 gem 'json'
+gem 'rackup'
 gem 'rack-contrib'
 gem 'sinatra'
 gem 'puma'

@@ -113,6 +113,7 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }} 
           enable-AzPSSession: true
+          auth-type: IDENTITY
 
       - name: Delete existing deployment if deployment workflow changes or delete is true
         if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' && (steps.check-file.outputs.full-deploy == 'true' || steps.deploy-main.outputs.full-deploy == 'true') }}

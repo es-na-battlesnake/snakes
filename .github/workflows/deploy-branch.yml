@@ -19,9 +19,9 @@ jobs:
     runs-on: ubuntu-latest
     environment: production-secrets
     steps:
-      # Execute IssueOps branch deployment logic, hooray.
+      # Execute IssueOps branch deployment logic, hooray
       # This will be used to "gate" all future steps below and conditionally trigger steps/deployments
-      - uses: github/branch-deploy@v9.3.0
+      - uses: github/branch-deploy@v9.4.0
         id: branch-deploy
         with:
           trigger: ".deploy"

@@ -21,7 +21,7 @@ jobs:
     steps:
       # Execute IssueOps branch deployment logic, hooray
       # This will be used to "gate" all future steps below and conditionally trigger steps/deployments
-      - uses: github/branch-deploy@v9.8.1
+      - uses: github/branch-deploy@v9.9.1
         id: branch-deploy
         with:
           trigger: ".deploy"

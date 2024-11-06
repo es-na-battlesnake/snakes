@@ -140,27 +140,27 @@ def target_closest_food(data: dict) -> str:
     
     return closestFoodCell
 
-def get_direction(path: List[str]) -> str:
+def get_direction(path: List[GridNode]) -> str:
     """
-    path: A list of strings representing the path to the target.
+    path: A list of GridNode objects representing the path to the target.
     return: A string representing the direction to move.
     """
 
     if len(path) < 2:
-        #return random move
+        # return random move
         print("Random move")
         return random.choice(["up", "down", "left", "right"])
 
     current = path[0]
     next_move = path[1]
 
-    if next_move[0] == current[0]:
-        if next_move[1] > current[1]:
+    if next_move.x == current.x:
+        if next_move.y > current.y:
             return "up"
         else:
             return "down"
-    elif next_move[1] == current[1]:
-        if next_move[0] > current[0]:
+    elif next_move.y == current.y:
+        if next_move.x > current.x:
             return "right"
         else:
             return "left"

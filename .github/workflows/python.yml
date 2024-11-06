@@ -41,4 +41,4 @@ jobs:
     - name: Test py ai snake
       working-directory: ./snakes
       run: |
-        python3 python/python-ai/src/tests.py -v
+        python3 python/ai-snake/src/tests.py -v

@@ -21,7 +21,7 @@ jobs:
     steps:
       # Execute IssueOps branch deployment logic, hooray
       # This will be used to "gate" all future steps below and conditionally trigger steps/deployments
-      - uses: github/branch-deploy@v10.3.1
+      - uses: github/branch-deploy@v10.4.1
         id: branch-deploy
         with:
           trigger: ".deploy"
@@ -107,7 +107,7 @@ jobs:
       
       - name: 'Login via Azure CLI'
         if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' && (steps.check-file.outputs.full-deploy == 'true' || steps.deploy-main.outputs.full-deploy == 'true') }}
-        uses: azure/login@v2.2.0
+        uses: azure/login@v2.3.0
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}

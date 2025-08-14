@@ -1,7 +1,190 @@
 # frozen_string_literal: true
 
+require 'set'
+
 $VERBOSE = nil
 $stdout.sync = true
+
+# A* pathfinding to find the safest path to food
+def a_star_to_food(board_state)
+  return nil if board_state[:food].empty?
+  
+  closest_food = board_state[:food].min_by { |f| manhattan_distance(board_state[:head], f) }
+  path = a_star_pathfind(board_state[:head], closest_food, board_state)
+  
+  return nil if path.nil? || path.length < 2
+  
+  # Return the direction to the next step in the path
+  next_step = path[1]
+  direction_between(board_state[:head][:x], board_state[:head][:y], next_step[:x], next_step[:y])
+end
+
+# Manhattan distance between two points
+def manhattan_distance(point1, point2)
+  (point1[:x] - point2[:x]).abs + (point1[:y] - point2[:y]).abs
+end
+
+# A* pathfinding algorithm
+def a_star_pathfind(start, goal, board_state)
+  open_set = [start]
+  came_from = {}
+  g_score = { start => 0 }
+  f_score = { start => manhattan_distance(start, goal) }
+  
+  while !open_set.empty?
+    current = open_set.min_by { |node| f_score[node] || Float::INFINITY }
+    
+    return reconstruct_path(came_from, current) if current == goal
+    
+    open_set.delete(current)
+    
+    neighbors = get_safe_neighbors(current, board_state)
+    neighbors.each do |neighbor|
+      tentative_g_score = g_score[current] + 1
+      
+      if tentative_g_score < (g_score[neighbor] || Float::INFINITY)
+        came_from[neighbor] = current
+        g_score[neighbor] = tentative_g_score
+        f_score[neighbor] = tentative_g_score + manhattan_distance(neighbor, goal)
+        
+        open_set << neighbor unless open_set.include?(neighbor)
+      end
+    end
+  end
+  
+  nil # No path found
+end
+
+# Get safe neighbors for pathfinding
+def get_safe_neighbors(cell, board_state)
+  adjacent_cells(cell[:x], cell[:y]).select do |neighbor|
+    !is_wall_for_board?(neighbor[:x], neighbor[:y], board_state) &&
+    !is_occupied_for_board?(neighbor[:x], neighbor[:y], board_state) &&
+    !is_dangerous_for_board?(neighbor[:x], neighbor[:y], board_state)
+  end
+end
+
+# Check if a cell is occupied by any snake
+def is_occupied_for_board?(x, y, board_state)
+  board_state[:all_occupied_cells].any? do |cell| 
+    cell.is_a?(Hash) && cell[:x].to_i == x.to_i && cell[:y].to_i == y.to_i
+  end
+end
+
+# Check if a cell is dangerous (near enemy snake heads or hazards)
+def is_dangerous_for_board?(x, y, board_state)
+  # Check if it's a hazard
+  return true if board_state[:hazards].any? { |h| h[:x].to_i == x.to_i && h[:y].to_i == y.to_i }
+  
+  # Check if it's adjacent to a longer or equal length enemy snake head
+  board_state[:snakes_heads_not_my_head].each do |enemy_head|
+    enemy_snake = board_state[:snakes].find { |s| s[:head] == enemy_head }
+    next unless enemy_snake
+    
+    if enemy_snake[:length] >= board_state[:length] && manhattan_distance({x: x, y: y}, enemy_head) <= 1
+      return true
+    end
+  end
+  
+  false
+end
+
+# Check if a cell is a wall for pathfinding
+def is_wall_for_board?(x, y, board_state)
+  game_mode = board_state[:game_mode]
+  width = board_state[:width]
+  height = board_state[:height]
+  
+  if game_mode == 'wrapped'
+    false
+  else
+    x.negative? || y.negative? || x >= width || y >= height
+  end
+end
+
+# Reconstruct path from A* algorithm
+def reconstruct_path(came_from, current)
+  path = [current]
+  while came_from[current]
+    current = came_from[current]
+    path.unshift(current)
+  end
+  path
+end
+
+# Flood fill to avoid dead ends
+def flood_fill_from(start_pos, board_state)
+  visited = Set.new
+  queue = [start_pos]
+  visited.add(start_pos)
+  
+  while !queue.empty?
+    current = queue.shift
+    
+    adjacent_cells(current[:x], current[:y]).each do |neighbor|
+      next if visited.include?(neighbor)
+      next if is_wall_for_board?(neighbor[:x], neighbor[:y], board_state)
+      next if is_occupied_for_board?(neighbor[:x], neighbor[:y], board_state)
+      
+      visited.add(neighbor)
+      queue << neighbor
+    end
+  end
+  
+  visited.size
+end
+
+# Get the move direction that leads to the largest space
+def get_space_control_move(board_state)
+  best_move = nil
+  largest_space = 0
+  
+  board_state[:head_neighbors].each do |neighbor|
+    next if is_wall_for_board?(neighbor[:x], neighbor[:y], board_state)
+    next if is_occupied_for_board?(neighbor[:x], neighbor[:y], board_state)
+    
+    space_size = flood_fill_from(neighbor, board_state)
+    
+    if space_size > largest_space
+      largest_space = space_size
+      best_move = direction_between(board_state[:head][:x], board_state[:head][:y], neighbor[:x], neighbor[:y])
+    end
+  end
+  
+  { move: best_move, space_size: largest_space }
+end
+
+# Predict where enemy snakes will move
+def predict_enemy_moves(board_state)
+  enemy_predictions = {}
+  
+  board_state[:snakes_heads_not_my_head].each do |enemy_head|
+    enemy_snake = board_state[:snakes].find { |s| s[:head] == enemy_head }
+    next unless enemy_snake
+    
+    # Simple prediction: enemy will move towards food or away from walls
+    safe_moves = adjacent_cells(enemy_head[:x], enemy_head[:y]).select do |move|
+      !is_wall_for_board?(move[:x], move[:y], board_state) && !is_occupied_for_board?(move[:x], move[:y], board_state)
+    end
+    
+    if !safe_moves.empty?
+      # Predict they'll move towards nearest food if hungry, otherwise away from walls
+      if enemy_snake[:health] < 50 && !board_state[:food].empty?
+        nearest_food = board_state[:food].min_by { |f| manhattan_distance(enemy_head, f) }
+        predicted_move = safe_moves.min_by { |move| manhattan_distance(move, nearest_food) }
+      else
+        # Move towards center of board or largest space
+        predicted_move = safe_moves.max_by { |move| 
+          flood_fill_from(move, board_state)
+        }
+      end
+      
+      enemy_predictions[enemy_snake[:id]] = predicted_move
+    end
+  end
+  
+  enemy_predictions
+end
 
 # This function is called on every turn of a game. It's how your Battlesnake decides where to move.
 # Valid moves are "up", "down", "left", or "right".
@@ -175,7 +358,7 @@ def move(board)
     if @game_mode == 'wrapped'
       false
     else
-      if x.negative? || y.negative? || x > @width || y > @height
+      if x.negative? || y.negative? || x >= @width || y >= @height
         true
       else
         false
@@ -318,7 +501,24 @@ def move(board)
   # Cell base score
   @cell_base_score = 1000
 
-  # If game mode is wrapped, use the following score multiplier array
+  # Dynamic scoring based on game state
+  longest_enemy = @snakes.reject { |s| s[:id] == @id }.max_by { |s| s[:length] }&.dig(:length) || 0
+  winning_by = @length - longest_enemy
+  
+  # If we're winning by a lot, be more conservative
+  if winning_by >= 3
+    @score_multiplier['edge'] = -8
+    @score_multiplier['corner'] = -5
+    @score_multiplier['food'] = 5  # Less aggressive about food
+    @score_multiplier['my_tail_neighbor'] = 25  # More tail following
+    puts "Playing conservatively - winning by #{winning_by}"
+  elsif winning_by <= -2
+    # If we're losing, be more aggressive
+    @score_multiplier['food'] = 30
+    @score_multiplier['shared_shorter_snake'] = 15
+    @score_multiplier['edge'] = -2
+    puts "Playing aggressively - losing by #{-winning_by}"
+  end
   if @game_mode == 'wrapped'
     #puts '@@@ Using wrapped game mode score multiplier'
     @score_multiplier = {
@@ -561,51 +761,165 @@ def move(board)
   # If head is at edge of board, then remove the direction from @possible_moves
   if @game_mode != 'wrapped'
     @possible_moves.delete('left') if (@head[:x]).zero?
-    @possible_moves.delete('right') if @head[:x] == @width
+    @possible_moves.delete('right') if @head[:x] == @width - 1
     @possible_moves.delete('down') if (@head[:y]).zero?
-    @possible_moves.delete('up') if @head[:y] == @height
+    @possible_moves.delete('up') if @head[:y] == @height - 1
   end
+  
+  puts "DEBUG: Head at (#{@head[:x]}, #{@head[:y]}), board size #{@width}x#{@height}"
+  puts "DEBUG: Possible moves after wall filtering: #{@possible_moves}"
 
   # If game mode is 'wrapped', and head is at edge of board, then add the direction off the edge of the board to @possible_moves
   if @game_mode == 'wrapped'
     @possible_moves.push('left') if (@head[:x]).zero?
-    @possible_moves.push('right') if @head[:x] == @width
+    @possible_moves.push('right') if @head[:x] == @width - 1
     @possible_moves.push('down') if (@head[:y]).zero?
-    @possible_moves.push('up') if @head[:y] == @height
+    @possible_moves.push('up') if @head[:y] == @height - 1
   end
 
   # Once our snake's length is greater than that of any other snake.
   # then we need to find the direction of the nearest snake's head and set @move_direction to that direction if it is in @possible_moves
-  @snakes_info.each do |snake|
-    next unless snake[:length] < @length - 3
-
-    puts "Snake named #{snake[:name]} is shorter than me. It's length is #{snake[:length]} and mine is #{@length}"
-    # Find the direction between our head and any shorter snake's head
-    direction = direction_between(@head[:x], @head[:y], snake[:head][:x], snake[:head][:y])
-    # If the direction is in @possible_moves, then set @move_direction to that direction
-    if @possible_moves.include?(direction)
-      puts "I'm going to move #{direction} because I'm going to eat a snake named #{snake[:name]}"
-      @move_direction = direction
-    end
-
-    # If we are the longest by at least 2 cells, reduce our @health_threshold by 1
-    if @length - snake[:length] >= 5
-      @health_threshold -= 1
-      # Clamp the health threshold to a minimum of 55
-      @health_threshold = 55 if @health_threshold < 55
-      puts "I'm going to eat a snake named #{snake[:name]}. I'm going to reduce my health_threshold by 1 to #{@health_threshold}"
-    end
-  end
+  # DISABLED: This is now handled by the enhanced decision logic below
+  # @snakes_info.each do |snake|
+  #   next unless snake[:length] < @length - 3
+  # 
+  #   puts "Snake named #{snake[:name]} is shorter than me. It's length is #{snake[:length]} and mine is #{@length}"
+  #   # Find the direction between our head and any shorter snake's head
+  #   direction = direction_between(@head[:x], @head[:y], snake[:head][:x], snake[:head][:y])
+  #   # If the direction is in @possible_moves, then set @move_direction to that direction
+  #   if @possible_moves.include?(direction)
+  #     puts "I'm going to move #{direction} because I'm going to eat a snake named #{snake[:name]}"
+  #     @move_direction = direction
+  #   end
+  # 
+  #   # If we are the longest by at least 2 cells, reduce our @health_threshold by 1
+  #   if @length - snake[:length] >= 5
+  #     @health_threshold -= 1
+  #     # Clamp the health threshold to a minimum of 55
+  #     @health_threshold = 55 if @health_threshold < 55
+  #     puts "I'm going to eat a snake named #{snake[:name]}. I'm going to reduce my health_threshold by 1 to #{@health_threshold}"
+  #   end
+  # end
 
   # Get highest score in @possible_turns
   @highest_score = @possible_turns.max_by { |turn| turn[:score] }
 
-  # Set @move_direction to the direction of the highest score object
-  if @highest_score.nil?
-    @move_direction = 'up'
-  else
-    @move_direction = @highest_score[:direction]
+  # Create board state object for helper functions
+  board_state = {
+    head: @head,
+    food: @food,
+    hazards: @hazards,
+    snakes: @snakes,
+    snakes_heads_not_my_head: @snakes_heads_not_my_head,
+    all_occupied_cells: @all_occupied_cells,
+    head_neighbors: @head_neighbors,
+    length: @length,
+    width: @width,
+    height: @height,
+    game_mode: @game_mode
+  }
+
+  # Enhanced decision making with advanced algorithms
+  
+  # 1. First priority: Use A* pathfinding if we need food and health is low
+  if @health < @health_threshold && !@food.empty?
+    astar_move = a_star_to_food(board_state)
+    if astar_move && @possible_moves.include?(astar_move)
+      puts "Using A* pathfinding to get food: #{astar_move}"
+      @move_direction = astar_move
+    end
   end
+
+  # 2. Second priority: Space control - avoid getting trapped
+  unless @move_direction
+    space_control = get_space_control_move(board_state)
+    min_space_required = [(@width * @height * 0.3).to_i, @length * 2].max
+    
+    if space_control[:space_size] >= min_space_required && space_control[:move] && @possible_moves.include?(space_control[:move])
+      puts "Using space control move: #{space_control[:move]} (space: #{space_control[:space_size]})"
+      @move_direction = space_control[:move]
+    else
+      puts "DEBUG: Space control rejected - move: #{space_control[:move]}, in possible? #{@possible_moves.include?(space_control[:move])}"
+    end
+  end
+
+  # 3. Third priority: Attack weaker snakes if we're significantly longer
+  unless @move_direction
+    @snakes_info.each do |snake|
+      if snake[:length] < @length - 3
+        attack_direction = direction_between(@head[:x], @head[:y], snake[:head][:x], snake[:head][:y])
+        if @possible_moves.include?(attack_direction)
+          # But only attack if we won't get trapped
+          next_pos = case attack_direction
+                    when 'up' then { x: @head[:x], y: @head[:y] + 1 }
+                    when 'down' then { x: @head[:x], y: @head[:y] - 1 }
+                    when 'left' then { x: @head[:x] - 1, y: @head[:y] }
+                    when 'right' then { x: @head[:x] + 1, y: @head[:y] }
+                    end
+          
+          space_after_attack = flood_fill_from(next_pos, board_state)
+          if space_after_attack >= @length + 5
+            puts "Attacking weaker snake #{snake[:name]}: #{attack_direction}"
+            @move_direction = attack_direction
+            break
+          end
+        end
+      end
+    end
+  end
+
+  # 4. Fourth priority: Avoid predicted enemy moves
+  unless @move_direction
+    enemy_predictions = predict_enemy_moves(board_state)
+    safe_moves = @possible_moves.select do |move|
+      next_pos = case move
+                when 'up' then { x: @head[:x], y: @head[:y] + 1 }
+                when 'down' then { x: @head[:x], y: @head[:y] - 1 }
+                when 'left' then { x: @head[:x] - 1, y: @head[:y] }
+                when 'right' then { x: @head[:x] + 1, y: @head[:y] }
+                end
+      
+      # Check if any predicted enemy move would collide with our next position
+      safe = true
+      enemy_predictions.each do |enemy_id, predicted_pos|
+        if predicted_pos && predicted_pos[:x] == next_pos[:x] && predicted_pos[:y] == next_pos[:y]
+          enemy_snake = @snakes.find { |s| s[:id] == enemy_id }
+          if enemy_snake && enemy_snake[:length] >= @length
+            safe = false
+            break
+          end
+        end
+      end
+      safe
+    end
+    
+    if !safe_moves.empty?
+      # Choose the safest move with highest score
+      best_safe_move = safe_moves.max_by do |move|
+        turn = @possible_turns.find { |t| t[:direction] == move }
+        turn ? turn[:score] : 0
+      end
+      
+      if best_safe_move
+        puts "Using safe move avoiding enemy predictions: #{best_safe_move}"
+        @move_direction = best_safe_move
+      end
+    end
+  end
+
+  # 5. Final fallback: Use the highest scoring move that's actually possible
+  unless @move_direction
+    if @highest_score.nil? || !@possible_moves.include?(@highest_score[:direction])
+      # Choose any possible move (prefer ones that aren't walls)
+      @move_direction = @possible_moves.first || 'up'
+      puts "DEBUG: Using fallback move #{@move_direction} from possible: #{@possible_moves}"
+    else
+      @move_direction = @highest_score[:direction]
+      puts "DEBUG: Using highest score move #{@move_direction}"
+    end
+  end
+  
+  puts "DEBUG: Final move decision: #{@move_direction}"
 
   #puts "Move direction is: #{@move_direction} - highest score is: #{@highest_score[:score]} - turn is: #{@highest_score[:types]} to the #{@highest_score[:direction]}"
 
@@ -673,5 +987,5 @@ end
 
 
   puts "MOVE: #{@move_direction} - TURN: #{board[:turn]}"
-  { "move": @move_direction }
+  { move: @move_direction }
 end

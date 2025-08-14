@@ -3,6 +3,7 @@
 require 'rack'
 require 'rack/contrib'
 require 'sinatra'
+require 'json'
 
 require_relative './util'
 require_relative './move'
@@ -13,6 +14,7 @@ use Rack::PostBodyContentTypeParser
 # It controls your Battlesnake appearance and author permissions.
 # TIP: If you open your Battlesnake URL in browser you should see this data
 get '/' do
+  content_type :json
   appearance = {
     apiversion: '1',
     author: 'djdefi',

@@ -501,24 +501,7 @@ def move(board)
   # Cell base score
   @cell_base_score = 1000
 
-  # Dynamic scoring based on game state
-  longest_enemy = @snakes.reject { |s| s[:id] == @id }.max_by { |s| s[:length] }&.dig(:length) || 0
-  winning_by = @length - longest_enemy
-  
-  # If we're winning by a lot, be more conservative
-  if winning_by >= 3
-    @score_multiplier['edge'] = -8
-    @score_multiplier['corner'] = -5
-    @score_multiplier['food'] = 5  # Less aggressive about food
-    @score_multiplier['my_tail_neighbor'] = 25  # More tail following
-    puts "Playing conservatively - winning by #{winning_by}"
-  elsif winning_by <= -2
-    # If we're losing, be more aggressive
-    @score_multiplier['food'] = 30
-    @score_multiplier['shared_shorter_snake'] = 15
-    @score_multiplier['edge'] = -2
-    puts "Playing aggressively - losing by #{-winning_by}"
-  end
+  # Initialize score multiplier first
   if @game_mode == 'wrapped'
     #puts '@@@ Using wrapped game mode score multiplier'
     @score_multiplier = {
@@ -583,6 +566,25 @@ def move(board)
       'three_head_neighbor' => -2,
       'shorter_snake_heads' => 0
     }
+  end
+
+  # Dynamic scoring based on game state - adjust after initialization
+  longest_enemy = @snakes.reject { |s| s[:id] == @id }.max_by { |s| s[:length] }&.dig(:length) || 0
+  winning_by = @length - longest_enemy
+  
+  # If we're winning by a lot, be more conservative
+  if winning_by >= 3
+    @score_multiplier['edge'] = -8
+    @score_multiplier['corner'] = -5
+    @score_multiplier['food'] = 5  # Less aggressive about food
+    @score_multiplier['my_tail_neighbor'] = 25  # More tail following
+    puts "Playing conservatively - winning by #{winning_by}"
+  elsif winning_by <= -2
+    # If we're losing, be more aggressive
+    @score_multiplier['food'] = 30
+    @score_multiplier['shared_shorter_snake'] = 15
+    @score_multiplier['edge'] = -2
+    puts "Playing aggressively - losing by #{-winning_by}"
   end
 
   # Create an array of all of this turn's cells. Each cell is a hash with x and y coordinates, a set of types, and the direction of the cell realative to the snake's head.
@@ -818,7 +820,29 @@ def move(board)
 
   # Enhanced decision making with advanced algorithms
   
-  # 1. First priority: Use A* pathfinding if we need food and health is low
+  # 0. First priority: Basic safety - avoid hazards when there are safe alternatives
+  unless @move_direction
+    safe_from_hazards = @possible_moves.select do |move|
+      next_pos = case move
+                when 'up' then { x: @head[:x], y: @head[:y] + 1 }
+                when 'down' then { x: @head[:x], y: @head[:y] - 1 }
+                when 'left' then { x: @head[:x] - 1, y: @head[:y] }
+                when 'right' then { x: @head[:x] + 1, y: @head[:y] }
+                end
+      
+      # Check if next position is a hazard
+      !@hazards.any? { |h| h[:x] == next_pos[:x] && h[:y] == next_pos[:y] }
+    end
+    
+    # If we have hazard-free options and some moves would go into hazards, prefer safe moves
+    # But only filter if we're not left with zero options
+    if safe_from_hazards.length > 0 && safe_from_hazards.length < @possible_moves.length
+      puts "Filtering out hazardous moves, safe options: #{safe_from_hazards}"
+      @possible_moves = safe_from_hazards
+    end
+  end
+
+  # 1. Second priority: Use A* pathfinding if we need food and health is low
   if @health < @health_threshold && !@food.empty?
     astar_move = a_star_to_food(board_state)
     if astar_move && @possible_moves.include?(astar_move)
@@ -827,18 +851,70 @@ def move(board)
     end
   end
 
-  # 2. Second priority: Space control - avoid getting trapped
+  # 2. Third priority: Tail following when neighbors are risky or when it's a good strategy
+  unless @move_direction
+    # Calculate where our tail is
+    my_tail_pos = @my_tail.first
+    
+    # Check if we should follow our tail when other moves are dangerous or limited
+    # Look for moves that go towards our tail
+    if my_tail_pos
+      tail_direction = direction_between(@head[:x], @head[:y], my_tail_pos[:x], my_tail_pos[:y])
+      
+      if tail_direction && @possible_moves.include?(tail_direction)
+        should_follow_tail = false
+        
+        # Check for nearby enemy snakes
+        nearby_enemies = @snakes_heads_not_my_head.select { |enemy_head| 
+          manhattan_distance(@head, enemy_head) <= 2
+        }
+        
+        if @possible_moves.length <= 2
+          should_follow_tail = true
+          puts "Following tail due to limited options: #{@possible_moves}, tail at #{my_tail_pos}, direction: #{tail_direction}"
+        elsif nearby_enemies.length > 0 && @possible_moves.length <= 3
+          should_follow_tail = true
+          puts "Following tail due to nearby enemies and limited options, enemies: #{nearby_enemies.length}"
+        elsif nearby_enemies.length > 0 && @possible_moves.length == 3
+          # Even with 3 moves, if there's an enemy within distance 2, consider tail following
+          should_follow_tail = true
+          puts "Following tail due to nearby enemies, enemies: #{nearby_enemies.length}"
+        end
+        
+        if should_follow_tail
+          @move_direction = tail_direction
+          puts "Following tail for safety: #{@move_direction}"
+        end
+      end
+    end
+  end
+
+  # 3. Fourth priority: Space control - avoid getting trapped, but ensure minimum safety
   unless @move_direction
     space_control = get_space_control_move(board_state)
     min_space_required = [(@width * @height * 0.3).to_i, @length * 2].max
     
+    # Only use space control if the move is safe and has adequate space
     if space_control[:space_size] >= min_space_required && space_control[:move] && @possible_moves.include?(space_control[:move])
-      puts "Using space control move: #{space_control[:move]} (space: #{space_control[:space_size]})"
-      @move_direction = space_control[:move]
+      # Additional safety check: make sure this move doesn't go into immediate danger
+      next_pos = case space_control[:move]
+                when 'up' then { x: @head[:x], y: @head[:y] + 1 }
+                when 'down' then { x: @head[:x], y: @head[:y] - 1 }
+                when 'left' then { x: @head[:x] - 1, y: @head[:y] }
+                when 'right' then { x: @head[:x] + 1, y: @head[:y] }
+                end
+      
+      # Check if it's safe from hazards and not obviously dangerous
+      is_safe = !@hazards.any? { |h| h[:x] == next_pos[:x] && h[:y] == next_pos[:y] }
+      
+      if is_safe
+        puts "Using space control move: #{space_control[:move]} (space: #{space_control[:space_size]})"
+        @move_direction = space_control[:move]
+      end
     end
   end
 
-  # 3. Third priority: Attack weaker snakes if we're significantly longer
+  # 4. Fifth priority: Attack weaker snakes if we're significantly longer
   unless @move_direction
     @snakes_info.each do |snake|
       if snake[:length] < @length - 3
@@ -863,7 +939,7 @@ def move(board)
     end
   end
 
-  # 4. Fourth priority: Avoid predicted enemy moves
+  # 5. Sixth priority: Avoid predicted enemy moves
   unless @move_direction
     enemy_predictions = predict_enemy_moves(board_state)
     safe_moves = @possible_moves.select do |move|
@@ -902,7 +978,7 @@ def move(board)
     end
   end
 
-  # 5. Final fallback: Use the highest scoring move that's actually possible
+  # 6. Final fallback: Use the highest scoring move that's actually possible
   unless @move_direction
     if @highest_score.nil? || !@possible_moves.include?(@highest_score[:direction])
       # Choose any possible move (prefer ones that aren't walls)

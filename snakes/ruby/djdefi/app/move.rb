@@ -765,9 +765,6 @@ def move(board)
     @possible_moves.delete('down') if (@head[:y]).zero?
     @possible_moves.delete('up') if @head[:y] == @height - 1
   end
-  
-  puts "DEBUG: Head at (#{@head[:x]}, #{@head[:y]}), board size #{@width}x#{@height}"
-  puts "DEBUG: Possible moves after wall filtering: #{@possible_moves}"
 
   # If game mode is 'wrapped', and head is at edge of board, then add the direction off the edge of the board to @possible_moves
   if @game_mode == 'wrapped'
@@ -838,8 +835,6 @@ def move(board)
     if space_control[:space_size] >= min_space_required && space_control[:move] && @possible_moves.include?(space_control[:move])
       puts "Using space control move: #{space_control[:move]} (space: #{space_control[:space_size]})"
       @move_direction = space_control[:move]
-    else
-      puts "DEBUG: Space control rejected - move: #{space_control[:move]}, in possible? #{@possible_moves.include?(space_control[:move])}"
     end
   end
 
@@ -912,14 +907,10 @@ def move(board)
     if @highest_score.nil? || !@possible_moves.include?(@highest_score[:direction])
       # Choose any possible move (prefer ones that aren't walls)
       @move_direction = @possible_moves.first || 'up'
-      puts "DEBUG: Using fallback move #{@move_direction} from possible: #{@possible_moves}"
     else
       @move_direction = @highest_score[:direction]
-      puts "DEBUG: Using highest score move #{@move_direction}"
     end
   end
-  
-  puts "DEBUG: Final move decision: #{@move_direction}"
 
   #puts "Move direction is: #{@move_direction} - highest score is: #{@highest_score[:score]} - turn is: #{@highest_score[:types]} to the #{@highest_score[:direction]}"
 

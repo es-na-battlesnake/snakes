@@ -199,3 +199,81 @@ script/test djdefi && go test -v ./snakes/...
 # Verify Docker build
 docker build . --tag validation-test
 ```
+
+## Simulation Testing
+
+### Battlesnake CLI Simulation
+The repository includes comprehensive simulation testing using the official Battlesnake CLI:
+
+**Setup Battlesnake CLI:**
+```bash
+# Install Go and Battlesnake CLI (included in setup-go.sh)
+sudo chmod +x setup-go.sh && sudo ./setup-go.sh
+
+# Alternative: Install CLI directly
+go install github.com/BattlesnakeOfficial/rules/cli/battlesnake@latest
+```
+
+**Local Simulation Script:**
+```bash
+# Run automated simulations with script/simulate_royale
+script/simulate_royale --help
+
+# Examples:
+script/simulate_royale --mode=royale --runs=10
+script/simulate_royale --mode=wrapped --runs=42 --verbose
+script/simulate_royale --mode=wrapped --map=hz_islands_bridges --width=11 --height=11 --runs=10
+```
+
+**Manual CLI Simulation:**
+```bash
+# Start all snakes first
+docker run -d -p 4567:4567 -p 8081:8081 --name battlesnake-test battlesnake
+
+# Run single simulation
+battlesnake play -W 11 -H 11 \
+  --name pathy --url http://localhost:8081/ \
+  --name ruby-danger-noodle --url http://localhost:4567/ \
+  -g royale -v
+
+# Cleanup
+docker stop battlesnake-test && docker rm battlesnake-test
+```
+
+### Automated GitHub Actions Simulation
+- **Workflow:** `.github/workflows/simulate-games.yml`
+- **Triggers:** Push to non-main branches, pull requests affecting snake code
+- **Features:** Automatically runs 10-game simulations and posts results as PR comments
+- **Maps:** Supports multiple map types including `hz_islands_bridges`, `standard`
+
+### Simulation Configuration Options
+**Game Modes:**
+- `royale` - Standard elimination battlesnake
+- `wrapped` - Board edges wrap around
+- `squad` - Team-based gameplay
+
+**Map Types:**
+- `standard` - Basic empty board
+- `hz_islands_bridges` - Islands with bridges
+- Custom dimensions with `--width` and `--height`
+
+### Local Development Simulation Workflow
+```bash
+# 1. Build and start snakes
+docker build . --tag local-test
+docker run -d -p 4567:4567 -p 8081:8081 --name local-snakes local-test
+
+# 2. Wait for startup
+sleep 10
+
+# 3. Verify endpoints respond
+curl "http://localhost:4567/" && curl "http://localhost:8081/"
+
+# 4. Run simulation
+script/simulate_royale --mode=wrapped --runs=5 --verbose
+
+# 5. Cleanup
+docker stop local-snakes && docker rm local-snakes
+```
+
+**Note:** The simulation script expects snakes to be available at `http://code-snek:4567/` (Ruby) and `http://code-snek:8081/` (Go) when running in Docker networks.

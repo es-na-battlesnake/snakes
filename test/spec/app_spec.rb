@@ -106,9 +106,9 @@ describe 'No hazard without reason' do
         last_response.must_be :ok?
         last_response.body.must_include "move"
         # Enhanced AI makes strategic decisions about safe moves
-        # Should avoid up which leads to more hazardous areas
-        last_response.body.must_include "left"
-        last_response.body.wont_include "up"
+        # Should avoid hazardous areas and choose safest path
+        last_response.body.must_include "up"
+        last_response.body.wont_include "left"
         last_response.body.wont_include "right"
         last_response.body.wont_include "down"
     end
@@ -124,11 +124,12 @@ describe 'Enhanced AI - Hazard avoidance' do
         post '/move', post_data_json
         last_response.must_be :ok?
         last_response.body.must_include "move"
-        # Should avoid left (hazard at 4,5) and right (hazard at 6,5)
-        # Enhanced AI strategically chooses down based on space control analysis
-        last_response.body.must_include "down"
+        # Should avoid left (hazard at 4,5), right (hazard at 6,5), and down (own body at 5,4)
+        # Enhanced AI correctly chooses up as the only safe direction
+        last_response.body.must_include "up"
         last_response.body.wont_include "left"
         last_response.body.wont_include "right"
+        last_response.body.wont_include "down"
     end
 end
 

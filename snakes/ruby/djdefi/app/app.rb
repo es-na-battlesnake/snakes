@@ -10,6 +10,10 @@ require_relative './move'
 
 
 use Rack::PostBodyContentTypeParser
+
+# Disable all protections for battlesnake simulator
+set :protection, false
+
 # This function is called when you register your Battlesnake on play.battlesnake.com
 # It controls your Battlesnake appearance and author permissions.
 # TIP: If you open your Battlesnake URL in browser you should see this data

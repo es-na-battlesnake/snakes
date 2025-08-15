@@ -128,8 +128,8 @@ echo "\`\`\`"
 for i in $(seq 1 $runs); do
     echo -n "Run [$i/$runs] "
     /root/go/bin/battlesnake play -W $width -H $height \
-    --name pathy --url http://code-snek:8081/ \
-    --name ruby-danger-noodle --url http://code-snek:4567/ \
+    --name pathy --url http://localhost:8081/ \
+    --name ruby-danger-noodle --url http://localhost:4567/ \
     -g $mode \
     -m $map \
     -r $seed \

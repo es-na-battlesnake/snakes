@@ -106,7 +106,14 @@ fi
 # test response of http://code-snek:4567/ and exit if it fails
 curl -s http://code-snek:4567/ &> /dev/null
 if [ $? -ne 0 ]; then
-    echo "code-snek:4567 is not responding"
+    echo "ruby-danger-noodle at code-snek:4567 is not responding"
+    exit 1
+fi
+
+# test response of http://code-snek:8081/ and exit if it fails
+curl -s http://code-snek:8081/ &> /dev/null
+if [ $? -ne 0 ]; then
+    echo "pathy snake at code-snek:8081 is not responding"
     exit 1
 fi
 
@@ -128,8 +135,8 @@ echo "\`\`\`"
 for i in $(seq 1 $runs); do
     echo -n "Run [$i/$runs] "
     /root/go/bin/battlesnake play -W $width -H $height \
-    --name pathy --url http://localhost:8081/ \
-    --name ruby-danger-noodle --url http://localhost:4567/ \
+    --name pathy --url http://code-snek:8081/ \
+    --name ruby-danger-noodle --url http://code-snek:4567/ \
     -g $mode \
     -m $map \
     -r $seed \

@@ -39,7 +39,7 @@ jobs:
     - name: Setup Docker network
       run: docker network create test
     - name: Run the Docker image
-      run: docker run -d -p 4567:4567 --network test --name code-snek code-snek:pr
+      run: docker run -d -p 4567:4567 -p 8081:8081 --network test --name code-snek code-snek:pr
 
     - name: Pause for 10 seconds
       run: sleep 10
@@ -47,7 +47,7 @@ jobs:
     - name: Simulate games
       id: simulate-games
       run: |
-          docker run --rm --network test code-snek:pr script/simulate_royale --mode wrapped --map hz_islands_bridges  --width 11 --height 11 --runs 10 | tee -a simulate_royale.log
+          docker run --rm --network test code-snek:pr script/simulate_royale --mode royale --map standard --width 11 --height 11 --runs 10 | tee -a simulate_royale.log
 
     - name: Set sim-log to var
       uses: actions/github-script@v7

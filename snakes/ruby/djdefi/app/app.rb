@@ -12,7 +12,16 @@ require_relative './move'
 use Rack::PostBodyContentTypeParser
 
 # Disable all protections for battlesnake simulator
-set :protection, false
+configure do
+  set :protection, false
+  set :bind, '0.0.0.0'
+  disable :protection
+end
+
+# For Sinatra 4+, explicitly disable host authorization
+before do
+  env.delete('HTTP_HOST_AUTHORIZATION')
+end
 
 # This function is called when you register your Battlesnake on play.battlesnake.com
 # It controls your Battlesnake appearance and author permissions.

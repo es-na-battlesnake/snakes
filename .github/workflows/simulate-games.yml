@@ -1,4 +1,4 @@
-name: Simulate Snake Games
+name: Comprehensive Snake Performance Testing
 
 on:
   push:
@@ -8,6 +8,7 @@ on:
       - 'snakes/**'
       - '.github/workflows/simulate-games.yml'
       - 'script/simulate_royale'
+      - 'script/comprehensive_simulation'
       
   # trigger action on new pull request pushes
   pull_request:
@@ -18,52 +19,175 @@ on:
       - '.github/workflows/simulate-games.yml'
       - '.github/workflows/build-base.yml'
       - 'script/simulate_royale'
+      - 'script/comprehensive_simulation'
       - 'Dockerfile*'
 
 jobs:
 
-  build:
+  comprehensive-performance-testing:
 
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
+    timeout-minutes: 30
 
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-go@v5
-      with:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
           go-version: '^1.17.1'
-    
-    - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag code-snek:pr
-    - name: Setup Docker network
-      run: docker network create test
-    - name: Run the Docker image
-      run: docker run -d -p 4567:4567 -p 8081:8081 --network test --name code-snek code-snek:pr
 
-    - name: Pause for 10 seconds
-      run: sleep 10
+      - name: Build the Docker image
+        run: docker build . --file Dockerfile --tag code-snek:pr
+      - name: Setup Docker network
+        run: docker network create test
+      - name: Run the Docker image
+        run: >
+          docker run -d -p 4567:4567 -p 8081:8081 --network test 
+          --name code-snek code-snek:pr
 
-    - name: Simulate games
-      id: simulate-games
-      run: |
-          docker run --rm --network test code-snek:pr script/simulate_royale --mode royale --map standard --width 11 --height 11 --runs 10 | tee -a simulate_royale.log
+      - name: Wait for services to be ready
+        run: |
+          echo "Waiting for snake services to initialize..."
+          sleep 15
 
-    - name: Set sim-log to var
-      uses: actions/github-script@v7
-      id: sim-log
-      with:
-        script: |
-          const fs = require('fs');
-          return fs.readFileSync('simulate_royale.log','utf8').toString();
-        result-encoding: string
+          # Check Ruby snake health
+          timeout 30 bash -c 'until curl -s http://localhost:4567/ > /dev/null; do sleep 1; done'
+          echo "✅ Ruby snake is ready"
 
-    - name: Post comment
-      uses: mshick/add-pr-comment@v2
-      with:
-        message: |
-            🤖 🐍:
-            ${{ steps.sim-log.outputs.result }}
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
-        repo-token-user-login: 'github-actions[bot]' # The user.login for temporary GitHub tokens
-        allow-repeats: false # This is the default, but let's be explicit
+          # Check pathy snake health
+          timeout 30 bash -c 'until curl -s http://localhost:8081/ > /dev/null; do sleep 1; done'
+          echo "✅ Pathy snake is ready"
+
+      - name: Validate simulation infrastructure
+        id: validate-infrastructure
+        run: |
+          echo "🧪 Validating simulation infrastructure..."
+          docker run --rm --network test code-snek:pr script/validate_simulation
+
+      - name: Run comprehensive simulation suite
+        id: comprehensive-simulation
+        run: |
+          echo "🐍 Starting comprehensive battlesnake performance testing..."
+          docker run --rm --network test code-snek:pr script/comprehensive_simulation | tee -a comprehensive_results.log
+
+      - name: Generate performance analysis
+        id: performance-analysis
+        run: |
+          echo "📊 Generating performance trend analysis..."
+          docker run --rm --network test -v $(pwd):/workspace -w /workspace code-snek:pr script/performance_analysis comprehensive_results.log | tee -a performance_analysis.log
+
+      - name: Generate performance summary
+        id: performance-summary
+        run: |
+          echo "📊 Generating performance analytics..."
+
+          # Extract key metrics from the comprehensive results
+          WIN_RATE=$(grep "Overall Win Rate" comprehensive_results.log | grep -o '[0-9.]*%' | head -1 || echo "0%")
+          COMPETITIVE_RATE=$(grep "Competitive Rate" comprehensive_results.log | grep -o '[0-9.]*%' | head -1 || echo "0%")
+          TOTAL_GAMES=$(grep "Total Games" comprehensive_results.log | grep -o '[0-9]*' | head -1 || echo "0")
+          TIMEOUT_RATE=$(grep "Timeout Rate" comprehensive_results.log | grep -o '[0-9.]*%' | head -1 || echo "0%")
+
+          # Create summary badge
+          if [[ "$COMPETITIVE_RATE" == *60* ]] || [[ "$COMPETITIVE_RATE" == *[7-9][0-9]* ]]; then
+            PERFORMANCE_BADGE="🏆 EXCELLENT"
+          elif [[ "$COMPETITIVE_RATE" == *[4-5][0-9]* ]]; then
+            PERFORMANCE_BADGE="👍 GOOD"
+          elif [[ "$COMPETITIVE_RATE" == *[2-3][0-9]* ]]; then
+            PERFORMANCE_BADGE="⚠️ FAIR"
+          else
+            PERFORMANCE_BADGE="❌ NEEDS IMPROVEMENT"
+          fi
+
+          echo "PERFORMANCE_BADGE=$PERFORMANCE_BADGE" >> $GITHUB_ENV
+          echo "WIN_RATE=$WIN_RATE" >> $GITHUB_ENV
+          echo "COMPETITIVE_RATE=$COMPETITIVE_RATE" >> $GITHUB_ENV
+          echo "TOTAL_GAMES=$TOTAL_GAMES" >> $GITHUB_ENV
+          echo "TIMEOUT_RATE=$TIMEOUT_RATE" >> $GITHUB_ENV
+
+      - name: Set comprehensive results to variable
+        uses: actions/github-script@v7
+        id: results-output
+        with:
+          script: |
+            const fs = require('fs');
+            const comprehensive = fs.readFileSync('comprehensive_results.log','utf8').toString();
+            const analysis = fs.readFileSync('performance_analysis.log','utf8').toString();
+            return comprehensive + '\n\n' + analysis;
+          result-encoding: string
+
+      - name: Post comprehensive performance report
+        uses: mshick/add-pr-comment@v2
+        with:
+          message: |
+            # 🤖 Comprehensive Battlesnake Performance Report
+
+            ## 🎯 Quick Summary
+            - **Performance Grade**: ${{ env.PERFORMANCE_BADGE }}
+            - **Win Rate**: ${{ env.WIN_RATE }}
+            - **Competitive Rate**: ${{ env.COMPETITIVE_RATE }} (wins + draws)
+            - **Games Tested**: ${{ env.TOTAL_GAMES }}
+            - **Reliability**: ${{ env.TIMEOUT_RATE }} timeout rate
+
+            ---
+
+            ${{ steps.results-output.outputs.result }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          repo-token-user-login: 'github-actions[bot]'
+          allow-repeats: false
+
+  quick-validation:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '^1.17.1'
+
+      - name: Build the Docker image
+        run: docker build . --file Dockerfile --tag code-snek:pr
+      - name: Setup Docker network
+        run: docker network create test
+      - name: Run the Docker image
+        run: >
+          docker run -d -p 4567:4567 -p 8081:8081 --network test 
+          --name code-snek code-snek:pr
+
+      - name: Wait for services to be ready
+        run: |
+          echo "Waiting for snake services to initialize..."
+          sleep 10
+          timeout 20 bash -c 'until curl -s http://localhost:4567/ > /dev/null; do sleep 1; done'
+          timeout 20 bash -c 'until curl -s http://localhost:8081/ > /dev/null; do sleep 1; done'
+
+      - name: Quick smoke test
+        id: smoke-test
+        run: |
+          echo "🚀 Running quick validation (5 games)..."
+          docker run --rm --network test code-snek:pr script/simulate_royale --mode royale --map standard --width 11 --height 11 --runs 5 | tee -a quick_test.log
+
+      - name: Set quick results to variable
+        uses: actions/github-script@v7
+        id: quick-results
+        with:
+          script: |
+            const fs = require('fs');
+            return fs.readFileSync('quick_test.log','utf8').toString();
+          result-encoding: string
+
+      - name: Post quick validation
+        uses: mshick/add-pr-comment@v2
+        with:
+          message: |
+            ## 🚀 Quick Validation Results
+
+            ${{ steps.quick-results.outputs.result }}
+
+            *Full comprehensive testing results will be posted separately*
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          repo-token-user-login: 'github-actions[bot]'
+          allow-repeats: false

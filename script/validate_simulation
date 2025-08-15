@@ -1,0 +1,221 @@
+#!/bin/bash
+#
+# Simulation Infrastructure Validation
+# 
+# This script validates that the simulation infrastructure is working correctly
+# before running the comprehensive tests.
+#
+
+set -e
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+log_info() { echo -e "${BLUE}ℹ️  $1${NC}"; }
+log_success() { echo -e "${GREEN}✅ $1${NC}"; }
+log_warning() { echo -e "${YELLOW}⚠️  $1${NC}"; }
+log_error() { echo -e "${RED}❌ $1${NC}"; }
+
+# Test battlesnake CLI installation
+test_battlesnake_cli() {
+    log_info "Testing battlesnake CLI installation..."
+    
+    if [ ! -f /root/go/bin/battlesnake ]; then
+        log_info "Installing battlesnake CLI..."
+        export PATH=$PATH:/usr/local/go/bin
+        go install github.com/BattlesnakeOfficial/rules/cli/battlesnake@latest
+    fi
+    
+    if /root/go/bin/battlesnake --version > /dev/null 2>&1; then
+        log_success "Battlesnake CLI is installed and functional"
+    else
+        log_error "Battlesnake CLI installation failed"
+        return 1
+    fi
+}
+
+# Test snake service endpoints
+test_snake_endpoints() {
+    log_info "Testing snake service endpoints..."
+    
+    # Test Ruby snake endpoint
+    local ruby_response=$(curl -s http://code-snek:4567/ 2>/dev/null || echo "")
+    if echo "$ruby_response" | jq . > /dev/null 2>&1; then
+        local ruby_name=$(echo "$ruby_response" | jq -r '.name // "unknown"')
+        log_success "Ruby snake endpoint responsive: $ruby_name"
+    else
+        log_error "Ruby snake endpoint not responding with valid JSON"
+        log_info "Response: $ruby_response"
+        return 1
+    fi
+    
+    # Test pathy snake endpoint  
+    local pathy_response=$(curl -s http://code-snek:8081/ 2>/dev/null || echo "")
+    if echo "$pathy_response" | jq . > /dev/null 2>&1; then
+        local pathy_name=$(echo "$pathy_response" | jq -r '.name // "unknown"')
+        log_success "Pathy snake endpoint responsive: $pathy_name"
+    else
+        log_error "Pathy snake endpoint not responding with valid JSON"
+        log_info "Response: $pathy_response"
+        return 1
+    fi
+}
+
+# Test move endpoints
+test_move_endpoints() {
+    log_info "Testing snake move endpoints..."
+    
+    # Create a simple test game state
+    local test_game_state='{
+        "game": {"id": "test", "ruleset": {"name": "standard"}, "timeout": 500},
+        "turn": 1,
+        "board": {
+            "height": 11,
+            "width": 11,
+            "food": [{"x": 5, "y": 5}],
+            "hazards": [],
+            "snakes": [
+                {
+                    "id": "ruby-test",
+                    "name": "ruby-danger-noodle",
+                    "health": 100,
+                    "body": [{"x": 1, "y": 1}, {"x": 1, "y": 2}],
+                    "head": {"x": 1, "y": 1}
+                }
+            ]
+        },
+        "you": {
+            "id": "ruby-test",
+            "name": "ruby-danger-noodle", 
+            "health": 100,
+            "body": [{"x": 1, "y": 1}, {"x": 1, "y": 2}],
+            "head": {"x": 1, "y": 1}
+        }
+    }'
+    
+    # Test Ruby snake move endpoint
+    local ruby_move=$(curl -s -X POST -H "Content-Type: application/json" \
+        -d "$test_game_state" http://code-snek:4567/move 2>/dev/null || echo "")
+    
+    if echo "$ruby_move" | jq . > /dev/null 2>&1; then
+        local move=$(echo "$ruby_move" | jq -r '.move // "unknown"')
+        if [[ "$move" =~ ^(up|down|left|right)$ ]]; then
+            log_success "Ruby snake move endpoint functional: $move"
+        else
+            log_warning "Ruby snake returned unexpected move: $move"
+        fi
+    else
+        log_error "Ruby snake move endpoint not responding with valid JSON"
+        log_info "Response: $ruby_move"
+        return 1
+    fi
+    
+    # Test pathy snake move endpoint
+    local pathy_move=$(curl -s -X POST -H "Content-Type: application/json" \
+        -d "$test_game_state" http://code-snek:8081/move 2>/dev/null || echo "")
+    
+    if echo "$pathy_move" | jq . > /dev/null 2>&1; then
+        local move=$(echo "$pathy_move" | jq -r '.move // "unknown"')
+        if [[ "$move" =~ ^(up|down|left|right)$ ]]; then
+            log_success "Pathy snake move endpoint functional: $move"
+        else
+            log_warning "Pathy snake returned unexpected move: $move"
+        fi
+    else
+        log_error "Pathy snake move endpoint not responding with valid JSON"
+        log_info "Response: $pathy_move"
+        return 1
+    fi
+}
+
+# Test single game simulation
+test_single_game() {
+    log_info "Testing single game simulation..."
+    
+    local game_output=$(/root/go/bin/battlesnake play -W 11 -H 11 \
+        --name pathy --url http://code-snek:8081/ \
+        --name ruby-danger-noodle --url http://code-snek:4567/ \
+        -g royale -m standard --output /dev/stdout 2>/dev/null || echo "")
+    
+    if echo "$game_output" | jq . > /dev/null 2>&1; then
+        local winner=$(echo "$game_output" | jq -r '.winnerName // .isDraw // "unknown"')
+        local turns=$(echo "$game_output" | jq -r '.turns // 0')
+        
+        if [ "$turns" -gt 0 ]; then
+            log_success "Single game simulation successful: $winner in $turns turns"
+        else
+            log_warning "Game completed but with 0 turns recorded"
+        fi
+    else
+        log_error "Single game simulation failed or returned invalid output"
+        log_info "Output: $(echo "$game_output" | head -3)"
+        return 1
+    fi
+}
+
+# Test performance metrics
+test_performance_metrics() {
+    log_info "Testing performance metrics collection..."
+    
+    local start_time=$(date +%s.%N)
+    
+    # Run a quick single game for timing
+    /root/go/bin/battlesnake play -W 7 -H 7 \
+        --name pathy --url http://code-snek:8081/ \
+        --name ruby-danger-noodle --url http://code-snek:4567/ \
+        -g royale -m standard --output /dev/null 2>/dev/null || true
+    
+    local end_time=$(date +%s.%N)
+    local duration=$(echo "$end_time - $start_time" | bc)
+    
+    if (( $(echo "$duration < 30.0" | bc -l) )); then
+        log_success "Performance metrics: Single game completed in ${duration}s"
+    else
+        log_warning "Performance metrics: Single game took ${duration}s (may be slow)"
+    fi
+}
+
+# Main validation function
+main() {
+    echo "🧪 Battlesnake Simulation Infrastructure Validation"
+    echo "=================================================="
+    echo ""
+    
+    local failures=0
+    
+    # Run all validation tests
+    test_battlesnake_cli || ((failures++))
+    echo ""
+    
+    test_snake_endpoints || ((failures++))
+    echo ""
+    
+    test_move_endpoints || ((failures++))
+    echo ""
+    
+    test_single_game || ((failures++))
+    echo ""
+    
+    test_performance_metrics || ((failures++))
+    echo ""
+    
+    # Summary
+    if [ $failures -eq 0 ]; then
+        log_success "All validation tests passed! ✨"
+        log_info "Simulation infrastructure is ready for comprehensive testing"
+        return 0
+    else
+        log_error "$failures validation test(s) failed"
+        log_info "Please fix the issues before running comprehensive simulations"
+        return 1
+    fi
+}
+
+# Execute if called directly
+if [ "${BASH_SOURCE[0]}" == "${0}" ]; then
+    main "$@"
+fi

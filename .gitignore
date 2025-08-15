@@ -6,4 +6,5 @@ battlesnake
 /snakes/go/*/tmp/
 .air.toml
 coverage/
-.bundle/vendor/bundle/
+.bundle/
+vendor/

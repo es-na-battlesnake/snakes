@@ -78,23 +78,37 @@ setup_battlesnake() {
     export PATH=$PATH:/usr/local/go/bin:/root/go/bin
     export GOPATH=/root/go
     
-    # Find battlesnake CLI
+    # Find battlesnake CLI more robustly
     CLI_PATH=""
-    for path in /root/go/bin/battlesnake /usr/local/go/bin/battlesnake $(which battlesnake 2>/dev/null); do
+    for path in /root/go/bin/battlesnake /usr/local/go/bin/battlesnake /usr/bin/battlesnake $(which battlesnake 2>/dev/null) ./battlesnake; do
         if [ -x "$path" ]; then
             CLI_PATH="$path"
             break
         fi
     done
     
-    # If not found, try to install it
+    # If not found, try to install it using different methods
     if [ -z "$CLI_PATH" ]; then
         log_info "Installing battlesnake CLI..."
-        if go install github.com/BattlesnakeOfficial/rules/cli/battlesnake@latest 2>/dev/null; then
+        
+        # Try go install first
+        if command -v go >/dev/null && go install github.com/BattlesnakeOfficial/rules/cli/battlesnake@latest 2>/dev/null; then
             CLI_PATH="/root/go/bin/battlesnake"
             log_success "Battlesnake CLI installed at: $CLI_PATH"
-        else
+        elif command -v curl >/dev/null; then
+            # Try downloading precompiled binary
+            log_info "Downloading precompiled battlesnake binary..."
+            curl -sL "https://github.com/BattlesnakeOfficial/rules/releases/latest/download/battlesnake-linux-amd64" -o "./battlesnake" 2>/dev/null
+            if [ -f "./battlesnake" ]; then
+                chmod +x "./battlesnake"
+                CLI_PATH="./battlesnake"
+                log_success "Battlesnake CLI downloaded at: $CLI_PATH"
+            fi
+        fi
+        
+        if [ -z "$CLI_PATH" ]; then
             log_error "Failed to install battlesnake CLI"
+            log_error "Please install Go and run: go install github.com/BattlesnakeOfficial/rules/cli/battlesnake@latest"
             exit 1
         fi
     else
@@ -156,13 +170,56 @@ run_configuration() {
         local response_time=$(echo "$end_time - $start_time" | bc)
         config_response_times+=($response_time)
         
-        # Extract game results
-        local result=$(tail -1 game_output.log | jq -c "if .isDraw then {winner: \"draw\", turns: .turns} else {winner: .winnerName, turns: .turns} end" 2>/dev/null || echo '{"winner": "error", "turns": 0}')
+        # Extract game results from battlesnake CLI output
+        # The CLI may output different formats, so we need robust parsing
+        local winner="error"
+        local turns=0
+        
+        if [ -f game_output.log ]; then
+            # Try different parsing approaches for battlesnake CLI output
+            local last_line=$(tail -1 game_output.log)
+            
+            # First, try standard JSON format
+            if echo "$last_line" | jq . >/dev/null 2>&1; then
+                winner=$(echo "$last_line" | jq -r 'if .isDraw then "draw" elif .winner then .winner elif .winnerName then .winnerName else "error" end' 2>/dev/null || echo "error")
+                turns=$(echo "$last_line" | jq -r '.turns // .turn // 0' 2>/dev/null || echo "0")
+            else
+                # Try to parse non-JSON output formats
+                # Look for patterns like "Winner: snake-name" or "Draw" in the output
+                if grep -q "Winner:" game_output.log; then
+                    winner=$(grep "Winner:" game_output.log | tail -1 | sed 's/.*Winner: *//; s/ *$//')
+                    turns=$(grep -o "Turn [0-9]*" game_output.log | tail -1 | grep -o "[0-9]*" || echo "0")
+                elif grep -q "Draw" game_output.log; then
+                    winner="draw"
+                    turns=$(grep -o "Turn [0-9]*" game_output.log | tail -1 | grep -o "[0-9]*" || echo "0")
+                elif grep -q "ruby-danger-noodle" game_output.log; then
+                    # Parse from log content
+                    if grep -q "ruby-danger-noodle.*eliminated" game_output.log; then
+                        winner="pathy"
+                    else
+                        winner="ruby-danger-noodle"
+                    fi
+                    turns=$(grep -o "Turn [0-9]*" game_output.log | tail -1 | grep -o "[0-9]*" || echo "0")
+                fi
+            fi
+        fi
+        
+        # Store result for logging
+        local result="{\"winner\": \"$winner\", \"turns\": $turns}"
         echo "$result" >> "$winner_file"
         
-        # Parse result
-        local winner=$(echo "$result" | jq -r .winner)
-        local turns=$(echo "$result" | jq -r .turns)
+        # Determine result with enhanced details
+        local result_detail=""
+        if [ -f game_output.log ]; then
+            # Try to extract elimination reason
+            if grep -q "ruby-danger-noodle.*eliminated" game_output.log; then
+                result_detail=$(grep "ruby-danger-noodle.*eliminated" game_output.log | tail -1 | sed 's/.*eliminated by //' | sed 's/[^a-zA-Z0-9_-].*$//')
+            elif grep -q "pathy.*eliminated" game_output.log; then
+                result_detail="opponent eliminated"
+            elif [ "$winner" = "draw" ]; then
+                result_detail="mutual elimination"
+            fi
+        fi
         
         if [ "$turns" != "null" ] && [ "$turns" != "0" ]; then
             config_total_turns=$((config_total_turns + turns))
@@ -171,19 +228,19 @@ run_configuration() {
         case "$winner" in
             "ruby-danger-noodle")
                 config_wins=$((config_wins + 1))
-                echo "WIN (${turns} turns)"
+                echo "WIN (${turns} turns) ${result_detail}"
                 ;;
             "draw")
                 config_draws=$((config_draws + 1))
-                echo "DRAW (${turns} turns)"
+                echo "DRAW (${turns} turns) ${result_detail}"
                 ;;
             "pathy")
                 config_losses=$((config_losses + 1))
-                echo "LOSS (${turns} turns)"
+                echo "LOSS (${turns} turns) ${result_detail}"
                 ;;
             *)
                 config_timeouts=$((config_timeouts + 1))
-                echo "TIMEOUT/ERROR"
+                echo "TIMEOUT/ERROR (${turns} turns) ${result_detail}"
                 ;;
         esac
     done
@@ -216,8 +273,12 @@ run_configuration() {
 - **Timeouts**: $config_timeouts
 "
     
-    # Clean up temporary files
-    rm -f "$winner_file" "$performance_file" "game_output.log"
+    # Clean up temporary files (preserve for debugging if DEBUG env var is set)
+    if [ "${DEBUG:-}" != "1" ]; then
+        rm -f "$winner_file" "$performance_file" "game_output.log"
+    else
+        log_info "Debug mode: preserving log files ${winner_file}, ${performance_file}, game_output.log"
+    fi
     
     log_success "Configuration $config_name completed: Win Rate ${win_rate}%, Competitive Rate ${competitive_rate}%"
 }

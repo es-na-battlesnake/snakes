@@ -80,17 +80,35 @@ if [[ $verbose ]]; then
     verbose_flag="-v"
 fi
 
-# If /root/go/bin/battlesnake does not exist, then install it
-if [ ! -f /root/go/bin/battlesnake ]; then
-    export PATH=$PATH:/usr/local/go/bin
-    # Install and redirect all output to /dev/null unless verbose mode is enabled
+# Set up paths and find battlesnake CLI
+export PATH=$PATH:/usr/local/go/bin:/root/go/bin
+export GOPATH=/root/go
+
+# Find battlesnake CLI
+CLI_PATH=""
+for path in /root/go/bin/battlesnake /usr/local/go/bin/battlesnake $(which battlesnake 2>/dev/null); do
+    if [ -x "$path" ]; then
+        CLI_PATH="$path"
+        break
+    fi
+done
+
+# If not found, try to install it
+if [ -z "$CLI_PATH" ]; then
     if [[ $verbose ]]; then
-        echo "Installing battlesnake"
-        go install github.com/BattlesnakeOfficial/rules/cli/battlesnake@latest
-    else
-        go install github.com/BattlesnakeOfficial/rules/cli/battlesnake@latest > /dev/null
+        echo "Installing battlesnake CLI..."
     fi
     
+    if go install github.com/BattlesnakeOfficial/rules/cli/battlesnake@latest 2>/dev/null; then
+        CLI_PATH="/root/go/bin/battlesnake"
+    else
+        echo "Error: Unable to install battlesnake CLI"
+        exit 1
+    fi
+fi
+
+if [[ $verbose ]]; then
+    echo "Using battlesnake CLI at: $CLI_PATH"
 fi
 
 #battlesnake play -W 11 -H 11 --name ruby-danger-noodle --url http://code-snek:4567/ --name code-snake --url http://code-snek:4568/  --name bevns --url http://code-snek:4569/ --name wilsonwong1990 --url http://code-snek:4570/ -g royale -v
@@ -134,7 +152,7 @@ echo "\`\`\`"
 # Run command $runs times and record "is the winner" line of output to a file.
 for i in $(seq 1 $runs); do
     echo -n "Run [$i/$runs] "
-    /root/go/bin/battlesnake play -W $width -H $height \
+    "$CLI_PATH" play -W $width -H $height \
     --name pathy --url http://code-snek:8081/ \
     --name ruby-danger-noodle --url http://code-snek:4567/ \
     -g $mode \

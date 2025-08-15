@@ -72,14 +72,37 @@ check_services() {
     fi
 }
 
-# Install battlesnake CLI if needed
-install_battlesnake() {
-    if [ ! -f /root/go/bin/battlesnake ]; then
+# Setup battlesnake CLI
+setup_battlesnake() {
+    # Set up paths
+    export PATH=$PATH:/usr/local/go/bin:/root/go/bin
+    export GOPATH=/root/go
+    
+    # Find battlesnake CLI
+    CLI_PATH=""
+    for path in /root/go/bin/battlesnake /usr/local/go/bin/battlesnake $(which battlesnake 2>/dev/null); do
+        if [ -x "$path" ]; then
+            CLI_PATH="$path"
+            break
+        fi
+    done
+    
+    # If not found, try to install it
+    if [ -z "$CLI_PATH" ]; then
         log_info "Installing battlesnake CLI..."
-        export PATH=$PATH:/usr/local/go/bin
-        go install github.com/BattlesnakeOfficial/rules/cli/battlesnake@latest > /dev/null
-        log_success "Battlesnake CLI installed"
+        if go install github.com/BattlesnakeOfficial/rules/cli/battlesnake@latest 2>/dev/null; then
+            CLI_PATH="/root/go/bin/battlesnake"
+            log_success "Battlesnake CLI installed at: $CLI_PATH"
+        else
+            log_error "Failed to install battlesnake CLI"
+            exit 1
+        fi
+    else
+        log_success "Using battlesnake CLI at: $CLI_PATH"
     fi
+    
+    # Export CLI_PATH for use in other functions
+    export CLI_PATH
     
     # Install bc for calculations if not available
     if ! command -v bc &> /dev/null; then
@@ -120,7 +143,7 @@ run_configuration() {
         
         # Run the game
         local start_time=$(date +%s.%N)
-        /root/go/bin/battlesnake play -W $width -H $height \
+        "$CLI_PATH" play -W $width -H $height \
             --name pathy --url http://code-snek:8081/ \
             --name ruby-danger-noodle --url http://code-snek:4567/ \
             -g $mode \
@@ -280,7 +303,7 @@ main() {
     
     # Prerequisites
     check_services
-    install_battlesnake
+    setup_battlesnake
     
     echo ""
     log_info "Running comprehensive test suite..."

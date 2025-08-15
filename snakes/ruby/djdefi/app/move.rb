@@ -5,12 +5,12 @@ require 'set'
 $VERBOSE = nil
 $stdout.sync = true
 
-# A* pathfinding to find the safest path to food
-def a_star_to_food(board_state)
+# A* pathfinding to find the safest path to food - optimized version
+def a_star_to_food(board_state, start_time = nil, timeout_limit = nil)
   return nil if board_state[:food].empty?
   
   closest_food = board_state[:food].min_by { |f| manhattan_distance(board_state[:head], f) }
-  path = a_star_pathfind(board_state[:head], closest_food, board_state)
+  path = a_star_pathfind_optimized(board_state[:head], closest_food, board_state, start_time, timeout_limit)
   
   return nil if path.nil? || path.length < 2
   
@@ -24,14 +24,23 @@ def manhattan_distance(point1, point2)
   (point1[:x] - point2[:x]).abs + (point1[:y] - point2[:y]).abs
 end
 
-# A* pathfinding algorithm
-def a_star_pathfind(start, goal, board_state)
+# A* pathfinding algorithm - optimized version with timeout and max iterations
+def a_star_pathfind_optimized(start, goal, board_state, start_time = nil, timeout_limit = nil)
   open_set = [start]
   came_from = {}
   g_score = { start => 0 }
   f_score = { start => manhattan_distance(start, goal) }
+  max_iterations = 200  # Limit iterations for performance
+  iterations = 0
   
-  while !open_set.empty?
+  while !open_set.empty? && iterations < max_iterations
+    iterations += 1
+    
+    # Check timeout every 10 iterations
+    if start_time && timeout_limit && iterations % 10 == 0
+      return nil if (Time.now - start_time) > timeout_limit
+    end
+    
     current = open_set.min_by { |node| f_score[node] || Float::INFINITY }
     
     return reconstruct_path(came_from, current) if current == goal
@@ -52,7 +61,7 @@ def a_star_pathfind(start, goal, board_state)
     end
   end
   
-  nil # No path found
+  nil # No path found or timeout
 end
 
 # Get safe neighbors for pathfinding
@@ -112,14 +121,23 @@ def reconstruct_path(came_from, current)
   path
 end
 
-# Flood fill to avoid dead ends
-def flood_fill_from(start_pos, board_state)
+# Flood fill to avoid dead ends - optimized version with early termination
+def flood_fill_from(start_pos, board_state, max_depth = nil)
+  return 0 if max_depth == 0
+  
   visited = Set.new
   queue = [start_pos]
   visited.add(start_pos)
+  depth = 0
   
   while !queue.empty?
     current = queue.shift
+    depth += 1
+    
+    # Early termination for performance - if we have enough space, return early
+    if max_depth && depth >= max_depth
+      return depth
+    end
     
     adjacent_cells(current[:x], current[:y]).each do |neighbor|
       next if visited.include?(neighbor)
@@ -134,16 +152,29 @@ def flood_fill_from(start_pos, board_state)
   visited.size
 end
 
-# Get the move direction that leads to the largest space
-def get_space_control_move(board_state)
+# Cached space control calculation to avoid repeated flood fills
+def get_space_control_move_optimized(board_state, start_time, timeout_limit)
   best_move = nil
   largest_space = 0
+  space_cache = {}
   
   board_state[:head_neighbors].each do |neighbor|
+    return { move: best_move, space_size: largest_space } if check_timeout(start_time, timeout_limit)
+    
     next if is_wall_for_board?(neighbor[:x], neighbor[:y], board_state)
     next if is_occupied_for_board?(neighbor[:x], neighbor[:y], board_state)
     
-    space_size = flood_fill_from(neighbor, board_state)
+    neighbor_key = "#{neighbor[:x]},#{neighbor[:y]}"
+    
+    # Use cached result if available
+    if space_cache[neighbor_key]
+      space_size = space_cache[neighbor_key]
+    else
+      # Limit flood fill depth for performance
+      required_space = [board_state[:length] * 3, 30].min
+      space_size = flood_fill_from(neighbor, board_state, required_space + 10)
+      space_cache[neighbor_key] = space_size
+    end
     
     if space_size > largest_space
       largest_space = space_size
@@ -192,9 +223,15 @@ end
 def move(board)
   # Record the start time of the turn
   start_time = Time.now
+  move_timeout = 0.45 # 450ms timeout to stay well under 500ms limit
+  
+  # Timeout checking function
+  def check_timeout(start_time, timeout_limit)
+    (Time.now - start_time) > timeout_limit
+  end
 
   # Health find threshold variable clamped to 0-100
-  @health_threshold = 99
+  @health_threshold = 75  # Reduced from 99 for more aggressive food seeking
   @health_threshold.clamp(0, 100)
 
   #puts board
@@ -844,7 +881,7 @@ def move(board)
 
   # 1. Second priority: Use A* pathfinding if we need food and health is low
   if @health < @health_threshold && !@food.empty?
-    astar_move = a_star_to_food(board_state)
+    astar_move = a_star_to_food(board_state, start_time, move_timeout)
     if astar_move && @possible_moves.include?(astar_move)
       puts "Using A* pathfinding to get food: #{astar_move}"
       @move_direction = astar_move
@@ -891,8 +928,10 @@ def move(board)
 
   # 3. Fourth priority: Space control - avoid getting trapped, but ensure minimum safety
   unless @move_direction
-    space_control = get_space_control_move(board_state)
-    min_space_required = [(@width * @height * 0.3).to_i, @length * 2].max
+    return { move: @move_direction } if check_timeout(start_time, move_timeout)
+    
+    space_control = get_space_control_move_optimized(board_state, start_time, move_timeout)
+    min_space_required = [(@width * @height * 0.2).to_i, @length * 1.5].max  # Reduced requirements
     
     # Only use space control if the move is safe and has adequate space
     if space_control[:space_size] >= min_space_required && space_control[:move] && @possible_moves.include?(space_control[:move])
@@ -916,11 +955,13 @@ def move(board)
 
   # 4. Fifth priority: Attack weaker snakes if we're significantly longer
   unless @move_direction
+    return { move: @move_direction } if check_timeout(start_time, move_timeout)
+    
     @snakes_info.each do |snake|
-      if snake[:length] < @length - 3
+      if snake[:length] < @length - 2  # Reduced from -3 for more aggressive play
         attack_direction = direction_between(@head[:x], @head[:y], snake[:head][:x], snake[:head][:y])
         if @possible_moves.include?(attack_direction)
-          # But only attack if we won't get trapped
+          # But only attack if we won't get trapped - use limited flood fill for performance
           next_pos = case attack_direction
                     when 'up' then { x: @head[:x], y: @head[:y] + 1 }
                     when 'down' then { x: @head[:x], y: @head[:y] - 1 }
@@ -928,8 +969,8 @@ def move(board)
                     when 'right' then { x: @head[:x] + 1, y: @head[:y] }
                     end
           
-          space_after_attack = flood_fill_from(next_pos, board_state)
-          if space_after_attack >= @length + 5
+          space_after_attack = flood_fill_from(next_pos, board_state, @length + 3)  # Limited depth
+          if space_after_attack >= @length + 2  # Reduced requirement
             puts "Attacking weaker snake #{snake[:name]}: #{attack_direction}"
             @move_direction = attack_direction
             break
@@ -939,9 +980,11 @@ def move(board)
     end
   end
 
-  # 5. Sixth priority: Avoid predicted enemy moves
+  # 5. Sixth priority: Avoid predicted enemy moves (simplified for performance)
   unless @move_direction
-    enemy_predictions = predict_enemy_moves(board_state)
+    return { move: @move_direction } if check_timeout(start_time, move_timeout)
+    
+    # Simplified enemy prediction - only consider immediate threats
     safe_moves = @possible_moves.select do |move|
       next_pos = case move
                 when 'up' then { x: @head[:x], y: @head[:y] + 1 }
@@ -950,15 +993,16 @@ def move(board)
                 when 'right' then { x: @head[:x] + 1, y: @head[:y] }
                 end
       
-      # Check if any predicted enemy move would collide with our next position
+      # Check if any enemy head could move to our next position
       safe = true
-      enemy_predictions.each do |enemy_id, predicted_pos|
-        if predicted_pos && predicted_pos[:x] == next_pos[:x] && predicted_pos[:y] == next_pos[:y]
-          enemy_snake = @snakes.find { |s| s[:id] == enemy_id }
-          if enemy_snake && enemy_snake[:length] >= @length
-            safe = false
-            break
-          end
+      @snakes_heads_not_my_head.each do |enemy_head|
+        enemy_snake = @snakes.find { |s| s[:head] == enemy_head }
+        next unless enemy_snake
+        
+        # If enemy is adjacent and equal/stronger length, avoid head-to-head
+        if manhattan_distance(next_pos, enemy_head) <= 1 && enemy_snake[:length] >= @length
+          safe = false
+          break
         end
       end
       safe
@@ -972,7 +1016,7 @@ def move(board)
       end
       
       if best_safe_move
-        puts "Using safe move avoiding enemy predictions: #{best_safe_move}"
+        puts "Using safe move avoiding enemy threats: #{best_safe_move}"
         @move_direction = best_safe_move
       end
     end
@@ -988,6 +1032,12 @@ def move(board)
     end
   end
 
+  # Emergency timeout fallback - if we're taking too long, just pick a safe move
+  if check_timeout(start_time, move_timeout) && !@move_direction
+    puts "TIMEOUT FALLBACK: Using emergency move selection"
+    @move_direction = @possible_moves.first || 'up'
+  end
+
   #puts "Move direction is: #{@move_direction} - highest score is: #{@highest_score[:score]} - turn is: #{@highest_score[:types]} to the #{@highest_score[:direction]}"
 
   #TODO Function to use A* to find the safest path to food
@@ -996,7 +1046,13 @@ def move(board)
 
   # Output the end time in ms
   end_time = Time.now
-  puts "End time is: #{end_time} - took #{end_time - start_time} seconds"
+  execution_time = end_time - start_time
+  puts "End time is: #{end_time} - took #{execution_time} seconds"
+  
+  # Warn if execution is getting close to timeout
+  if execution_time > 0.4
+    puts "WARNING: Move calculation took #{execution_time}s - approaching timeout!"
+  end
 
   debug = false
 # Debug output, only if debug is true

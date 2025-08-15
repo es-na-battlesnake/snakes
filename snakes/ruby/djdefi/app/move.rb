@@ -231,7 +231,7 @@ def move(board)
   end
 
   # Health find threshold variable clamped to 0-100
-  @health_threshold = 75  # Reduced from 99 for more aggressive food seeking
+  @health_threshold = 85  # Increased to match pathy's conservative strategy
   @health_threshold.clamp(0, 100)
 
   #puts board
@@ -412,7 +412,7 @@ def move(board)
                   end.empty?
   end
 
-  @all_occupied_cells = (@snakes_heads + @snakes_bodies + @head.to_a + @body).flatten
+  @all_occupied_cells = (@snakes_heads + @snakes_bodies + [@head] + @body).flatten
 
   # x, y coordinates hash of all empty cells on the board
   @empty_cells = @board_hash - @all_occupied_cells + @food
@@ -799,18 +799,19 @@ def move(board)
   # @possible_moves = ['up', 'down', 'left', 'right']
   # If head is at edge of board, then remove the direction from @possible_moves
   if @game_mode != 'wrapped'
-    @possible_moves.delete('left') if (@head[:x]).zero?
-    @possible_moves.delete('right') if @head[:x] == @width - 1
-    @possible_moves.delete('down') if (@head[:y]).zero?
-    @possible_moves.delete('up') if @head[:y] == @height - 1
+    # Critical: More robust wall detection
+    @possible_moves.delete('left') if @head[:x] <= 0
+    @possible_moves.delete('right') if @head[:x] >= @width - 1
+    @possible_moves.delete('down') if @head[:y] <= 0
+    @possible_moves.delete('up') if @head[:y] >= @height - 1
   end
 
   # If game mode is 'wrapped', and head is at edge of board, then add the direction off the edge of the board to @possible_moves
   if @game_mode == 'wrapped'
-    @possible_moves.push('left') if (@head[:x]).zero?
-    @possible_moves.push('right') if @head[:x] == @width - 1
-    @possible_moves.push('down') if (@head[:y]).zero?
-    @possible_moves.push('up') if @head[:y] == @height - 1
+    @possible_moves.push('left') if @head[:x] <= 0
+    @possible_moves.push('right') if @head[:x] >= @width - 1
+    @possible_moves.push('down') if @head[:y] <= 0
+    @possible_moves.push('up') if @head[:y] >= @height - 1
   end
 
   # Once our snake's length is greater than that of any other snake.
@@ -855,7 +856,41 @@ def move(board)
     game_mode: @game_mode
   }
 
-  # Enhanced decision making with advanced algorithms
+  # Enhanced decision making with advanced algorithms - SAFETY FIRST
+  
+  # CRITICAL: Basic survival - remove moves that lead to immediate death
+  unless @move_direction
+    safe_basic_moves = @possible_moves.select do |move|
+      next_pos = case move
+                when 'up' then { x: @head[:x], y: @head[:y] + 1 }
+                when 'down' then { x: @head[:x], y: @head[:y] - 1 }
+                when 'left' then { x: @head[:x] - 1, y: @head[:y] }
+                when 'right' then { x: @head[:x] + 1, y: @head[:y] }
+                end
+      
+      # Skip if nil (shouldn't happen but safety check)
+      next false unless next_pos
+      
+      # Check walls for non-wrapped mode
+      if @game_mode != 'wrapped'
+        next false if next_pos[:x] < 0 || next_pos[:x] >= @width || next_pos[:y] < 0 || next_pos[:y] >= @height
+      end
+      
+      # Check snake body collisions (including our own body)
+      next false if @all_occupied_cells.any? { |cell| cell.is_a?(Hash) && cell[:x] == next_pos[:x] && cell[:y] == next_pos[:y] }
+      
+      # Move is safe
+      true
+    end
+    
+    # If we have safe basic moves, use only those
+    if safe_basic_moves.length > 0
+      @possible_moves = safe_basic_moves
+      puts "Filtered to safe basic moves: #{@possible_moves}"
+    else
+      puts "WARNING: No safe basic moves found! All moves: #{@possible_moves}"
+    end
+  end
   
   # 0. First priority: Basic safety - avoid hazards when there are safe alternatives
   unless @move_direction
@@ -879,12 +914,47 @@ def move(board)
     end
   end
 
-  # 1. Second priority: Use A* pathfinding if we need food and health is low
+  # 1. Second priority: Use A* pathfinding if we need food and health is low - but be smarter about food selection
   if @health < @health_threshold && !@food.empty?
-    astar_move = a_star_to_food(board_state, start_time, move_timeout)
-    if astar_move && @possible_moves.include?(astar_move)
-      puts "Using A* pathfinding to get food: #{astar_move}"
-      @move_direction = astar_move
+    # Better food selection - avoid food that's dangerous or surrounded
+    safe_food = @food.select do |food|
+      # Don't go for food next to enemy snake heads (like pathy does)
+      food_neighbors = adjacent_cells(food[:x], food[:y])
+      dangerous_food = @snakes_heads_not_my_head.any? do |enemy_head|
+        food_neighbors.any? { |fn| fn[:x] == enemy_head[:x] && fn[:y] == enemy_head[:y] }
+      end
+      
+      # Don't go for food in hazards
+      in_hazard = @hazards.any? { |h| h[:x] == food[:x] && h[:y] == food[:y] }
+      
+      # Check if food is "surrounded" - less than 2 open adjacent cells
+      open_neighbors = food_neighbors.count do |neighbor|
+        # Skip walls
+        next false if @game_mode != 'wrapped' && (neighbor[:x] < 0 || neighbor[:x] >= @width || neighbor[:y] < 0 || neighbor[:y] >= @height)
+        # Skip occupied cells
+        next false if @all_occupied_cells.any? { |cell| cell[:x] == neighbor[:x] && cell[:y] == neighbor[:y] }
+        # Skip hazards
+        next false if @hazards.any? { |h| h[:x] == neighbor[:x] && h[:y] == neighbor[:y] }
+        true
+      end
+      
+      surrounded = open_neighbors < 2
+      
+      # Food is safe if it's not dangerous, not in hazard, and not surrounded
+      !dangerous_food && !in_hazard && !surrounded
+    end
+    
+    # Use safe food if available, otherwise fall back to any food
+    target_food = safe_food.empty? ? @food : safe_food
+    
+    unless target_food.empty?
+      # Use board_state with safe food list
+      safe_board_state = board_state.merge(food: target_food)
+      astar_move = a_star_to_food(safe_board_state, start_time, move_timeout)
+      if astar_move && @possible_moves.include?(astar_move)
+        puts "Using A* pathfinding to get safe food: #{astar_move} (safe foods: #{safe_food.length}/#{@food.length})"
+        @move_direction = astar_move
+      end
     end
   end
 
@@ -980,11 +1050,11 @@ def move(board)
     end
   end
 
-  # 5. Sixth priority: Avoid predicted enemy moves (simplified for performance)
+  # 5. Sixth priority: Enhanced enemy collision avoidance (similar to pathy's approach)
   unless @move_direction
     return { move: @move_direction } if check_timeout(start_time, move_timeout)
     
-    # Simplified enemy prediction - only consider immediate threats
+    # More sophisticated enemy prediction and avoidance
     safe_moves = @possible_moves.select do |move|
       next_pos = case move
                 when 'up' then { x: @head[:x], y: @head[:y] + 1 }
@@ -993,22 +1063,57 @@ def move(board)
                 when 'right' then { x: @head[:x] + 1, y: @head[:y] }
                 end
       
-      # Check if any enemy head could move to our next position
+      # Check against all enemy snakes
       safe = true
       @snakes_heads_not_my_head.each do |enemy_head|
         enemy_snake = @snakes.find { |s| s[:head] == enemy_head }
         next unless enemy_snake
         
-        # If enemy is adjacent and equal/stronger length, avoid head-to-head
-        if manhattan_distance(next_pos, enemy_head) <= 1 && enemy_snake[:length] >= @length
-          safe = false
-          break
+        # Get enemy's possible next positions
+        enemy_neighbors = adjacent_cells(enemy_head[:x], enemy_head[:y])
+        enemy_possible_moves = enemy_neighbors.select do |neighbor|
+          # Enemy can move here if it's not a wall and not occupied (simplified)
+          valid_for_enemy = true
+          if @game_mode != 'wrapped'
+            valid_for_enemy = false if neighbor[:x] < 0 || neighbor[:x] >= @width || neighbor[:y] < 0 || neighbor[:y] >= @height
+          end
+          valid_for_enemy = false if @all_occupied_cells.any? { |cell| cell[:x] == neighbor[:x] && cell[:y] == neighbor[:y] }
+          valid_for_enemy
+        end
+        
+        # If enemy is equal or larger length, avoid head-to-head collisions
+        if enemy_snake[:length] >= @length
+          # Check if our next position conflicts with enemy's possible moves
+          conflict = enemy_possible_moves.any? { |emp| emp[:x] == next_pos[:x] && emp[:y] == next_pos[:y] }
+          if conflict
+            safe = false
+            break
+          end
+        else
+          # If enemy is smaller, we can be more aggressive but still be cautious
+          # Only avoid if we're right next to them (distance 1)
+          if manhattan_distance(next_pos, enemy_head) <= 1
+            # Check if we're moving towards them
+            distance_now = manhattan_distance(@head, enemy_head)
+            distance_next = manhattan_distance(next_pos, enemy_head)
+            if distance_next <= distance_now  # Moving closer or same distance
+              # Be aggressive only if we're significantly longer
+              if enemy_snake[:length] < @length - 1
+                # Allow aggressive move
+              else
+                safe = false
+                break
+              end
+            end
+          end
         end
       end
       safe
     end
     
-    if !safe_moves.empty?
+    if !safe_moves.empty? && safe_moves.length < @possible_moves.length
+      puts "Enhanced enemy avoidance: #{@possible_moves.length - safe_moves.length} moves filtered, safe moves: #{safe_moves}"
+      
       # Choose the safest move with highest score
       best_safe_move = safe_moves.max_by do |move|
         turn = @possible_turns.find { |t| t[:direction] == move }
@@ -1016,19 +1121,73 @@ def move(board)
       end
       
       if best_safe_move
-        puts "Using safe move avoiding enemy threats: #{best_safe_move}"
+        puts "Using enhanced safe move: #{best_safe_move}"
         @move_direction = best_safe_move
       end
     end
   end
 
-  # 6. Final fallback: Use the highest scoring move that's actually possible
+  # 6. Final fallback: Use the highest scoring move that's actually possible and safe
   unless @move_direction
     if @highest_score.nil? || !@possible_moves.include?(@highest_score[:direction])
       # Choose any possible move (prefer ones that aren't walls)
       @move_direction = @possible_moves.first || 'up'
     else
       @move_direction = @highest_score[:direction]
+    end
+  end
+
+  # CRITICAL: Final emergency safety validation before committing to move
+  if @move_direction
+    # Calculate where this move will take us
+    final_next_pos = case @move_direction
+                    when 'up' then { x: @head[:x], y: @head[:y] + 1 }
+                    when 'down' then { x: @head[:x], y: @head[:y] - 1 }
+                    when 'left' then { x: @head[:x] - 1, y: @head[:y] }
+                    when 'right' then { x: @head[:x] + 1, y: @head[:y] }
+                    end
+    
+    # Emergency check for walls
+    if @game_mode != 'wrapped'
+      if final_next_pos[:x] < 0 || final_next_pos[:x] >= @width || final_next_pos[:y] < 0 || final_next_pos[:y] >= @height
+        puts "EMERGENCY: Move #{@move_direction} would hit wall! Finding safe alternative..."
+        emergency_safe_moves = ['up', 'down', 'left', 'right'].select do |emove|
+          epos = case emove
+                when 'up' then { x: @head[:x], y: @head[:y] + 1 }
+                when 'down' then { x: @head[:x], y: @head[:y] - 1 }
+                when 'left' then { x: @head[:x] - 1, y: @head[:y] }
+                when 'right' then { x: @head[:x] + 1, y: @head[:y] }
+                end
+          # Must be within bounds
+          epos[:x] >= 0 && epos[:x] < @width && epos[:y] >= 0 && epos[:y] < @height &&
+          # Must not be occupied
+          !@all_occupied_cells.any? { |cell| cell.is_a?(Hash) && cell[:x] == epos[:x] && cell[:y] == epos[:y] }
+        end
+        @move_direction = emergency_safe_moves.first || 'up'
+        puts "Emergency safe move selected: #{@move_direction}"
+      end
+    end
+    
+    # Emergency check for body collisions
+    if @all_occupied_cells.any? { |cell| cell.is_a?(Hash) && cell[:x] == final_next_pos[:x] && cell[:y] == final_next_pos[:y] }
+      puts "EMERGENCY: Move #{@move_direction} would hit body! Finding safe alternative..."
+      emergency_safe_moves = ['up', 'down', 'left', 'right'].select do |emove|
+        epos = case emove
+              when 'up' then { x: @head[:x], y: @head[:y] + 1 }
+              when 'down' then { x: @head[:x], y: @head[:y] - 1 }
+              when 'left' then { x: @head[:x] - 1, y: @head[:y] }
+              when 'right' then { x: @head[:x] + 1, y: @head[:y] }
+              end
+        # Must be within bounds
+        safe_bounds = true
+        if @game_mode != 'wrapped'
+          safe_bounds = epos[:x] >= 0 && epos[:x] < @width && epos[:y] >= 0 && epos[:y] < @height
+        end
+        # Must not be occupied
+        safe_bounds && !@all_occupied_cells.any? { |cell| cell.is_a?(Hash) && cell[:x] == epos[:x] && cell[:y] == epos[:y] }
+      end
+      @move_direction = emergency_safe_moves.first || 'up'
+      puts "Emergency safe move selected: #{@move_direction}"
     end
   end
 

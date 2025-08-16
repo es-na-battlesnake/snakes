@@ -171,56 +171,80 @@ run_configuration() {
         config_response_times+=($response_time)
         
         # Extract game results from battlesnake CLI output
-        # The CLI may output different formats, so we need robust parsing
+        # The CLI outputs JSON lines: game states + final result
         local winner="error"
         local turns=0
+        local elimination_reason=""
         
         if [ -f game_output.log ]; then
-            # Try different parsing approaches for battlesnake CLI output
-            local last_line=$(tail -1 game_output.log)
+            # Parse the final result line (last line with winner info)
+            local final_result_line=$(tail -1 game_output.log)
             
-            # First, try standard JSON format
-            if echo "$last_line" | jq . >/dev/null 2>&1; then
-                winner=$(echo "$last_line" | jq -r 'if .isDraw then "draw" elif .winner then .winner elif .winnerName then .winnerName else "error" end' 2>/dev/null || echo "error")
-                turns=$(echo "$last_line" | jq -r '.turns // .turn // 0' 2>/dev/null || echo "0")
-            else
-                # Try to parse non-JSON output formats
-                # Look for patterns like "Winner: snake-name" or "Draw" in the output
-                if grep -q "Winner:" game_output.log; then
-                    winner=$(grep "Winner:" game_output.log | tail -1 | sed 's/.*Winner: *//; s/ *$//')
-                    turns=$(grep -o "Turn [0-9]*" game_output.log | tail -1 | grep -o "[0-9]*" || echo "0")
-                elif grep -q "Draw" game_output.log; then
+            # Check if final line is the result JSON
+            if echo "$final_result_line" | jq . >/dev/null 2>&1 && echo "$final_result_line" | jq -e 'has("isDraw")' >/dev/null 2>&1; then
+                # Parse winner from final result
+                local is_draw=$(echo "$final_result_line" | jq -r '.isDraw // false')
+                if [ "$is_draw" = "true" ]; then
                     winner="draw"
-                    turns=$(grep -o "Turn [0-9]*" game_output.log | tail -1 | grep -o "[0-9]*" || echo "0")
-                elif grep -q "ruby-danger-noodle" game_output.log; then
-                    # Parse from log content
-                    if grep -q "ruby-danger-noodle.*eliminated" game_output.log; then
-                        winner="pathy"
-                    else
+                    elimination_reason="mutual elimination"
+                else
+                    local winner_name=$(echo "$final_result_line" | jq -r '.winnerName // ""')
+                    if [ "$winner_name" = "ruby-danger-noodle" ]; then
                         winner="ruby-danger-noodle"
+                        elimination_reason="opponent eliminated"
+                    elif [ "$winner_name" = "pathy" ]; then
+                        winner="pathy"
+                        elimination_reason="eliminated"
+                    else
+                        winner="error"
                     fi
-                    turns=$(grep -o "Turn [0-9]*" game_output.log | tail -1 | grep -o "[0-9]*" || echo "0")
+                fi
+                
+                # Extract turn count from the second-to-last JSON line (last game state)
+                local last_game_state=$(tail -2 game_output.log | head -1)
+                if echo "$last_game_state" | jq . >/dev/null 2>&1 && echo "$last_game_state" | jq -e 'has("turn")' >/dev/null 2>&1; then
+                    turns=$(echo "$last_game_state" | jq -r '.turn // 0')
+                    # Turn count should be the final turn + 1 for total game length
+                    turns=$((turns + 1))
+                else
+                    # Fallback: count all JSON game state lines (excluding first config and last result)
+                    turns=$(grep -c '^{.*"turn":' game_output.log 2>/dev/null || echo "0")
+                fi
+            else
+                # Fallback to text parsing for older CLI versions
+                if grep -q "Game completed after.*turns" game_output.log; then
+                    turns=$(grep "Game completed after.*turns" game_output.log | grep -o '[0-9]\+' | head -1)
+                    if grep -q "It was a draw" game_output.log; then
+                        winner="draw"
+                        elimination_reason="mutual elimination"
+                    else
+                        # Try to determine winner from game state
+                        winner="error"
+                    fi
+                else
+                    turns="0"
+                    winner="error"
+                fi
+            fi
+            
+            # Enhanced elimination reason detection
+            if [ "$winner" = "pathy" ] && [ -z "$elimination_reason" ]; then
+                # Analyze why ruby-danger-noodle lost
+                if [ "$turns" -lt "5" ]; then
+                    elimination_reason="early collision"
+                elif grep -q '"health":0' game_output.log; then
+                    elimination_reason="starvation"
+                else
+                    elimination_reason="collision"
                 fi
             fi
         fi
         
         # Store result for logging
-        local result="{\"winner\": \"$winner\", \"turns\": $turns}"
+        local result="{\"winner\": \"$winner\", \"turns\": $turns, \"reason\": \"$elimination_reason\"}"
         echo "$result" >> "$winner_file"
         
-        # Determine result with enhanced details
-        local result_detail=""
-        if [ -f game_output.log ]; then
-            # Try to extract elimination reason
-            if grep -q "ruby-danger-noodle.*eliminated" game_output.log; then
-                result_detail=$(grep "ruby-danger-noodle.*eliminated" game_output.log | tail -1 | sed 's/.*eliminated by //' | sed 's/[^a-zA-Z0-9_-].*$//')
-            elif grep -q "pathy.*eliminated" game_output.log; then
-                result_detail="opponent eliminated"
-            elif [ "$winner" = "draw" ]; then
-                result_detail="mutual elimination"
-            fi
-        fi
-        
+        # Display result with enhanced details
         if [ "$turns" != "null" ] && [ "$turns" != "0" ]; then
             config_total_turns=$((config_total_turns + turns))
         fi
@@ -228,19 +252,19 @@ run_configuration() {
         case "$winner" in
             "ruby-danger-noodle")
                 config_wins=$((config_wins + 1))
-                echo "WIN (${turns} turns) ${result_detail}"
+                echo "WIN (${turns} turns) ${elimination_reason}"
                 ;;
             "draw")
                 config_draws=$((config_draws + 1))
-                echo "DRAW (${turns} turns) ${result_detail}"
+                echo "DRAW (${turns} turns) ${elimination_reason}"
                 ;;
             "pathy")
                 config_losses=$((config_losses + 1))
-                echo "LOSS (${turns} turns) ${result_detail}"
+                echo "LOSS (${turns} turns) ${elimination_reason}"
                 ;;
             *)
                 config_timeouts=$((config_timeouts + 1))
-                echo "TIMEOUT/ERROR (${turns} turns) ${result_detail}"
+                echo "TIMEOUT/ERROR (${turns} turns) ${elimination_reason}"
                 ;;
         esac
     done
@@ -339,6 +363,43 @@ generate_analysis() {
     
     echo "- 📈 **Continuous Monitoring**: Track performance trends across commits"
     echo "- 🔍 **Detailed Analysis**: Review individual game logs for strategic insights"
+    
+    echo ""
+    echo "## 🔍 Game Analysis & Debugging Information"
+    echo ""
+    echo "### Key Insights from this Run:"
+    
+    # Analyze average game length for insights
+    local avg_game_turns=$(awk "BEGIN {printf \"%.0f\", ($TOTAL_WINS + $TOTAL_DRAWS + $TOTAL_LOSSES > 0) ? 1 : 1}")
+    if [ "$TOTAL_RUNS" -gt 0 ] && [ "$TOTAL_WINS" -gt 0 ]; then
+        echo "- 🎮 **Game Duration**: Games averaging meaningful turn counts indicate proper battlesnake execution"
+        echo "- 📊 **Win Pattern**: ${TOTAL_WINS} wins out of ${TOTAL_RUNS} games shows strategic effectiveness"
+        
+        if awk "BEGIN {exit ($overall_win_rate > 40.0) ? 0 : 1}"; then
+            echo "- 🏆 **Strong Performance**: Win rate above 40% indicates competitive AI"
+        elif awk "BEGIN {exit ($overall_win_rate > 20.0) ? 0 : 1}"; then
+            echo "- ⚠️  **Moderate Performance**: Win rate suggests room for improvement"
+            echo "- 💡 **Focus Areas**: Consider enhancing food-seeking and collision avoidance"
+        else
+            echo "- 🔧 **Performance Issues**: Low win rate indicates AI strategy needs review"
+            echo "- 🚨 **Priority Fix**: Check for early game crashes or poor pathfinding"
+        fi
+    fi
+    
+    # Provide debugging guidance
+    echo ""
+    echo "### Debugging Tips:"
+    echo "- 🐛 **For Low Win Rates**: Check logs for collision patterns and food-seeking behavior"
+    echo "- ⏱️ **For Short Games**: Investigate early elimination reasons (collision, bounds, timeouts)"
+    echo "- 🎯 **For Strategic Improvements**: Analyze opponent movement patterns and space control"
+    
+    if [ "${DEBUG:-}" = "1" ]; then
+        echo "- 📁 **Debug Mode**: Game logs preserved for detailed analysis"
+        echo "  - Check 'game_output.log' files for individual game details"
+        echo "  - Analyze JSON game states for move decision insights"
+    else
+        echo "- 🔧 **Enable Debug Mode**: Set DEBUG=1 to preserve game logs for deeper analysis"
+    fi
     
     echo ""
     echo "## 🔧 Technical Performance"

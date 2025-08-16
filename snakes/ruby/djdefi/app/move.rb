@@ -808,10 +808,11 @@ def move(board)
 
   # If game mode is 'wrapped', and head is at edge of board, then add the direction off the edge of the board to @possible_moves
   if @game_mode == 'wrapped'
-    @possible_moves.push('left') if @head[:x] <= 0
-    @possible_moves.push('right') if @head[:x] >= @width - 1
-    @possible_moves.push('down') if @head[:y] <= 0
-    @possible_moves.push('up') if @head[:y] >= @height - 1
+    # SURGICAL FIX: Ensure all directions are available in wrapped mode
+    ['up', 'down', 'left', 'right'].each do |direction|
+      @possible_moves.push(direction) unless @possible_moves.include?(direction)
+    end
+    puts "Wrapped mode: All directions available: #{@possible_moves}"
   end
 
   # Once our snake's length is greater than that of any other snake.

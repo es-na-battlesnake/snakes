@@ -3,7 +3,7 @@
 
 ENV['RACK_ENV'] = 'test'
 
-require 'minitest/autorun'
+require 'rspec'
 require 'rack/test'
 
 # If an argument is passed, chdir to ../../snakes/<arg>/
@@ -15,9 +15,10 @@ else
   require_relative '../app'
 end
 
-
-include Rack::Test::Methods
-
-def app
-  Sinatra::Application
+RSpec.configure do |config|
+  config.include Rack::Test::Methods
+  
+  def app
+    Sinatra::Application
+  end
 end

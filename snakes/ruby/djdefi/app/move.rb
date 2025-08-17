@@ -127,7 +127,7 @@ def move(board)
     response_time = ((Time.now - start_time) * 1000).round(2)
     puts "TOURNAMENT: Turn #{board_state[:turn]}, Move: #{tournament_move}, Response: #{response_time}ms"
     
-    return tournament_move
+    return { move: tournament_move }
     
   rescue => e
     # Emergency fallback with tournament-level safety
@@ -136,7 +136,7 @@ def move(board)
     
     emergency_move = get_tournament_emergency_move(board)
     puts "TOURNAMENT EMERGENCY: Using emergency move #{emergency_move}"
-    return emergency_move
+    return { move: emergency_move }
   end
 end
 

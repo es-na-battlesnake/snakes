@@ -26,7 +26,7 @@ module TournamentEngine
     strategy = select_optimal_strategy(board_state, tournament_context)
     
     # Phase 3: Advanced Move Generation and Scoring
-    candidate_moves = generate_tournament_moves(board_state, strategy, start_time, timeout_limit)
+    candidate_moves = generate_tournament_moves(board_state, strategy, tournament_context, start_time, timeout_limit)
     
     # Phase 4: Tournament-Aware Move Selection
     optimal_move = select_tournament_move(candidate_moves, board_state, tournament_context)
@@ -119,7 +119,7 @@ module TournamentEngine
   end
   
   # Generate tournament-level move candidates
-  def generate_tournament_moves(board_state, strategy, start_time, timeout_limit)
+  def generate_tournament_moves(board_state, strategy, tournament_context, start_time, timeout_limit)
     candidate_moves = []
     safe_moves = get_safe_moves_comprehensive(board_state)
     
@@ -133,7 +133,7 @@ module TournamentEngine
       
       # Comprehensive move scoring
       move_score = calculate_tournament_move_score(
-        next_pos, move_direction, board_state, strategy, context
+        next_pos, move_direction, board_state, strategy, tournament_context
       )
       
       candidate_moves << {

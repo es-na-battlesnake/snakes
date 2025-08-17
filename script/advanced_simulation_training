@@ -159,24 +159,33 @@ extract_detailed_game_data() {
         fi
     done < "$game_log"
     
-    # Parse final result
+    # Parse final result - CLI outputs JSON game states followed by result line
     local final_result_line=$(tail -1 "$game_log")
     local winner="unknown"
     local final_turn=0
     local elimination_reason="unknown"
     
-    if echo "$final_result_line" | jq -e 'has("isDraw")' >/dev/null 2>&1; then
-        winner=$(echo "$final_result_line" | jq -r '.winnerName // "draw"')
+    if echo "$final_result_line" | jq -e 'has("winnerName") or has("isDraw")' >/dev/null 2>&1; then
         local is_draw=$(echo "$final_result_line" | jq -r '.isDraw // false')
+        
         if [ "$is_draw" = "true" ]; then
             winner="draw"
             elimination_reason="mutual_elimination"
+        else
+            winner=$(echo "$final_result_line" | jq -r '.winnerName // "unknown"')
         fi
         
-        # Get final turn from second-to-last state
-        local last_state=$(tail -2 "$game_log" | head -1)
-        if echo "$last_state" | jq -e 'has("turn")' >/dev/null 2>&1; then
-            final_turn=$(echo "$last_state" | jq -r '.turn')
+        # Get final turn from last game state
+        local game_states_count=$(grep -c '"turn":' "$game_log" 2>/dev/null || echo "0")
+        if [ "$game_states_count" -gt 0 ]; then
+            local last_game_state=$(grep '"turn":' "$game_log" | tail -1)
+            if echo "$last_game_state" | jq -e 'has("turn")' >/dev/null 2>&1; then
+                final_turn=$(echo "$last_game_state" | jq -r '.turn')
+                # Add 1 since turns start at 0
+                final_turn=$((final_turn + 1))
+            else
+                final_turn="$game_states_count"
+            fi
         fi
     fi
     

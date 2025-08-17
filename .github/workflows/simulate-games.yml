@@ -65,73 +65,104 @@ jobs:
           echo "🧪 Validating simulation infrastructure..."
           docker run --rm --network test code-snek:pr script/validate_simulation
 
-      - name: Run comprehensive simulation suite
-        id: comprehensive-simulation
+      - name: Run advanced elite training system
+        id: elite-training
         run: |
-          echo "🐍 Starting comprehensive battlesnake performance testing..."
-          docker run --rm --network test code-snek:pr script/comprehensive_simulation | tee -a comprehensive_results.log
+          echo "🧠 Starting Elite Battlesnake Training System..."
+          docker run --rm --network test -e DEBUG=1 code-snek:pr script/advanced_simulation_training 2 25 | tee -a elite_training_results.log
 
-      - name: Generate performance analysis
-        id: performance-analysis
+      - name: Generate elite performance analysis
+        id: elite-analysis
         run: |
-          echo "📊 Generating performance trend analysis..."
-          docker run --rm --network test -v $(pwd):/workspace -w /workspace code-snek:pr script/performance_analysis comprehensive_results.log | tee -a performance_analysis.log
+          echo "📊 Generating elite performance analysis..."
+          docker run --rm --network test -v $(pwd):/workspace -w /workspace code-snek:pr python3 script/elite_performance_analyzer.py --data-dir /tmp/battlesnake_training_data --output elite_analysis_report.md | tee -a elite_analysis.log
 
-      - name: Generate performance summary
-        id: performance-summary
+      - name: Generate elite performance summary
+        id: elite-summary
         run: |
-          echo "📊 Generating performance analytics..."
+          echo "📊 Generating elite performance metrics..."
 
-          # Extract key metrics from the comprehensive results
-          WIN_RATE=$(grep "Overall Win Rate" comprehensive_results.log | grep -o '[0-9.]*%' | head -1 || echo "0%")
-          COMPETITIVE_RATE=$(grep "Competitive Rate" comprehensive_results.log | grep -o '[0-9.]*%' | head -1 || echo "0%")
-          TOTAL_GAMES=$(grep "Total Games" comprehensive_results.log | grep -o '[0-9]*' | head -1 || echo "0")
-          TIMEOUT_RATE=$(grep "Timeout Rate" comprehensive_results.log | grep -o '[0-9.]*%' | head -1 || echo "0%")
+          # Extract key metrics from the elite training results
+          WIN_RATE=$(grep -o '[0-9.]*% win rate' elite_training_results.log | tail -1 | grep -o '[0-9.]*' || echo "0")
+          COMPETITIVE_RATE=$(grep -o '[0-9.]*% competitive rate' elite_training_results.log | tail -1 | grep -o '[0-9.]*' || echo "0")
+          TOTAL_GAMES=$(grep "Total Games" elite_training_results.log | grep -o '[0-9]*' | tail -1 || echo "0")
+          TIMEOUT_RATE=$(grep "Timeout Rate" elite_training_results.log | grep -o '[0-9.]*%' | tail -1 || echo "0%")
+          
+          # Check for elite performance markers
+          ELITE_GRADE=$(grep "Performance Grade" elite_training_results.log | tail -1 || echo "UNKNOWN")
 
-          # Create summary badge
-          if [[ "$COMPETITIVE_RATE" == *60* ]] || [[ "$COMPETITIVE_RATE" == *[7-9][0-9]* ]]; then
-            PERFORMANCE_BADGE="🏆 EXCELLENT"
-          elif [[ "$COMPETITIVE_RATE" == *[4-5][0-9]* ]]; then
-            PERFORMANCE_BADGE="👍 GOOD"
-          elif [[ "$COMPETITIVE_RATE" == *[2-3][0-9]* ]]; then
-            PERFORMANCE_BADGE="⚠️ FAIR"
+          # Create elite performance badge
+          if (( $(echo "$COMPETITIVE_RATE >= 90" | bc -l 2>/dev/null || echo 0) )); then
+            PERFORMANCE_BADGE="🏆 ELITE (90%+)"
+          elif (( $(echo "$COMPETITIVE_RATE >= 75" | bc -l 2>/dev/null || echo 0) )); then
+            PERFORMANCE_BADGE="🌟 EXCELLENT (75%+)"
+          elif (( $(echo "$COMPETITIVE_RATE >= 60" | bc -l 2>/dev/null || echo 0) )); then
+            PERFORMANCE_BADGE="👍 GOOD (60%+)"
+          elif (( $(echo "$COMPETITIVE_RATE >= 40" | bc -l 2>/dev/null || echo 0) )); then
+            PERFORMANCE_BADGE="⚠️ FAIR (40%+)"
           else
-            PERFORMANCE_BADGE="❌ NEEDS IMPROVEMENT"
+            PERFORMANCE_BADGE="❌ NEEDS IMPROVEMENT (<40%)"
           fi
 
           echo "PERFORMANCE_BADGE=$PERFORMANCE_BADGE" >> $GITHUB_ENV
-          echo "WIN_RATE=$WIN_RATE" >> $GITHUB_ENV
-          echo "COMPETITIVE_RATE=$COMPETITIVE_RATE" >> $GITHUB_ENV
+          echo "WIN_RATE=${WIN_RATE}%" >> $GITHUB_ENV
+          echo "COMPETITIVE_RATE=${COMPETITIVE_RATE}%" >> $GITHUB_ENV
           echo "TOTAL_GAMES=$TOTAL_GAMES" >> $GITHUB_ENV
           echo "TIMEOUT_RATE=$TIMEOUT_RATE" >> $GITHUB_ENV
+          echo "ELITE_GRADE=$ELITE_GRADE" >> $GITHUB_ENV
 
-      - name: Set comprehensive results to variable
+      - name: Set elite training results to variable
         uses: actions/github-script@v7
-        id: results-output
+        id: elite-results-output
         with:
           script: |
             const fs = require('fs');
-            const comprehensive = fs.readFileSync('comprehensive_results.log','utf8').toString();
-            const analysis = fs.readFileSync('performance_analysis.log','utf8').toString();
-            return comprehensive + '\n\n' + analysis;
+            let output = '';
+            
+            try {
+              const training = fs.readFileSync('elite_training_results.log','utf8').toString();
+              output += training + '\n\n';
+            } catch(e) {
+              output += 'Elite training results not available\n\n';
+            }
+            
+            try {
+              const analysis = fs.readFileSync('elite_analysis.log','utf8').toString();
+              output += analysis + '\n\n';
+            } catch(e) {
+              output += 'Elite analysis not available\n\n';
+            }
+            
+            try {
+              const report = fs.readFileSync('elite_analysis_report.md','utf8').toString();
+              output += '## 📊 Detailed Analysis Report\n\n' + report;
+            } catch(e) {
+              output += 'Detailed report not available';
+            }
+            
+            return output;
           result-encoding: string
 
-      - name: Post comprehensive performance report
+      - name: Post elite training performance report
         uses: mshick/add-pr-comment@v2
         with:
           message: |
-            # 🤖 Comprehensive Battlesnake Performance Report
+            # 🧠 Elite Battlesnake Training Report
 
-            ## 🎯 Quick Summary
+            ## 🎯 Elite Performance Summary
             - **Performance Grade**: ${{ env.PERFORMANCE_BADGE }}
             - **Win Rate**: ${{ env.WIN_RATE }}
             - **Competitive Rate**: ${{ env.COMPETITIVE_RATE }} (wins + draws)
-            - **Games Tested**: ${{ env.TOTAL_GAMES }}
+            - **Games Analyzed**: ${{ env.TOTAL_GAMES }}
             - **Reliability**: ${{ env.TIMEOUT_RATE }} timeout rate
+            - **Training Level**: ${{ env.ELITE_GRADE }}
+
+            ## 🚀 Progress Toward 90% Goal
+            $([ "$COMPETITIVE_RATE" -ge "90" ] 2>/dev/null && echo "🏆 **GOAL ACHIEVED!** Elite performance reached!" || echo "⏳ Training continues toward 90% competitive rate target")
 
             ---
 
-            ${{ steps.results-output.outputs.result }}
+            ${{ steps.elite-results-output.outputs.result }}
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           repo-token-user-login: 'github-actions[bot]'
           allow-repeats: false

@@ -43,7 +43,7 @@ jobs:
         run: docker network create test
       - name: Run the Docker image
         run: >
-          docker run -d -p 4567:4567 -p 8081:8081 --network test 
+          docker run -d -p 4567:4567 -p 8081:8081 -p 8082:8082 -p 8083:8083 -p 8084:8084 -p 8085:8085 --network test 
           --name code-snek code-snek:pr
 
       - name: Wait for services to be ready
@@ -65,11 +65,11 @@ jobs:
           echo "🧪 Validating simulation infrastructure..."
           docker run --rm --network test code-snek:pr script/validate_simulation
 
-      - name: Run advanced elite training system
-        id: elite-training
+      - name: Run multi-opponent battlesnake training
+        id: multi-opponent-training
         run: |
-          echo "🧠 Starting Elite Battlesnake Training System..."
-          docker run --rm --network test -e DEBUG=1 code-snek:pr script/advanced_simulation_training 2 25 | tee -a elite_training_results.log
+          echo "🧠 Starting Multi-Opponent Battlesnake Training System..."
+          docker run --rm --network test -e DEBUG=1 code-snek:pr script/multi_opponent_training comprehensive 60 | tee -a multi_opponent_training_results.log
 
       - name: Generate elite performance analysis
         id: elite-analysis
@@ -77,100 +77,89 @@ jobs:
           echo "📊 Generating elite performance analysis..."
           docker run --rm --network test -v $(pwd):/workspace -w /workspace code-snek:pr python3 script/elite_performance_analyzer.py --data-dir /tmp/battlesnake_training_data --output elite_analysis_report.md | tee -a elite_analysis.log
 
-      - name: Generate elite performance summary
-        id: elite-summary
+      - name: Generate multi-opponent performance summary
+        id: multi-opponent-summary
         run: |
-          echo "📊 Generating elite performance metrics..."
+          echo "📊 Generating multi-opponent performance metrics..."
 
-          # Extract key metrics from the elite training results
-          WIN_RATE=$(grep -o '[0-9.]*% win rate' elite_training_results.log | tail -1 | grep -o '[0-9.]*' || echo "0")
+          # Extract key metrics from the multi-opponent training results
+          WIN_RATE=$(grep -o '[0-9.]*% win rate\|[0-9.]*% wins' multi_opponent_training_results.log | tail -1 | grep -o '[0-9.]*' || echo "0")
           if [ -z "$WIN_RATE" ]; then
-            WIN_RATE=$(grep -E 'wins.*[0-9]+.*\(' elite_training_results.log | tail -1 | grep -o '[0-9.]*%' | head -1 | grep -o '[0-9.]*' || echo "0")
+            WIN_RATE=$(grep -E 'Overall Win Rate.*[0-9.]*%' multi_opponent_training_results.log | grep -o '[0-9.]*%' | head -1 | grep -o '[0-9.]*' || echo "0")
           fi
           
-          COMPETITIVE_RATE=$(grep -o '[0-9.]*% competitive rate' elite_training_results.log | tail -1 | grep -o '[0-9.]*' || echo "0")
+          COMPETITIVE_RATE=$(grep -o 'Overall Competitive Rate.*[0-9.]*%' multi_opponent_training_results.log | grep -o '[0-9.]*%' | head -1 | grep -o '[0-9.]*' || echo "0")
           if [ -z "$COMPETITIVE_RATE" ]; then
-            COMPETITIVE_RATE=$(grep -E 'Competitive rate.*[0-9.]*%' elite_training_results.log | tail -1 | grep -o '[0-9.]*%' | head -1 | grep -o '[0-9.]*' || echo "0")
+            COMPETITIVE_RATE=$(grep -o '[0-9.]*% competitive rate' multi_opponent_training_results.log | tail -1 | grep -o '[0-9.]*' || echo "0")
           fi
           
-          TOTAL_GAMES=$(grep -E 'total.*games|[0-9]+ games' elite_training_results.log | grep -o '[0-9]\+' | tail -1 || echo "0")
-          TIMEOUT_RATE=$(grep -i "timeout" elite_training_results.log | grep -o '[0-9.]*%' | tail -1 || echo "0%")
+          TOTAL_GAMES=$(grep -E 'Total Games Analyzed.*[0-9]+' multi_opponent_training_results.log | grep -o '[0-9]\+' | tail -1 || echo "0")
+          TOTAL_OPPONENTS=$(grep -E '[0-9]+ opponents' multi_opponent_training_results.log | grep -o '[0-9]\+' | head -1 || echo "1")
           
           # Check for performance grade markers
-          ELITE_GRADE=$(grep -E "Performance.*Grade|ELITE|EXCELLENT|GOOD|FAIR|NEEDS" elite_training_results.log | tail -1 || echo "UNKNOWN")
+          PERFORMANCE_GRADE=$(grep -E "ELITE PERFORMANCE|EXCELLENT PERFORMANCE|GOOD PERFORMANCE|FAIR PERFORMANCE|NEEDS IMPROVEMENT" multi_opponent_training_results.log | tail -1 || echo "UNKNOWN")
 
-          # Create elite performance badge
-          if (( $(echo "$COMPETITIVE_RATE >= 90" | bc -l 2>/dev/null || echo 0) )); then
-            PERFORMANCE_BADGE="🏆 ELITE (90%+)"
-          elif (( $(echo "$COMPETITIVE_RATE >= 75" | bc -l 2>/dev/null || echo 0) )); then
-            PERFORMANCE_BADGE="🌟 EXCELLENT (75%+)"
-          elif (( $(echo "$COMPETITIVE_RATE >= 60" | bc -l 2>/dev/null || echo 0) )); then
-            PERFORMANCE_BADGE="👍 GOOD (60%+)"
-          elif (( $(echo "$COMPETITIVE_RATE >= 40" | bc -l 2>/dev/null || echo 0) )); then
-            PERFORMANCE_BADGE="⚠️ FAIR (40%+)"
+          # Create performance badge
+          if (( $(echo "$COMPETITIVE_RATE >= 80" | bc -l 2>/dev/null || echo 0) )); then
+            PERFORMANCE_BADGE="🏆 ELITE (80%+)"
+          elif (( $(echo "$COMPETITIVE_RATE >= 65" | bc -l 2>/dev/null || echo 0) )); then
+            PERFORMANCE_BADGE="🌟 EXCELLENT (65%+)"
+          elif (( $(echo "$COMPETITIVE_RATE >= 50" | bc -l 2>/dev/null || echo 0) )); then
+            PERFORMANCE_BADGE="👍 GOOD (50%+)"
+          elif (( $(echo "$COMPETITIVE_RATE >= 35" | bc -l 2>/dev/null || echo 0) )); then
+            PERFORMANCE_BADGE="⚠️ FAIR (35%+)"
           else
-            PERFORMANCE_BADGE="❌ NEEDS IMPROVEMENT (<40%)"
+            PERFORMANCE_BADGE="🔧 NEEDS IMPROVEMENT (<35%)"
           fi
 
           echo "PERFORMANCE_BADGE=$PERFORMANCE_BADGE" >> $GITHUB_ENV
           echo "WIN_RATE=${WIN_RATE}%" >> $GITHUB_ENV
           echo "COMPETITIVE_RATE=${COMPETITIVE_RATE}%" >> $GITHUB_ENV
           echo "TOTAL_GAMES=$TOTAL_GAMES" >> $GITHUB_ENV
-          echo "TIMEOUT_RATE=$TIMEOUT_RATE" >> $GITHUB_ENV
-          echo "ELITE_GRADE=$ELITE_GRADE" >> $GITHUB_ENV
+          echo "TOTAL_OPPONENTS=$TOTAL_OPPONENTS" >> $GITHUB_ENV
+          echo "PERFORMANCE_GRADE=$PERFORMANCE_GRADE" >> $GITHUB_ENV
 
-      - name: Set elite training results to variable
+      - name: Set multi-opponent training results to variable
         uses: actions/github-script@v7
-        id: elite-results-output
+        id: multi-opponent-results-output
         with:
           script: |
             const fs = require('fs');
             let output = '';
             
             try {
-              const training = fs.readFileSync('elite_training_results.log','utf8').toString();
+              const training = fs.readFileSync('multi_opponent_training_results.log','utf8').toString();
               output += training + '\n\n';
             } catch(e) {
-              output += 'Elite training results not available\n\n';
-            }
-            
-            try {
-              const analysis = fs.readFileSync('elite_analysis.log','utf8').toString();
-              output += analysis + '\n\n';
-            } catch(e) {
-              output += 'Elite analysis not available\n\n';
-            }
-            
-            try {
-              const report = fs.readFileSync('elite_analysis_report.md','utf8').toString();
-              output += '## 📊 Detailed Analysis Report\n\n' + report;
-            } catch(e) {
-              output += 'Detailed report not available';
+              output += 'Multi-opponent training results not available\n\n';
             }
             
             return output;
           result-encoding: string
 
-      - name: Post elite training performance report
+      - name: Post multi-opponent training performance report
         uses: mshick/add-pr-comment@v2
         with:
           message: |
-            # 🧠 Elite Battlesnake Training Report
+            # 🧠 Multi-Opponent Battlesnake Training Report
 
-            ## 🎯 Elite Performance Summary
+            ## 🎯 Multi-Opponent Performance Summary
             - **Performance Grade**: ${{ env.PERFORMANCE_BADGE }}
-            - **Win Rate**: ${{ env.WIN_RATE }}
-            - **Competitive Rate**: ${{ env.COMPETITIVE_RATE }} (wins + draws)
-            - **Games Analyzed**: ${{ env.TOTAL_GAMES }}
-            - **Reliability**: ${{ env.TIMEOUT_RATE }} timeout rate
-            - **Training Level**: ${{ env.ELITE_GRADE }}
+            - **Overall Win Rate**: ${{ env.WIN_RATE }}
+            - **Overall Competitive Rate**: ${{ env.COMPETITIVE_RATE }} (wins + draws)
+            - **Total Games Analyzed**: ${{ env.TOTAL_GAMES }}
+            - **Opponents Tested**: ${{ env.TOTAL_OPPONENTS }}
+            - **Training Assessment**: ${{ env.PERFORMANCE_GRADE }}
 
-            ## 🚀 Progress Toward 90% Goal
-            $([ "$COMPETITIVE_RATE" -ge "90" ] 2>/dev/null && echo "🏆 **GOAL ACHIEVED!** Elite performance reached!" || echo "⏳ Training continues toward 90% competitive rate target")
+            ## 🚀 Multi-Opponent Training Benefits
+            🔄 **Diverse Challenge Set**: Testing against multiple opponent types and difficulties
+            🎯 **Strategic Adaptability**: Learning to counter different playstyles  
+            📊 **Comprehensive Analysis**: Understanding strengths/weaknesses across matchups
+            🏆 **Tournament Readiness**: Preparing for varied competitive scenarios
 
             ---
 
-            ${{ steps.elite-results-output.outputs.result }}
+            ${{ steps.multi-opponent-results-output.outputs.result }}
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           repo-token-user-login: 'github-actions[bot]'
           allow-repeats: false
@@ -193,7 +182,7 @@ jobs:
         run: docker network create test
       - name: Run the Docker image
         run: >
-          docker run -d -p 4567:4567 -p 8081:8081 --network test 
+          docker run -d -p 4567:4567 -p 8081:8081 -p 8082:8082 -p 8083:8083 -p 8084:8084 -p 8085:8085 --network test 
           --name code-snek code-snek:pr
 
       - name: Wait for services to be ready

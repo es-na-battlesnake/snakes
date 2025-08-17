@@ -86,7 +86,7 @@ module TournamentEngine
   
   # Select optimal strategy based on tournament context
   def select_optimal_strategy(board_state, context)
-    # Base strategy selection matrix
+    # Base strategy selection matrix with enhanced tournament logic
     strategy = case [context[:game_phase], context[:competitive_position]]
              when [:early_game, :dominating], [:early_game, :leading]
                :aggressive_expansion
@@ -106,11 +106,13 @@ module TournamentEngine
                :endgame_survival
              end
     
-    # Strategy modifiers based on specific conditions
-    if board_state[:health] < 30 && context[:food_density] < 0.05
+    # Strategy modifiers based on specific tournament conditions
+    if board_state[:health] < 25 && context[:food_density] < 0.05
       strategy = :emergency_food_seeking
-    elsif context[:territory_analysis][:space_advantage] < 0.3
+    elsif context[:territory_analysis][:space_advantage] < 0.2
       strategy = :space_control_priority
+    elsif context[:turn_number] > 200 && context[:competitive_position] == :dominating
+      strategy = :tournament_victory_consolidation # New elite strategy
     end
     
     strategy
@@ -194,31 +196,41 @@ module TournamentEngine
       
       distance = manhattan_distance(position, enemy_head)
       
-      # Head-to-head collision analysis
+      # Enhanced head-to-head collision analysis
       if distance <= 1
         if enemy_snake[:length] >= board_state[:length]
-          safety_score -= 500 # Losing or equal head-to-head
+          safety_score -= 600 # Increased penalty for losing head-to-head
         else
-          safety_score += 50  # Winning head-to-head
+          safety_score += 75  # Increased bonus for winning head-to-head
         end
       elsif distance <= 2
         if enemy_snake[:length] > board_state[:length]
-          safety_score -= 200 # Dangerous proximity
+          safety_score -= 250 # More aggressive avoidance of larger snakes
+        elsif enemy_snake[:length] < board_state[:length]
+          safety_score += 25  # Slight bonus for pressuring smaller snakes
         end
       end
     end
     
-    # Hazard penalty
+    # Hazard penalty with urgency factor
     if board_state[:hazards].any? { |h| h[:x] == position[:x] && h[:y] == position[:y] }
-      safety_score -= 300
+      health_factor = [board_state[:health] / 100.0, 1.0].min
+      safety_score -= (400 * health_factor).to_i # Dynamic hazard penalty based on health
     end
     
-    # Wall proximity penalty (tournament players avoid edges)
+    # Enhanced wall proximity penalty for tournament play
     wall_distance = [position[:x], position[:y], 
                     board_state[:width] - 1 - position[:x],
                     board_state[:height] - 1 - position[:y]].min
     
-    safety_score -= (3 - wall_distance) * 15 if wall_distance < 3
+    # More aggressive wall avoidance in tournament
+    if wall_distance == 0
+      safety_score -= 100 # Penalty for edge moves
+    elsif wall_distance == 1
+      safety_score -= 50  # Penalty for near-edge moves
+    elsif wall_distance <= 2
+      safety_score -= 20  # Light penalty for wall proximity
+    end
     
     safety_score
   end
@@ -468,6 +480,22 @@ module TournamentEngine
         food_distance_after = manhattan_distance(position, nearest_food)
         if food_distance_after < food_distance_before
           bonus += 200
+        end
+      end
+    
+    when :tournament_victory_consolidation
+      # Elite strategy for maintaining tournament leads
+      # Focus on space control and avoiding unnecessary risks
+      space_bonus = flood_fill_from_position_optimized(position, board_state, 50)
+      bonus += [space_bonus, 150].min
+      
+      # Avoid close contact with enemies when leading
+      board_state[:snakes_heads_not_my_head].each do |enemy_head|
+        distance = manhattan_distance(position, enemy_head)
+        if distance < 4
+          bonus -= 30 # Penalty for getting too close
+        elsif distance > 8
+          bonus += 20 # Bonus for maintaining safe distance
         end
       end
     end

@@ -51,7 +51,17 @@ class ElitePerformanceAnalyzer:
         
         if not cycle_data:
             print("❌ No cycle data found for analysis")
-            return
+            # Create basic infrastructure status report even with no data
+            report = self.generate_infrastructure_status_report()
+            if report:
+                report_file = self.analysis_dir / f"infrastructure_status_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
+                with open(report_file, 'w') as f:
+                    f.write(report)
+                print(f"📊 Infrastructure status report generated: {report_file}")
+                return report
+            else:
+                print("❌ No analysis could be performed")
+                return None
         
         # Sort by cycle ID
         cycle_data.sort(key=lambda x: int(x.get('cycle_id', 0)))
@@ -247,6 +257,52 @@ class ElitePerformanceAnalyzer:
         
         return recommendations
     
+    def generate_infrastructure_status_report(self):
+        """Generate a basic infrastructure status report when no training data is available"""
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        report = f"""# 🔧 Battlesnake Infrastructure Status Report
+
+*Generated: {current_time}*
+
+## 🚨 Infrastructure Issues Detected
+
+**No Training Data Available**: The simulation infrastructure appears to have connectivity issues preventing training data collection.
+
+### Common Causes:
+1. **Service Connectivity**: Snake services may not be properly accessible within container network
+2. **Container Networking**: Mismatch between container hostnames and localhost URLs
+3. **Service Startup**: Services may not have had sufficient time to initialize
+4. **Port Configuration**: Port mappings between host and container may be incorrect
+
+### Immediate Actions Required:
+- ✅ Verify all snake services are running and responsive
+- ✅ Check container network configuration  
+- ✅ Validate port mappings (4567, 8081-8085)
+- ✅ Test service endpoints with consistent hostname usage
+
+### Expected Services:
+- **Ruby Snake (Primary)**: Expected at `code-snek:4567` or `localhost:4567`
+- **Pathy Snake**: Expected at `code-snek:8081` or `localhost:8081`
+- **Additional Opponents**: Ports 8082-8085
+
+### Troubleshooting Steps:
+1. Check if container services are running: `docker ps`
+2. Test service connectivity: `curl http://code-snek:4567/`
+3. Verify network setup: `docker network ls`
+4. Check service logs for errors
+
+### Next Steps:
+1. Fix service connectivity issues
+2. Re-run simulation testing
+3. Verify training data generation
+4. Monitor infrastructure stability
+
+*This report indicates infrastructure setup issues that prevent comprehensive battlesnake training analysis.*
+"""
+        
+        return report
+
     def generate_elite_report(self, trends, patterns, insights):
         """Generate comprehensive elite analysis report"""
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")

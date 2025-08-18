@@ -128,18 +128,18 @@ setup_opponents() {
     
     # Primary opponents configuration
     OPPONENTS=(
-        "pathy:http://code-snek:8081:hard:Go-based pathfinding snake"
-        "ruby-bevns:http://code-snek:8082:medium:Ruby team snake (bevns)"
-        "ruby-wilson:http://code-snek:8083:medium:Ruby team snake (wilson)"
-        "python-starter:http://code-snek:8084:easy:Python starter implementation"
-        "python-summer:http://code-snek:8085:medium:Python summer league snake"
+        "pathy:http://localhost:8081:hard:Go-based pathfinding snake"
+        "ruby-bevns:http://localhost:8082:medium:Ruby team snake (bevns)"
+        "ruby-wilson:http://localhost:8083:medium:Ruby team snake (wilson)"
+        "python-starter:http://localhost:8084:easy:Python starter implementation"
+        "python-summer:http://localhost:8085:medium:Python summer league snake"
     )
     
     # Test which opponents are available
     AVAILABLE_OPPONENTS=()
     
     # First ensure our own snake is working
-    if ! test_snake_service "ruby-danger-noodle" "http://code-snek:4567" 5; then
+    if ! test_snake_service "ruby-danger-noodle" "http://localhost:4567" 5; then
         log_error "Primary snake service not responsive!"
         exit 1
     fi
@@ -214,7 +214,7 @@ train_against_opponent() {
         
         timeout 60 "$battlesnake_cli" play \
             -W 11 -H 11 \
-            --name ruby-danger-noodle --url http://code-snek:4567/ \
+            --name ruby-danger-noodle --url http://localhost:4567/ \
             --name "$name" --url "$url" \
             -g royale --output "$game_log" >/dev/null 2>&1 || {
                 log_warning "Game $run timed out"
@@ -327,7 +327,7 @@ setup_fallback_training() {
     log_warning "No opponent services available, running basic functionality test"
     
     # Test our own snake's responsiveness
-    if test_snake_service "ruby-danger-noodle" "http://code-snek:4567" 5; then
+    if test_snake_service "ruby-danger-noodle" "http://localhost:4567" 5; then
         log_success "Primary snake service is responsive"
         
         # Simulate some basic training results

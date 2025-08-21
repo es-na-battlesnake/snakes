@@ -80,35 +80,17 @@ if [[ $verbose ]]; then
     verbose_flag="-v"
 fi
 
-# Set up paths and find battlesnake CLI
-export PATH=$PATH:/usr/local/go/bin:/root/go/bin
-export GOPATH=/root/go
-
-# Find battlesnake CLI
-CLI_PATH=""
-for path in /root/go/bin/battlesnake /usr/local/go/bin/battlesnake $(which battlesnake 2>/dev/null); do
-    if [ -x "$path" ]; then
-        CLI_PATH="$path"
-        break
-    fi
-done
-
-# If not found, try to install it
-if [ -z "$CLI_PATH" ]; then
+# If /root/go/bin/battlesnake does not exist, then install it
+if [ ! -f /root/go/bin/battlesnake ]; then
+    export PATH=$PATH:/usr/local/go/bin
+    # Install and redirect all output to /dev/null unless verbose mode is enabled
     if [[ $verbose ]]; then
-        echo "Installing battlesnake CLI..."
+        echo "Installing battlesnake"
+        go install github.com/BattlesnakeOfficial/rules/cli/battlesnake@latest
+    else
+        go install github.com/BattlesnakeOfficial/rules/cli/battlesnake@latest > /dev/null
     fi
     
-    if go install github.com/BattlesnakeOfficial/rules/cli/battlesnake@latest 2>/dev/null; then
-        CLI_PATH="/root/go/bin/battlesnake"
-    else
-        echo "Error: Unable to install battlesnake CLI"
-        exit 1
-    fi
-fi
-
-if [[ $verbose ]]; then
-    echo "Using battlesnake CLI at: $CLI_PATH"
 fi
 
 #battlesnake play -W 11 -H 11 --name ruby-danger-noodle --url http://code-snek:4567/ --name code-snake --url http://code-snek:4568/  --name bevns --url http://code-snek:4569/ --name wilsonwong1990 --url http://code-snek:4570/ -g royale -v
@@ -124,14 +106,7 @@ fi
 # test response of http://code-snek:4567/ and exit if it fails
 curl -s http://code-snek:4567/ &> /dev/null
 if [ $? -ne 0 ]; then
-    echo "ruby-danger-noodle at code-snek:4567 is not responding"
-    exit 1
-fi
-
-# test response of http://code-snek:8081/ and exit if it fails
-curl -s http://code-snek:8081/ &> /dev/null
-if [ $? -ne 0 ]; then
-    echo "pathy snake at code-snek:8081 is not responding"
+    echo "code-snek:4567 is not responding"
     exit 1
 fi
 
@@ -149,64 +124,22 @@ echo "  seed: $seed"
 echo "\`\`\`"
 
 echo "\`\`\`"
-# Run command $runs times and record winner and turn count
+# Run command $runs times and record "is the winner" line of output to a file.
 for i in $(seq 1 $runs); do
     echo -n "Run [$i/$runs] "
-    "$CLI_PATH" play -W $width -H $height \
+    /root/go/bin/battlesnake play -W $width -H $height \
     --name pathy --url http://code-snek:8081/ \
     --name ruby-danger-noodle --url http://code-snek:4567/ \
     -g $mode \
     -m $map \
     -r $seed \
-    $verbose_flag --output out.log 
-    
-    # Extract winner and turn count using the same logic as comprehensive_simulation
-    winner="error"
-    turns=0
-    
-    if [ -f out.log ]; then
-        # Parse the final result line (last line with winner info)
-        final_result_line=$(tail -1 out.log)
-        
-        # Check if final line is the result JSON
-        if echo "$final_result_line" | jq . >/dev/null 2>&1 && echo "$final_result_line" | jq -e 'has("isDraw")' >/dev/null 2>&1; then
-            # Parse winner from final result
-            is_draw=$(echo "$final_result_line" | jq -r '.isDraw // false')
-            if [ "$is_draw" = "true" ]; then
-                winner="draw"
-            else
-                winner=$(echo "$final_result_line" | jq -r '.winnerName // "error"')
-            fi
-            
-            # Extract turn count from the second-to-last JSON line (last game state)
-            last_game_state=$(tail -2 out.log | head -1)
-            if echo "$last_game_state" | jq . >/dev/null 2>&1 && echo "$last_game_state" | jq -e 'has("turn")' >/dev/null 2>&1; then
-                turns=$(echo "$last_game_state" | jq -r '.turn // 0')
-                turns=$((turns + 1))
-            else
-                turns=$(grep -c '^{.*"turn":' out.log 2>/dev/null || echo "0")
-            fi
-        fi
-    fi
-    
-    # Output result with turn count
-    echo "{\"winner\": \"$winner\", \"turns\": $turns}" | tee -a winner.txt | jq -c "if .winner == \"draw\" then {winner: \"draw\", turns: .turns} else {winner: .winner, turns: .turns} end" | sed 's/[{}"]//g' | sed 's/:/: /g' | sed 's/,/ /g'
+    $verbose_flag --output out.log ;
+    tail -1 out.log | jq -c "if .isDraw then {winner: \"draw\"} else {winner: .winnerName} end" | tee -a winner.txt | sed 's/[{}"]//g' | sed 's/:/: /g'
 done
 echo "\`\`\`"
 
 echo "\`\`\`"
-# Output the most winning player with turn statistics from the file.
-echo "=== Game Results Summary ==="
-cat winner.txt | jq -r '.winner' | sort | uniq -c | sort -nr
-
-echo ""
-echo "=== Turn Count Analysis ==="
-echo "Average turns per game:"
-cat winner.txt | jq -r '.turns' | awk '{sum+=$1; count++} END {if(count>0) printf "%.1f turns (over %d games)\n", sum/count, count; else print "No valid games"}'
-
-echo ""
-echo "Turn distribution:"
-cat winner.txt | jq -r '.turns' | sort -n | uniq -c | sort -nr | head -5
-
+# Output the most winning player from the file.
+cat winner.txt | jq -r .winner | sort | uniq -c | sort -nr
 rm winner.txt
 echo "\`\`\`"

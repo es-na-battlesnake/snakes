@@ -1,4 +1,4 @@
-name: Comprehensive Snake Performance Testing
+name: Simulate Snake Games
 
 on:
   push:
@@ -8,7 +8,6 @@ on:
       - 'snakes/**'
       - '.github/workflows/simulate-games.yml'
       - 'script/simulate_royale'
-      - 'script/comprehensive_simulation'
       
   # trigger action on new pull request pushes
   pull_request:
@@ -19,203 +18,52 @@ on:
       - '.github/workflows/simulate-games.yml'
       - '.github/workflows/build-base.yml'
       - 'script/simulate_royale'
-      - 'script/comprehensive_simulation'
       - 'Dockerfile*'
 
 jobs:
 
-  comprehensive-performance-testing:
+  build:
 
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
-    timeout-minutes: 30
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-go@v5
+      with:
           go-version: '^1.17.1'
+    
+    - name: Build the Docker image
+      run: docker build . --file Dockerfile --tag code-snek:pr
+    - name: Setup Docker network
+      run: docker network create test
+    - name: Run the Docker image
+      run: docker run -d -p 4567:4567 -p 8081:8081 --network test --name code-snek code-snek:pr
 
-      - name: Build the Docker image
-        run: docker build . --file Dockerfile --tag code-snek:pr
-      - name: Setup Docker network
-        run: docker network create test
-      - name: Run the Docker image
-        run: >
-          docker run -d -p 4567:4567 -p 8081:8081 -p 8082:8082 -p 8083:8083 -p 8084:8084 -p 8085:8085 --network test 
-          --name code-snek code-snek:pr
+    - name: Pause for 10 seconds
+      run: sleep 10
 
-      - name: Wait for services to be ready
-        run: |
-          echo "Waiting for snake services to initialize..."
-          sleep 15
+    - name: Simulate games
+      id: simulate-games
+      run: |
+          docker run --rm --network test code-snek:pr script/simulate_royale --mode wrapped --map hz_islands_bridges  --width 11 --height 11 --runs 10 | tee -a simulate_royale.log
 
-          # Check Ruby snake health
-          timeout 30 bash -c 'until curl -s http://localhost:4567/ > /dev/null; do sleep 1; done'
-          echo "✅ Ruby snake is ready"
+    - name: Set sim-log to var
+      uses: actions/github-script@v7
+      id: sim-log
+      with:
+        script: |
+          const fs = require('fs');
+          return fs.readFileSync('simulate_royale.log','utf8').toString();
+        result-encoding: string
 
-          # Check pathy snake health
-          timeout 30 bash -c 'until curl -s http://localhost:8081/ > /dev/null; do sleep 1; done'
-          echo "✅ Pathy snake is ready"
-
-      - name: Validate simulation infrastructure
-        id: validate-infrastructure
-        run: |
-          echo "🧪 Validating simulation infrastructure..."
-          docker run --rm --network test code-snek:pr script/validate_simulation
-
-      - name: Run multi-opponent battlesnake training
-        id: multi-opponent-training
-        run: |
-          echo "🧠 Starting Multi-Opponent Battlesnake Training System..."
-          docker run --rm --network test -e DEBUG=1 code-snek:pr script/multi_opponent_training comprehensive 60 | tee -a multi_opponent_training_results.log
-
-      - name: Generate elite performance analysis
-        id: elite-analysis
-        run: |
-          echo "📊 Generating elite performance analysis..."
-          docker run --rm --network test -v $(pwd):/workspace -w /workspace code-snek:pr python3 script/elite_performance_analyzer.py --data-dir /tmp/battlesnake_training_data --output elite_analysis_report.md | tee -a elite_analysis.log
-
-      - name: Generate multi-opponent performance summary
-        id: multi-opponent-summary
-        run: |
-          echo "📊 Generating multi-opponent performance metrics..."
-
-          # Extract key metrics from the multi-opponent training results
-          WIN_RATE=$(grep -o '[0-9.]*% win rate\|[0-9.]*% wins' multi_opponent_training_results.log | tail -1 | grep -o '[0-9.]*' || echo "0")
-          if [ -z "$WIN_RATE" ]; then
-            WIN_RATE=$(grep -E 'Overall Win Rate.*[0-9.]*%' multi_opponent_training_results.log | grep -o '[0-9.]*%' | head -1 | grep -o '[0-9.]*' || echo "0")
-          fi
-          
-          COMPETITIVE_RATE=$(grep -o 'Overall Competitive Rate.*[0-9.]*%' multi_opponent_training_results.log | grep -o '[0-9.]*%' | head -1 | grep -o '[0-9.]*' || echo "0")
-          if [ -z "$COMPETITIVE_RATE" ]; then
-            COMPETITIVE_RATE=$(grep -o '[0-9.]*% competitive rate' multi_opponent_training_results.log | tail -1 | grep -o '[0-9.]*' || echo "0")
-          fi
-          
-          TOTAL_GAMES=$(grep -E 'Total Games Analyzed.*[0-9]+' multi_opponent_training_results.log | grep -o '[0-9]\+' | tail -1 || echo "0")
-          TOTAL_OPPONENTS=$(grep -E '[0-9]+ opponents' multi_opponent_training_results.log | grep -o '[0-9]\+' | head -1 || echo "1")
-          
-          # Check for performance grade markers
-          PERFORMANCE_GRADE=$(grep -E "ELITE PERFORMANCE|EXCELLENT PERFORMANCE|GOOD PERFORMANCE|FAIR PERFORMANCE|NEEDS IMPROVEMENT" multi_opponent_training_results.log | tail -1 || echo "UNKNOWN")
-
-          # Create performance badge
-          if (( $(echo "$COMPETITIVE_RATE >= 80" | bc -l 2>/dev/null || echo 0) )); then
-            PERFORMANCE_BADGE="🏆 ELITE (80%+)"
-          elif (( $(echo "$COMPETITIVE_RATE >= 65" | bc -l 2>/dev/null || echo 0) )); then
-            PERFORMANCE_BADGE="🌟 EXCELLENT (65%+)"
-          elif (( $(echo "$COMPETITIVE_RATE >= 50" | bc -l 2>/dev/null || echo 0) )); then
-            PERFORMANCE_BADGE="👍 GOOD (50%+)"
-          elif (( $(echo "$COMPETITIVE_RATE >= 35" | bc -l 2>/dev/null || echo 0) )); then
-            PERFORMANCE_BADGE="⚠️ FAIR (35%+)"
-          else
-            PERFORMANCE_BADGE="🔧 NEEDS IMPROVEMENT (<35%)"
-          fi
-
-          echo "PERFORMANCE_BADGE=$PERFORMANCE_BADGE" >> $GITHUB_ENV
-          echo "WIN_RATE=${WIN_RATE}%" >> $GITHUB_ENV
-          echo "COMPETITIVE_RATE=${COMPETITIVE_RATE}%" >> $GITHUB_ENV
-          echo "TOTAL_GAMES=$TOTAL_GAMES" >> $GITHUB_ENV
-          echo "TOTAL_OPPONENTS=$TOTAL_OPPONENTS" >> $GITHUB_ENV
-          echo "PERFORMANCE_GRADE=$PERFORMANCE_GRADE" >> $GITHUB_ENV
-
-      - name: Set multi-opponent training results to variable
-        uses: actions/github-script@v7
-        id: multi-opponent-results-output
-        with:
-          script: |
-            const fs = require('fs');
-            let output = '';
-            
-            try {
-              const training = fs.readFileSync('multi_opponent_training_results.log','utf8').toString();
-              output += training + '\n\n';
-            } catch(e) {
-              output += 'Multi-opponent training results not available\n\n';
-            }
-            
-            return output;
-          result-encoding: string
-
-      - name: Post multi-opponent training performance report
-        uses: mshick/add-pr-comment@v2
-        with:
-          message: |
-            # 🧠 Multi-Opponent Battlesnake Training Report
-
-            ## 🎯 Multi-Opponent Performance Summary
-            - **Performance Grade**: ${{ env.PERFORMANCE_BADGE }}
-            - **Overall Win Rate**: ${{ env.WIN_RATE }}
-            - **Overall Competitive Rate**: ${{ env.COMPETITIVE_RATE }} (wins + draws)
-            - **Total Games Analyzed**: ${{ env.TOTAL_GAMES }}
-            - **Opponents Tested**: ${{ env.TOTAL_OPPONENTS }}
-            - **Training Assessment**: ${{ env.PERFORMANCE_GRADE }}
-
-            ## 🚀 Multi-Opponent Training Benefits
-            🔄 **Diverse Challenge Set**: Testing against multiple opponent types and difficulties
-            🎯 **Strategic Adaptability**: Learning to counter different playstyles  
-            📊 **Comprehensive Analysis**: Understanding strengths/weaknesses across matchups
-            🏆 **Tournament Readiness**: Preparing for varied competitive scenarios
-
-            ---
-
-            ${{ steps.multi-opponent-results-output.outputs.result }}
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          repo-token-user-login: 'github-actions[bot]'
-          allow-repeats: false
-
-  quick-validation:
-    runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
-    timeout-minutes: 10
-
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '^1.17.1'
-
-      - name: Build the Docker image
-        run: docker build . --file Dockerfile --tag code-snek:pr
-      - name: Setup Docker network
-        run: docker network create test
-      - name: Run the Docker image
-        run: >
-          docker run -d -p 4567:4567 -p 8081:8081 -p 8082:8082 -p 8083:8083 -p 8084:8084 -p 8085:8085 --network test 
-          --name code-snek code-snek:pr
-
-      - name: Wait for services to be ready
-        run: |
-          echo "Waiting for snake services to initialize..."
-          sleep 10
-          timeout 20 bash -c 'until curl -s http://localhost:4567/ > /dev/null; do sleep 1; done'
-          timeout 20 bash -c 'until curl -s http://localhost:8081/ > /dev/null; do sleep 1; done'
-
-      - name: Quick smoke test
-        id: smoke-test
-        run: |
-          echo "🚀 Running quick validation (5 games)..."
-          docker run --rm --network test code-snek:pr script/simulate_royale --mode royale --map standard --width 11 --height 11 --runs 5 | tee -a quick_test.log
-
-      - name: Set quick results to variable
-        uses: actions/github-script@v7
-        id: quick-results
-        with:
-          script: |
-            const fs = require('fs');
-            return fs.readFileSync('quick_test.log','utf8').toString();
-          result-encoding: string
-
-      - name: Post quick validation
-        uses: mshick/add-pr-comment@v2
-        with:
-          message: |
-            ## 🚀 Quick Validation Results
-
-            ${{ steps.quick-results.outputs.result }}
-
-            *Full comprehensive testing results will be posted separately*
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          repo-token-user-login: 'github-actions[bot]'
-          allow-repeats: false
+    - name: Post comment
+      uses: mshick/add-pr-comment@v2
+      with:
+        message: |
+            🤖 🐍:
+            ${{ steps.sim-log.outputs.result }}
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        repo-token-user-login: 'github-actions[bot]' # The user.login for temporary GitHub tokens
+        allow-repeats: false # This is the default, but let's be explicit

@@ -158,26 +158,21 @@ test_snake_service() {
 setup_opponents() {
     log_training "Setting up multi-opponent training environment..."
     
-    # Detect if we're running inside the service container or externally
-    if docker ps >/dev/null 2>&1; then
-        # Running externally (from GitHub Actions or Docker host)
+    # Detect execution context more accurately
+    # Check if we're in a Docker container that can reach other containers by name
+    if [ -f /.dockerenv ] && (getent hosts code-snek >/dev/null 2>&1 || nslookup code-snek >/dev/null 2>&1 || ping -c 1 code-snek >/dev/null 2>&1); then
+        # Running in a Docker container with network access to code-snek container
         SERVICE_BASE_URL="http://code-snek"
-        log_info "🔍 Detected external execution - using container hostnames"
+        log_info "🔍 Detected Docker container execution with code-snek network access - using container hostnames"
+    elif docker ps >/dev/null 2>&1; then
+        # Running externally (from host system with Docker access)
+        SERVICE_BASE_URL="http://code-snek"
+        log_info "🔍 Detected external execution with Docker access - using container hostnames"
     else
-        # Running inside the container
+        # Running inside the main container or local development
         SERVICE_BASE_URL="http://localhost"
-        log_info "🔍 Detected internal execution - using localhost"
+        log_info "🔍 Detected local execution - using localhost"
     fi
-    
-    # Primary opponents configuration - use detected service base URL
-    # Format: name url difficulty description
-    OPPONENTS=(
-        "pathy ${SERVICE_BASE_URL}:8081 hard Go-based pathfinding snake"
-        "ruby-bevns ${SERVICE_BASE_URL}:8082 medium Ruby team snake (bevns)"
-        "ruby-wilson ${SERVICE_BASE_URL}:8083 medium Ruby team snake (wilson)"  
-        "python-starter ${SERVICE_BASE_URL}:8084 easy Python starter implementation"
-        "python-summer ${SERVICE_BASE_URL}:8085 medium Python summer league snake"
-    )
     
     # Test which opponents are available
     AVAILABLE_OPPONENTS=()
@@ -186,6 +181,29 @@ setup_opponents() {
     # First ensure our own snake is working - use detected base URL
     local primary_snake_url="${SERVICE_BASE_URL}:4567"
     log_info "Testing primary snake service with enhanced connectivity..."
+    log_info "Primary snake URL: $primary_snake_url"
+    
+    if [ "$DEBUG" = "1" ]; then
+        log_info "Debug: Network connectivity test..."
+        # Check if we can resolve the hostname
+        if echo "$SERVICE_BASE_URL" | grep -q "code-snek"; then
+            if nslookup code-snek >/dev/null 2>&1; then
+                log_info "Debug: code-snek hostname resolves successfully"
+            elif getent hosts code-snek >/dev/null 2>&1; then
+                log_info "Debug: code-snek found in hosts file"
+            else
+                log_warning "Debug: code-snek hostname resolution failed"
+                # Try alternative connection to localhost as fallback
+                log_info "Debug: Testing localhost as fallback..."
+                if test_snake_service "ruby-danger-noodle-localhost-fallback" "http://localhost:4567" 8; then
+                    log_info "Debug: localhost:4567 is responsive - updating SERVICE_BASE_URL"
+                    SERVICE_BASE_URL="http://localhost"
+                    primary_snake_url="http://localhost:4567"
+                fi
+            fi
+        fi
+    fi
+    
     if test_snake_service "ruby-danger-noodle" "$primary_snake_url" 15; then
         log_success "✅ Primary snake service is responsive"
         PRIMARY_SNAKE_RESPONSIVE=true
@@ -209,14 +227,42 @@ setup_opponents() {
                 if [[ "$SERVICE_BASE_URL" == *"code-snek"* ]]; then
                     log_info "Debug: Testing localhost connectivity as fallback..."
                     if test_snake_service "ruby-danger-noodle-localhost" "http://localhost:4567" 8; then
-                        log_info "Debug: localhost:4567 is responsive, container networking issue"
+                        log_info "Debug: localhost:4567 is responsive, using localhost for all services"
+                        SERVICE_BASE_URL="http://localhost"
+                        primary_snake_url="http://localhost:4567"
+                        # Re-test with localhost
+                        if test_snake_service "ruby-danger-noodle" "$primary_snake_url" 10; then
+                            log_success "✅ Primary snake service is responsive via localhost"
+                            PRIMARY_SNAKE_RESPONSIVE=true
+                        fi
                     fi
                 fi
             else
                 log_info "Debug: Docker command not available, likely running inside container"
+                
+                # If we're inside a container and can't reach code-snek, try localhost
+                if [[ "$SERVICE_BASE_URL" == *"code-snek"* ]]; then
+                    log_info "Debug: Trying localhost as fallback inside container..."
+                    if test_snake_service "ruby-danger-noodle-localhost" "http://localhost:4567" 8; then
+                        log_info "Debug: localhost:4567 is responsive, switching to localhost"
+                        SERVICE_BASE_URL="http://localhost"
+                        primary_snake_url="http://localhost:4567"
+                        PRIMARY_SNAKE_RESPONSIVE=true
+                    fi
+                fi
             fi
         fi
     fi
+    
+    # Primary opponents configuration - use detected/corrected service base URL
+    # Format: name url difficulty description
+    OPPONENTS=(
+        "pathy ${SERVICE_BASE_URL}:8081 hard Go-based pathfinding snake"
+        "ruby-bevns ${SERVICE_BASE_URL}:8082 medium Ruby team snake (bevns)"
+        "ruby-wilson ${SERVICE_BASE_URL}:8083 medium Ruby team snake (wilson)"  
+        "python-starter ${SERVICE_BASE_URL}:8084 easy Python starter implementation"
+        "python-summer ${SERVICE_BASE_URL}:8085 medium Python summer league snake"
+    )
     
     # Test opponents with more generous timeouts and enhanced error reporting
     local tested_opponents=0

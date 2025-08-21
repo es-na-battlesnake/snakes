@@ -222,12 +222,18 @@ setup_opponents() {
     local responsive_opponents=0
     
     for opponent_data in "${OPPONENTS[@]}"; do
-        IFS=':' read -r name url difficulty description <<< "$opponent_data"
+        # Parse with proper field handling for URLs containing colons
+        local name=$(echo "$opponent_data" | cut -d':' -f1)
+        local url_and_port=$(echo "$opponent_data" | cut -d':' -f2-3)
+        local remaining=$(echo "$opponent_data" | cut -d':' -f4-)
+        local difficulty=$(echo "$remaining" | cut -d':' -f1)
+        local description=$(echo "$remaining" | cut -d':' -f2-)
+        
         ((tested_opponents++))
         
         log_info "[$tested_opponents/${#OPPONENTS[@]}] Testing $name..."
         
-        if test_snake_service "$name" "$url" 12; then
+        if test_snake_service "$name" "$url_and_port" 12; then
             AVAILABLE_OPPONENTS+=("$opponent_data")
             ((responsive_opponents++))
             log_success "✅ $name ($difficulty) - $description"
@@ -236,7 +242,7 @@ setup_opponents() {
             
             # Enhanced debugging for unavailable opponents
             if [ "$DEBUG" = "1" ]; then
-                local port=$(echo "$url" | sed 's|.*:||' | sed 's|/.*||')
+                local port=$(echo "$url_and_port" | sed 's|.*:||' | sed 's|/.*||')
                 log_info "Debug: Checking if port $port is bound..."
                 if netstat -tlnp 2>/dev/null | grep -q ":$port "; then
                     log_info "Debug: Port $port is bound but service not responding to HTTP"
@@ -251,7 +257,12 @@ setup_opponents() {
     log_info "🔍 Service Discovery Results:"
     log_info "   • Primary snake responsive: $PRIMARY_SNAKE_RESPONSIVE"
     log_info "   • Available opponents: $responsive_opponents out of $tested_opponents"
-    log_info "   • Total services found: $(($responsive_opponents + ($PRIMARY_SNAKE_RESPONSIVE && echo 1 || echo 0)))"
+    local primary_count=0
+    if [ "$PRIMARY_SNAKE_RESPONSIVE" = "true" ]; then
+        primary_count=1
+    fi
+    local total_services=$((responsive_opponents + primary_count))
+    log_info "   • Total services found: $total_services"
     
     # Enhanced scenario handling with better fallback logic
     if [ ${#AVAILABLE_OPPONENTS[@]} -eq 0 ] && [ "$PRIMARY_SNAKE_RESPONSIVE" = "false" ]; then
@@ -283,7 +294,12 @@ train_against_opponent() {
     local opponent_data="$1"
     local games_per_opponent="$2"
     
-    IFS=':' read -r name url difficulty description <<< "$opponent_data"
+    # Parse with proper field handling for URLs containing colons
+    local name=$(echo "$opponent_data" | cut -d':' -f1)
+    local url=$(echo "$opponent_data" | cut -d':' -f2-3)
+    local remaining=$(echo "$opponent_data" | cut -d':' -f4-)
+    local difficulty=$(echo "$remaining" | cut -d':' -f1)
+    local description=$(echo "$remaining" | cut -d':' -f2-)
     
     log_training "Training against $name ($difficulty) - $games_per_opponent games"
     

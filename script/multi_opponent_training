@@ -170,12 +170,13 @@ setup_opponents() {
     fi
     
     # Primary opponents configuration - use detected service base URL
+    # Format: name url difficulty description
     OPPONENTS=(
-        "pathy:${SERVICE_BASE_URL}:8081:hard:Go-based pathfinding snake"
-        "ruby-bevns:${SERVICE_BASE_URL}:8082:medium:Ruby team snake (bevns)"
-        "ruby-wilson:${SERVICE_BASE_URL}:8083:medium:Ruby team snake (wilson)"  
-        "python-starter:${SERVICE_BASE_URL}:8084:easy:Python starter implementation"
-        "python-summer:${SERVICE_BASE_URL}:8085:medium:Python summer league snake"
+        "pathy ${SERVICE_BASE_URL}:8081 hard Go-based pathfinding snake"
+        "ruby-bevns ${SERVICE_BASE_URL}:8082 medium Ruby team snake (bevns)"
+        "ruby-wilson ${SERVICE_BASE_URL}:8083 medium Ruby team snake (wilson)"  
+        "python-starter ${SERVICE_BASE_URL}:8084 easy Python starter implementation"
+        "python-summer ${SERVICE_BASE_URL}:8085 medium Python summer league snake"
     )
     
     # Test which opponents are available
@@ -222,18 +223,24 @@ setup_opponents() {
     local responsive_opponents=0
     
     for opponent_data in "${OPPONENTS[@]}"; do
-        # Parse with proper field handling for URLs containing colons
-        local name=$(echo "$opponent_data" | cut -d':' -f1)
-        local url_and_port=$(echo "$opponent_data" | cut -d':' -f2-3)
-        local remaining=$(echo "$opponent_data" | cut -d':' -f4-)
-        local difficulty=$(echo "$remaining" | cut -d':' -f1)
-        local description=$(echo "$remaining" | cut -d':' -f2-)
+        # Parse opponent data using space separation (much simpler and more reliable)
+        # Format: name url difficulty description...
+        set -- $opponent_data
+        local name="$1"
+        local url="$2" 
+        local difficulty="$3"
+        shift 3
+        local description="$*"
         
         ((tested_opponents++))
         
         log_info "[$tested_opponents/${#OPPONENTS[@]}] Testing $name..."
         
-        if test_snake_service "$name" "$url_and_port" 12; then
+        if [ "$DEBUG" = "1" ]; then
+            log_info "Debug: Parsed - Name: $name, URL: $url, Difficulty: $difficulty"
+        fi
+        
+        if test_snake_service "$name" "$url" 12; then
             AVAILABLE_OPPONENTS+=("$opponent_data")
             ((responsive_opponents++))
             log_success "✅ $name ($difficulty) - $description"
@@ -242,7 +249,7 @@ setup_opponents() {
             
             # Enhanced debugging for unavailable opponents
             if [ "$DEBUG" = "1" ]; then
-                local port=$(echo "$url_and_port" | sed 's|.*:||' | sed 's|/.*||')
+                local port=$(echo "$url" | sed 's|.*:||')
                 log_info "Debug: Checking if port $port is bound..."
                 if netstat -tlnp 2>/dev/null | grep -q ":$port "; then
                     log_info "Debug: Port $port is bound but service not responding to HTTP"
@@ -294,12 +301,14 @@ train_against_opponent() {
     local opponent_data="$1"
     local games_per_opponent="$2"
     
-    # Parse with proper field handling for URLs containing colons
-    local name=$(echo "$opponent_data" | cut -d':' -f1)
-    local url=$(echo "$opponent_data" | cut -d':' -f2-3)
-    local remaining=$(echo "$opponent_data" | cut -d':' -f4-)
-    local difficulty=$(echo "$remaining" | cut -d':' -f1)
-    local description=$(echo "$remaining" | cut -d':' -f2-)
+    # Parse opponent data using space separation (much simpler and more reliable)
+    # Format: name url difficulty description...
+    set -- $opponent_data
+    local name="$1"
+    local url="$2" 
+    local difficulty="$3"
+    shift 3
+    local description="$*"
     
     log_training "Training against $name ($difficulty) - $games_per_opponent games"
     

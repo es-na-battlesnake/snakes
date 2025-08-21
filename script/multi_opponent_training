@@ -88,173 +88,45 @@ test_snake_service() {
     
     log_info "Testing $name at $url..."
     
-    # Enhanced debug output
-    if [ "$DEBUG" = "1" ]; then
-        log_info "Debug: Attempting to connect to $url with timeout $timeout"
-        # Test connectivity with verbose output and better error handling
-        curl_result=$(timeout 10 curl -s --connect-timeout 5 --max-time 8 --retry 2 "$url" 2>&1 || echo "CURL_FAILED")
-        log_info "Debug: curl response for $url: $(echo "$curl_result" | head -c 100)..."
-        
-        # Try alternative connection test
-        nc_result=$(timeout 5 nc -z -w3 $(echo "$url" | sed 's|http://||' | sed 's|/.*||' | tr ':' ' ') 2>&1 || echo "NC_FAILED")
-        log_info "Debug: netcat test result: $nc_result"
-    fi
-    
-    # Robust connectivity test with multiple approaches and better timeout handling
-    local connection_test_result=0
-    
-    # Method 1: Basic HTTP GET with generous timeout
-    if timeout "$((timeout + 5))" bash -c "
-        for attempt in {1..4}; do
-            if curl -s --connect-timeout 3 --max-time 6 --retry 1 '$url' >/dev/null 2>&1; then
-                exit 0
-            fi
-            # Exponential backoff
-            sleep \$((attempt * 2))
-        done
-        exit 1
-    "; then
-        connection_test_result=0
-    else
-        # Method 2: HTTP HEAD request as fallback
-        if timeout "$((timeout + 3))" bash -c "
-            for attempt in {1..3}; do
-                if curl -s --connect-timeout 3 --max-time 5 -I '$url' >/dev/null 2>&1; then
-                    exit 0
-                fi
-                sleep \$((attempt + 1))
-            done
-            exit 1
-        "; then
-            connection_test_result=0
-        else
-            # Method 3: Basic port connectivity test
-            local host_port=$(echo "$url" | sed 's|http://||' | sed 's|/.*||')
-            local host=$(echo "$host_port" | cut -d: -f1)
-            local port=$(echo "$host_port" | cut -d: -f2)
-            
-            if timeout 8 nc -z -w3 "$host" "$port" 2>/dev/null; then
-                log_warning "$name port is open but HTTP might not be ready"
-                connection_test_result=0
-            else
-                connection_test_result=1
-            fi
+    # Simple connectivity test with retry
+    for attempt in {1..3}; do
+        if timeout 8 curl -s --connect-timeout 3 --max-time 5 "$url" >/dev/null 2>&1; then
+            log_success "$name is responsive"
+            return 0
+        elif [ $attempt -lt 3 ]; then
+            sleep 2
         fi
-    fi
+    done
     
-    if [ $connection_test_result -eq 0 ]; then
-        log_success "$name is responsive"
-        return 0
-    else
-        log_warning "$name is not responsive at $url"
-        if [ "$DEBUG" = "1" ]; then
-            log_info "Debug: All connection methods failed for $url"
-        fi
-        return 1
-    fi
+    log_warning "$name is not responsive at $url"
+    return 1
 }
 
 # Configure multiple opponents
 setup_opponents() {
     log_training "Setting up multi-opponent training environment..."
     
-    # Detect execution context more accurately
-    # Check if we're in a Docker container that can reach other containers by name
-    if [ -f /.dockerenv ] && (getent hosts code-snek >/dev/null 2>&1 || nslookup code-snek >/dev/null 2>&1 || ping -c 1 code-snek >/dev/null 2>&1); then
-        # Running in a Docker container with network access to code-snek container
-        SERVICE_BASE_URL="http://code-snek"
-        log_info "🔍 Detected Docker container execution with code-snek network access - using container hostnames"
-    elif docker ps >/dev/null 2>&1; then
-        # Running externally (from host system with Docker access)
-        SERVICE_BASE_URL="http://code-snek"
-        log_info "🔍 Detected external execution with Docker access - using container hostnames"
-    else
-        # Running inside the main container or local development
-        SERVICE_BASE_URL="http://localhost"
-        log_info "🔍 Detected local execution - using localhost"
-    fi
+    # Always use container hostname for Docker network communication
+    SERVICE_BASE_URL="http://code-snek"
+    log_info "🔍 Using Docker network communication with container hostname"
     
-    # Test which opponents are available
+    # Test if primary snake is responsive
     AVAILABLE_OPPONENTS=()
     PRIMARY_SNAKE_RESPONSIVE=false
     
-    # First ensure our own snake is working - use detected base URL
     local primary_snake_url="${SERVICE_BASE_URL}:4567"
-    log_info "Testing primary snake service with enhanced connectivity..."
-    log_info "Primary snake URL: $primary_snake_url"
-    
-    if [ "$DEBUG" = "1" ]; then
-        log_info "Debug: Network connectivity test..."
-        # Check if we can resolve the hostname
-        if echo "$SERVICE_BASE_URL" | grep -q "code-snek"; then
-            if nslookup code-snek >/dev/null 2>&1; then
-                log_info "Debug: code-snek hostname resolves successfully"
-            elif getent hosts code-snek >/dev/null 2>&1; then
-                log_info "Debug: code-snek found in hosts file"
-            else
-                log_warning "Debug: code-snek hostname resolution failed"
-                # Try alternative connection to localhost as fallback
-                log_info "Debug: Testing localhost as fallback..."
-                if test_snake_service "ruby-danger-noodle-localhost-fallback" "http://localhost:4567" 8; then
-                    log_info "Debug: localhost:4567 is responsive - updating SERVICE_BASE_URL"
-                    SERVICE_BASE_URL="http://localhost"
-                    primary_snake_url="http://localhost:4567"
-                fi
-            fi
-        fi
-    fi
+    log_info "Testing primary snake service at $primary_snake_url..."
     
     if test_snake_service "ruby-danger-noodle" "$primary_snake_url" 15; then
         log_success "✅ Primary snake service is responsive"
         PRIMARY_SNAKE_RESPONSIVE=true
     else
         log_error "❌ Primary snake service not responsive!"
-        log_warning "Will attempt training against available opponents only..."
-        
-        # Try alternative connection methods for debugging
-        if [ "$DEBUG" = "1" ]; then
-            log_info "Debug: Attempting alternative connectivity tests..."
-            
-            # Test if container is running (only if we have docker command)
-            if command -v docker >/dev/null 2>&1; then
-                if docker ps | grep -q code-snek; then
-                    log_info "Debug: code-snek container is running"
-                else
-                    log_warning "Debug: code-snek container not found in docker ps"
-                fi
-                
-                # Test localhost as fallback if we were using container hostname
-                if [[ "$SERVICE_BASE_URL" == *"code-snek"* ]]; then
-                    log_info "Debug: Testing localhost connectivity as fallback..."
-                    if test_snake_service "ruby-danger-noodle-localhost" "http://localhost:4567" 8; then
-                        log_info "Debug: localhost:4567 is responsive, using localhost for all services"
-                        SERVICE_BASE_URL="http://localhost"
-                        primary_snake_url="http://localhost:4567"
-                        # Re-test with localhost
-                        if test_snake_service "ruby-danger-noodle" "$primary_snake_url" 10; then
-                            log_success "✅ Primary snake service is responsive via localhost"
-                            PRIMARY_SNAKE_RESPONSIVE=true
-                        fi
-                    fi
-                fi
-            else
-                log_info "Debug: Docker command not available, likely running inside container"
-                
-                # If we're inside a container and can't reach code-snek, try localhost
-                if [[ "$SERVICE_BASE_URL" == *"code-snek"* ]]; then
-                    log_info "Debug: Trying localhost as fallback inside container..."
-                    if test_snake_service "ruby-danger-noodle-localhost" "http://localhost:4567" 8; then
-                        log_info "Debug: localhost:4567 is responsive, switching to localhost"
-                        SERVICE_BASE_URL="http://localhost"
-                        primary_snake_url="http://localhost:4567"
-                        PRIMARY_SNAKE_RESPONSIVE=true
-                    fi
-                fi
-            fi
-        fi
+        log_warning "Cannot run training without primary snake"
+        return 1
     fi
     
-    # Primary opponents configuration - use detected/corrected service base URL
+    # Primary opponents configuration - all use container hostname
     # Format: name url difficulty description
     OPPONENTS=(
         "pathy ${SERVICE_BASE_URL}:8081 hard Go-based pathfinding snake"
@@ -264,12 +136,12 @@ setup_opponents() {
         "python-summer ${SERVICE_BASE_URL}:8085 medium Python summer league snake"
     )
     
-    # Test opponents with more generous timeouts and enhanced error reporting
+    # Test opponents
     local tested_opponents=0
     local responsive_opponents=0
     
     for opponent_data in "${OPPONENTS[@]}"; do
-        # Parse opponent data using space separation (much simpler and more reliable)
+        # Parse opponent data using space separation
         # Format: name url difficulty description...
         set -- $opponent_data
         local name="$1"
@@ -279,12 +151,7 @@ setup_opponents() {
         local description="$*"
         
         ((tested_opponents++))
-        
         log_info "[$tested_opponents/${#OPPONENTS[@]}] Testing $name..."
-        
-        if [ "$DEBUG" = "1" ]; then
-            log_info "Debug: Parsed - Name: $name, URL: $url, Difficulty: $difficulty"
-        fi
         
         if test_snake_service "$name" "$url" 12; then
             AVAILABLE_OPPONENTS+=("$opponent_data")
@@ -292,48 +159,18 @@ setup_opponents() {
             log_success "✅ $name ($difficulty) - $description"
         else
             log_warning "❌ $name unavailable - $difficulty: $description"
-            
-            # Enhanced debugging for unavailable opponents
-            if [ "$DEBUG" = "1" ]; then
-                local port=$(echo "$url" | sed 's|.*:||')
-                log_info "Debug: Checking if port $port is bound..."
-                if netstat -tlnp 2>/dev/null | grep -q ":$port "; then
-                    log_info "Debug: Port $port is bound but service not responding to HTTP"
-                else
-                    log_info "Debug: Port $port appears to be closed"
-                fi
-            fi
         fi
     done
     
-    # Enhanced results reporting
+    # Results
     log_info "🔍 Service Discovery Results:"
     log_info "   • Primary snake responsive: $PRIMARY_SNAKE_RESPONSIVE"
     log_info "   • Available opponents: $responsive_opponents out of $tested_opponents"
-    local primary_count=0
-    if [ "$PRIMARY_SNAKE_RESPONSIVE" = "true" ]; then
-        primary_count=1
-    fi
-    local total_services=$((responsive_opponents + primary_count))
-    log_info "   • Total services found: $total_services"
     
-    # Enhanced scenario handling with better fallback logic
-    if [ ${#AVAILABLE_OPPONENTS[@]} -eq 0 ] && [ "$PRIMARY_SNAKE_RESPONSIVE" = "false" ]; then
-        log_error "🚨 CRITICAL: No services are available (including primary snake)!"
-        log_warning "📋 This indicates a serious infrastructure problem"
-        log_info "🔧 Running comprehensive diagnostic and fallback training..."
-        setup_enhanced_fallback_training "no-services"
-        return 0
-    elif [ ${#AVAILABLE_OPPONENTS[@]} -eq 0 ]; then
-        log_warning "⚠️ No opponent services available but primary snake is responsive"
-        log_info "🎯 Running self-validation and diagnostic training..."
-        setup_enhanced_fallback_training "primary-only"
-        return 0
-    elif [ "$PRIMARY_SNAKE_RESPONSIVE" = "false" ]; then
-        log_error "❌ Primary snake not responsive - cannot run training against opponents"
-        log_warning "🧪 Running opponent-only validation and diagnostics..."
-        setup_enhanced_fallback_training "opponents-only"
-        return 0
+    if [ ${#AVAILABLE_OPPONENTS[@]} -eq 0 ]; then
+        log_error "No opponent services available for training"
+        log_error "Training requires responsive opponent services"
+        return 1
     else
         log_success "🚀 Ready for multi-opponent training!"
         log_info "   • Primary snake: ✅ Ready"
@@ -559,426 +396,7 @@ train_against_opponent() {
     return 0
 }
 
-# Enhanced fallback training when services are unavailable
-setup_enhanced_fallback_training() {
-    local scenario="$1"
-    
-    log_training "🔧 Setting up enhanced fallback training system..."
-    log_info "📋 Scenario: $scenario"
-    
-    case "$scenario" in
-        "no-services")
-            log_warning "🚨 CRITICAL INFRASTRUCTURE ISSUE: No services responding"
-            log_info "📊 Running comprehensive infrastructure diagnostics..."
-            
-            # Comprehensive diagnostics
-            run_infrastructure_diagnostics
-            
-            # Create comprehensive fallback data
-            opponent_results["infrastructure-test"]="0:0:0:20"
-            opponent_stats["infrastructure-test"]="0.0:0.0:0.0:100.0:0:0" 
-            strategic_insights["infrastructure-test"]="🚨 CRITICAL: Complete infrastructure failure - no services responding. This indicates serious deployment or networking issues that must be resolved before training can proceed."
-            
-            # Create diagnostic training data
-            create_infrastructure_diagnostic_data "critical"
-            ;;
-            
-        "primary-only")
-            log_info "🎯 PRIMARY SNAKE ONLY: Testing core functionality"
-            
-            # Test primary snake thoroughly
-            run_primary_snake_diagnostics
-            
-            # Create primary-only training data
-            opponent_results["self-validation"]="18:2:0:0"
-            opponent_stats["self-validation"]="90.0:100.0:35.0:0.0:0:0"
-            strategic_insights["self-validation"]="✅ Primary snake is responsive and functional. Opponent services unavailable but core snake logic appears sound. Focus on fixing opponent service deployment."
-            
-            create_infrastructure_diagnostic_data "primary-only"
-            ;;
-            
-        "opponents-only") 
-            log_info "🧪 OPPONENT VALIDATION: Primary snake down, testing infrastructure"
-            
-            # Test available opponents
-            run_opponent_diagnostics
-            
-            # Create opponent-only diagnostic data
-            opponent_results["opponent-validation"]="0:0:0:0"
-            opponent_stats["opponent-validation"]="0.0:0.0:0.0:0.0:0:0"
-            strategic_insights["opponent-validation"]="⚠️ Opponent services detected but primary snake unresponsive. Infrastructure partially working but deployment issues with main service."
-            
-            create_infrastructure_diagnostic_data "opponents-only"
-            ;;
-    esac
-    
-    log_success "✅ Enhanced fallback training completed"
-}
-
-# Run comprehensive infrastructure diagnostics
-run_infrastructure_diagnostics() {
-    log_info "🔍 Running comprehensive infrastructure diagnostics..."
-    
-    local diagnostics_report="/tmp/infrastructure_diagnostics.log"
-    
-    {
-        echo "=== BATTLESNAKE INFRASTRUCTURE DIAGNOSTICS ==="
-        echo "Timestamp: $(date -Iseconds)"
-        echo "Environment: Docker container simulation"
-        echo ""
-        
-        echo "=== DOCKER ENVIRONMENT ==="
-        echo "Container status:"
-        docker ps 2>/dev/null || echo "Docker not available or no containers running"
-        echo ""
-        
-        echo "=== NETWORK CONNECTIVITY ==="
-        echo "Network interfaces:"
-        ip addr show 2>/dev/null | grep -E "(inet |UP|DOWN)" || echo "Network interface info unavailable"
-        echo ""
-        
-        echo "=== SERVICE PORT STATUS ==="
-        local ports=(4567 8081 8082 8083 8084 8085)
-        for port in "${ports[@]}"; do
-            if netstat -tlnp 2>/dev/null | grep -q ":$port "; then
-                echo "Port $port: BOUND"
-            else
-                echo "Port $port: NOT BOUND"
-            fi
-        done
-        echo ""
-        
-        echo "=== DNS RESOLUTION ==="
-        if nslookup code-snek 2>/dev/null | grep -q "Address:"; then
-            echo "code-snek hostname: RESOLVES"
-        else
-            echo "code-snek hostname: DOES NOT RESOLVE"
-        fi
-        
-        echo "=== PROCESS ANALYSIS ==="
-        echo "Ruby processes:"
-        ps aux | grep -i ruby || echo "No ruby processes found"
-        echo ""
-        echo "Go processes:"
-        ps aux | grep -i go || echo "No go processes found"
-        echo ""
-        echo "Python processes:"
-        ps aux | grep -i python || echo "No python processes found"
-        
-    } > "$diagnostics_report"
-    
-    if [ "$DEBUG" = "1" ]; then
-        log_info "📋 Infrastructure diagnostics:"
-        cat "$diagnostics_report"
-    fi
-    
-    log_info "📊 Infrastructure diagnostics completed - report saved to $diagnostics_report"
-}
-
-# Test primary snake thoroughly
-run_primary_snake_diagnostics() {
-    log_info "🎯 Running primary snake diagnostics..."
-    
-    local test_url="http://code-snek:4567"
-    local max_attempts=5
-    
-    for attempt in $(seq 1 $max_attempts); do
-        log_info "Diagnostic attempt $attempt/$max_attempts..."
-        
-        # Test basic connectivity
-        if curl -s --connect-timeout 5 --max-time 10 "$test_url" >/dev/null 2>&1; then
-            log_success "✅ Basic HTTP connectivity working"
-            
-            # Test move endpoint
-            local move_test_data='{
-                "game": {"id": "test", "ruleset": {"name": "standard"}, "timeout": 500},
-                "turn": 1,
-                "board": {
-                    "height": 11,
-                    "width": 11,
-                    "food": [{"x": 5, "y": 5}],
-                    "hazards": [],
-                    "snakes": [
-                        {
-                            "id": "test-snake",
-                            "name": "test-snake", 
-                            "health": 100,
-                            "body": [{"x": 3, "y": 3}, {"x": 3, "y": 2}],
-                            "latency": "0",
-                            "head": {"x": 3, "y": 3},
-                            "length": 2,
-                            "shout": "",
-                            "squad": "",
-                            "customizations": {"color": "#ff0000", "head": "default", "tail": "default"}
-                        }
-                    ]
-                },
-                "you": {
-                    "id": "test-snake",
-                    "name": "test-snake",
-                    "health": 100,
-                    "body": [{"x": 3, "y": 3}, {"x": 3, "y": 2}],
-                    "latency": "0",
-                    "head": {"x": 3, "y": 3},
-                    "length": 2,
-                    "shout": "",
-                    "squad": "",
-                    "customizations": {"color": "#ff0000", "head": "default", "tail": "default"}
-                }
-            }'
-            
-            local move_response
-            move_response=$(curl -s --connect-timeout 5 --max-time 10 \
-                -X POST \
-                -H "Content-Type: application/json" \
-                -d "$move_test_data" \
-                "$test_url/move" 2>/dev/null)
-            
-            if [ -n "$move_response" ] && echo "$move_response" | grep -q '"move"'; then
-                log_success "✅ Move endpoint responding correctly"
-                local move=$(echo "$move_response" | grep -o '"move":"[^"]*"' | cut -d'"' -f4)
-                log_info "   Move response: $move"
-                return 0
-            else
-                log_warning "⚠️ Move endpoint not responding properly"
-                log_info "   Response: $(echo "$move_response" | head -c 100)..."
-            fi
-        else
-            log_warning "❌ Basic connectivity failed on attempt $attempt"
-        fi
-        
-        # Wait before retry
-        if [ $attempt -lt $max_attempts ]; then
-            sleep $((attempt * 2))
-        fi
-    done
-    
-    log_error "❌ Primary snake diagnostics failed after $max_attempts attempts"
-    return 1
-}
-
-# Test available opponent services
-run_opponent_diagnostics() {
-    log_info "🧪 Running opponent diagnostics..."
-    
-    local tested_count=0
-    local working_count=0
-    
-    for opponent_data in "${AVAILABLE_OPPONENTS[@]}"; do
-        IFS=':' read -r name url difficulty description <<< "$opponent_data"
-        ((tested_count++))
-        
-        log_info "Testing opponent $tested_count: $name..."
-        
-        if curl -s --connect-timeout 3 --max-time 8 "$url" >/dev/null 2>&1; then
-            ((working_count++))
-            log_success "✅ $name is responding"
-        else
-            log_warning "❌ $name not responding"
-        fi
-    done
-    
-    log_info "📊 Opponent diagnostics: $working_count out of $tested_count opponents responding"
-}
-
-# Create infrastructure diagnostic training data
-create_infrastructure_diagnostic_data() {
-    local scenario_type="$1"
-    local data_dir="/tmp/battlesnake_training_data"
-    local diagnostics_dir="$data_dir/diagnostics"
-    local analysis_dir="$data_dir/analysis"
-    
-    # Create directories
-    mkdir -p "$diagnostics_dir" "$analysis_dir"
-    
-    # Create diagnostic report based on scenario
-    local diagnostic_data
-    case "$scenario_type" in
-        "critical")
-            diagnostic_data='{
-                "scenario": "critical_infrastructure_failure",
-                "timestamp": "'$(date -Iseconds)'",
-                "severity": "critical",
-                "infrastructure_status": {
-                    "primary_snake": false,
-                    "opponent_services": 0,
-                    "network_connectivity": false,
-                    "service_discovery": false
-                },
-                "diagnostic_summary": {
-                    "total_services_expected": 6,
-                    "services_responding": 0,
-                    "infrastructure_health": 0.0,
-                    "deployment_status": "failed"
-                },
-                "recommendations": [
-                    "Check Docker container deployment",
-                    "Verify network configuration",
-                    "Examine service startup logs",
-                    "Validate port binding configuration",
-                    "Review supervisord service management"
-                ],
-                "simulation_impact": {
-                    "training_possible": false,
-                    "fallback_mode": "diagnostic_only",
-                    "data_quality": "synthetic"
-                }
-            }'
-            ;;
-        "primary-only")
-            diagnostic_data='{
-                "scenario": "primary_service_only",
-                "timestamp": "'$(date -Iseconds)'",
-                "severity": "moderate",
-                "infrastructure_status": {
-                    "primary_snake": true,
-                    "opponent_services": 0,
-                    "network_connectivity": true,
-                    "service_discovery": "partial"
-                },
-                "diagnostic_summary": {
-                    "total_services_expected": 6,
-                    "services_responding": 1,
-                    "infrastructure_health": 16.7,
-                    "deployment_status": "partial"
-                },
-                "recommendations": [
-                    "Fix opponent service deployment",
-                    "Check multi-service configuration",
-                    "Verify port binding for services 8081-8085",
-                    "Review supervisord configuration",
-                    "Test opponent service startup"
-                ],
-                "simulation_impact": {
-                    "training_possible": false,
-                    "fallback_mode": "self_validation",
-                    "data_quality": "limited"
-                }
-            }'
-            ;;
-        "opponents-only")
-            diagnostic_data='{
-                "scenario": "opponents_without_primary",
-                "timestamp": "'$(date -Iseconds)'",
-                "severity": "high",
-                "infrastructure_status": {
-                    "primary_snake": false,
-                    "opponent_services": '${#AVAILABLE_OPPONENTS[@]}',
-                    "network_connectivity": true,
-                    "service_discovery": "partial"
-                },
-                "diagnostic_summary": {
-                    "total_services_expected": 6,
-                    "services_responding": '${#AVAILABLE_OPPONENTS[@]}',
-                    "infrastructure_health": '$(awk "BEGIN {printf \"%.1f\", (${#AVAILABLE_OPPONENTS[@]} * 100.0) / 6}" 2>/dev/null || echo "0")',
-                    "deployment_status": "primary_failed"
-                },
-                "recommendations": [
-                    "Fix primary snake service deployment",
-                    "Check Ruby service configuration",
-                    "Verify port 4567 binding",
-                    "Review primary service startup logs",
-                    "Test ruby application startup"
-                ],
-                "simulation_impact": {
-                    "training_possible": false,
-                    "fallback_mode": "infrastructure_validation",
-                    "data_quality": "diagnostic"
-                }
-            }'
-            ;;
-    esac
-    
-    echo "$diagnostic_data" > "$diagnostics_dir/infrastructure_diagnostic_${scenario_type}.json"
-    
-    # Create analysis data for performance analyzer
-    local cycle_analysis='{
-        "cycle_id": 1,
-        "timestamp": "'$(date -Iseconds)'",
-        "scenario_type": "'$scenario_type'",
-        "game_statistics": {
-            "total_games": 0,
-            "wins": 0,
-            "draws": 0,
-            "losses": 0,
-            "competitive_rate": 0.0,
-            "win_rate": 0.0,
-            "avg_game_length": 0.0
-        },
-        "infrastructure_analysis": {
-            "services_available": '$(($PRIMARY_SNAKE_RESPONSIVE && echo 1 || echo 0))' + ${#AVAILABLE_OPPONENTS[@]},
-            "connectivity_issues": true,
-            "deployment_problems": true,
-            "diagnostic_mode": true
-        },
-        "failure_analysis": {
-            "infrastructure_failures": 1,
-            "service_unavailable": true,
-            "network_issues": true,
-            "configuration_problems": true
-        },
-        "recommendations": {
-            "priority": "fix_infrastructure",
-            "next_steps": [
-                "Resolve service deployment issues",
-                "Fix network connectivity problems", 
-                "Validate configuration",
-                "Test service startup"
-            ]
-        }
-    }'
-    
-    echo "$cycle_analysis" > "$analysis_dir/cycle_1_diagnostic_patterns.json"
-    
-    log_info "📊 Created infrastructure diagnostic data for scenario: $scenario_type"
-}
-
-# Fallback training when no opponents are available (legacy compatibility)
-setup_fallback_training() {
-    log_warning "🔄 Running legacy fallback training..."
-    setup_enhanced_fallback_training "primary-only"
-}
-
-# Create mock training data for performance analysis
-create_mock_training_data() {
-    local data_dir="/tmp/battlesnake_training_data"
-    local games_dir="$data_dir/games"
-    local analysis_dir="$data_dir/analysis"
-    
-    # Create directories
-    mkdir -p "$games_dir" "$analysis_dir"
-    
-    # Create cycle pattern data for analysis
-    local cycle_data='{
-        "cycle_id": 1,
-        "timestamp": "'$(date -Iseconds)'",
-        "game_statistics": {
-            "total_games": 20,
-            "wins": 9,
-            "draws": 1,
-            "losses": 10,
-            "competitive_rate": 50.0,
-            "win_rate": 45.0,
-            "avg_game_length": 24.5
-        },
-        "failure_analysis": {
-            "early_failures": 4,
-            "starvation_deaths": 3,
-            "collision_deaths": 3,
-            "early_failure_rate": 20.0
-        },
-        "performance_patterns": {
-            "avg_response_time": 12.0,
-            "decision_confidence": 0.78,
-            "strategic_consistency": 0.82
-        }
-    }'
-    
-    echo "$cycle_data" > "$analysis_dir/cycle_1_patterns.json"
-    
-    log_info "Created mock training data for performance analysis"
-}
-
+# Generate strategic insights for opponent performance
 generate_strategic_insights() {
     local name="$1"
     local difficulty="$2"
@@ -1231,11 +649,8 @@ main() {
     
     if [ ${#AVAILABLE_OPPONENTS[@]} -eq 0 ]; then
         log_error "No opponents available for training!"
-        log_warning "Running fallback training mode..."
-        setup_fallback_training
-        generate_training_report
-        log_warning "Fallback training completed - consider fixing opponent services for full training"
-        return 0
+        log_error "This system requires Docker network setup with responsive services"
+        return 1
     fi
     
     # Calculate games per opponent

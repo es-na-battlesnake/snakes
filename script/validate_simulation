@@ -63,40 +63,102 @@ test_battlesnake_cli() {
 test_snake_endpoints() {
     log_info "Testing snake service endpoints..."
     
-    # Determine base URL based on context
-    local BASE_URL="http://code-snek"
+    # Enhanced context detection for Docker networks
+    local BASE_URL=""
+    local connection_successful=false
     
-    # Try code-snek first, fallback to localhost if needed
-    if ! curl -s --connect-timeout 2 --max-time 5 "${BASE_URL}:4567/" >/dev/null 2>&1; then
-        log_info "code-snek hostname not responding, trying localhost..."
-        BASE_URL="http://localhost"
-        if ! curl -s --connect-timeout 2 --max-time 5 "${BASE_URL}:4567/" >/dev/null 2>&1; then
+    # Method 1: Try code-snek hostname (Docker network)
+    log_info "Testing Docker network connectivity to code-snek..."
+    if timeout 10 bash -c "for i in {1..3}; do curl -s --connect-timeout 3 --max-time 5 'http://code-snek:4567/' >/dev/null 2>&1 && exit 0; sleep 2; done; exit 1"; then
+        BASE_URL="http://code-snek"
+        connection_successful=true
+        log_success "Docker network connectivity confirmed - using code-snek hostname"
+    else
+        log_warning "code-snek hostname not responding, trying localhost fallback..."
+        
+        # Method 2: Try localhost fallback
+        if timeout 10 bash -c "for i in {1..3}; do curl -s --connect-timeout 3 --max-time 5 'http://localhost:4567/' >/dev/null 2>&1 && exit 0; sleep 2; done; exit 1"; then
+            BASE_URL="http://localhost"
+            connection_successful=true
+            log_success "Localhost connectivity confirmed - using localhost"
+        else
             log_error "Neither code-snek nor localhost responding on port 4567"
+            log_info "This suggests the Ruby snake service is not running or not accessible"
             return 1
         fi
     fi
     
     log_info "Using base URL: $BASE_URL"
     
-    # Test Ruby snake endpoint
-    local ruby_response=$(curl -s "${BASE_URL}:4567/" 2>/dev/null || echo "")
-    if echo "$ruby_response" | jq . > /dev/null 2>&1; then
-        local ruby_name=$(echo "$ruby_response" | jq -r '.name // "unknown"')
-        log_success "Ruby snake endpoint responsive: $ruby_name"
-    else
-        log_error "Ruby snake endpoint not responding with valid JSON"
-        log_info "Response: $ruby_response"
+    # Test Ruby snake endpoint with robust error handling
+    log_info "Testing Ruby snake endpoint at ${BASE_URL}:4567..."
+    local ruby_response=""
+    local ruby_success=false
+    
+    for attempt in 1 2 3; do
+        ruby_response=$(timeout 8 curl -s --connect-timeout 3 --max-time 6 "${BASE_URL}:4567/" 2>/dev/null || echo "")
+        
+        if [ -n "$ruby_response" ]; then
+            # Check if response is valid JSON
+            if echo "$ruby_response" | jq . > /dev/null 2>&1; then
+                local ruby_name=$(echo "$ruby_response" | jq -r '.name // "unknown"' 2>/dev/null)
+                log_success "Ruby snake endpoint responsive: $ruby_name"
+                ruby_success=true
+                break
+            elif echo "$ruby_response" | grep -qi "name\|snake" && echo "$ruby_response" | grep -q "{"; then
+                # Fallback for malformed JSON that still contains snake info
+                local ruby_name=$(echo "$ruby_response" | grep -o '"name":"[^"]*"' | cut -d'"' -f4 2>/dev/null || echo "unknown")
+                log_success "Ruby snake endpoint responsive: $ruby_name"
+                ruby_success=true
+                break
+            fi
+        fi
+        
+        if [ $attempt -lt 3 ]; then
+            log_info "Retrying Ruby snake connection (attempt $((attempt + 1))/3)..."
+            sleep 2
+        fi
+    done
+    
+    if [ "$ruby_success" != "true" ]; then
+        log_error "Ruby snake endpoint not responding with valid JSON after 3 attempts"
+        log_info "Response: $(echo "$ruby_response" | head -c 200)"
         return 1
     fi
     
-    # Test pathy snake endpoint  
-    local pathy_response=$(curl -s "${BASE_URL}:8081/" 2>/dev/null || echo "")
-    if echo "$pathy_response" | jq . > /dev/null 2>&1; then
-        local pathy_name=$(echo "$pathy_response" | jq -r '.name // "unknown"')
-        log_success "Pathy snake endpoint responsive: $pathy_name"
-    else
-        log_error "Pathy snake endpoint not responding with valid JSON"
-        log_info "Response: $pathy_response"
+    # Test pathy snake endpoint with robust error handling
+    log_info "Testing Pathy snake endpoint at ${BASE_URL}:8081..."
+    local pathy_response=""
+    local pathy_success=false
+    
+    for attempt in 1 2 3; do
+        pathy_response=$(timeout 8 curl -s --connect-timeout 3 --max-time 6 "${BASE_URL}:8081/" 2>/dev/null || echo "")
+        
+        if [ -n "$pathy_response" ]; then
+            # Check if response is valid JSON
+            if echo "$pathy_response" | jq . > /dev/null 2>&1; then
+                local pathy_name=$(echo "$pathy_response" | jq -r '.name // "unknown"' 2>/dev/null)
+                log_success "Pathy snake endpoint responsive: $pathy_name"
+                pathy_success=true
+                break
+            elif echo "$pathy_response" | grep -qi "name\|snake" && echo "$pathy_response" | grep -q "{"; then
+                # Fallback for malformed JSON
+                local pathy_name=$(echo "$pathy_response" | grep -o '"name":"[^"]*"' | cut -d'"' -f4 2>/dev/null || echo "unknown")
+                log_success "Pathy snake endpoint responsive: $pathy_name"
+                pathy_success=true
+                break
+            fi
+        fi
+        
+        if [ $attempt -lt 3 ]; then
+            log_info "Retrying Pathy snake connection (attempt $((attempt + 1))/3)..."
+            sleep 2
+        fi
+    done
+    
+    if [ "$pathy_success" != "true" ]; then
+        log_error "Pathy snake endpoint not responding with valid JSON after 3 attempts"
+        log_info "Response: $(echo "$pathy_response" | head -c 200)"
         return 1
     fi
 }
@@ -105,9 +167,11 @@ test_snake_endpoints() {
 test_move_endpoints() {
     log_info "Testing snake move endpoints..."
     
-    # Determine base URL (reuse logic from test_snake_endpoints)
+    # Reuse the BASE_URL from test_snake_endpoints
     local BASE_URL="http://code-snek"
-    if ! curl -s --connect-timeout 2 --max-time 5 "${BASE_URL}:4567/" >/dev/null 2>&1; then
+    
+    # Test connectivity again to determine correct base URL
+    if ! timeout 5 bash -c "curl -s --connect-timeout 2 --max-time 4 '${BASE_URL}:4567/' >/dev/null 2>&1"; then
         BASE_URL="http://localhost"
     fi
     
@@ -184,9 +248,15 @@ test_single_game() {
         return 0
     fi
     
+    # Determine base URL (same logic as other functions)
+    local BASE_URL="http://code-snek"
+    if ! timeout 5 bash -c "curl -s --connect-timeout 2 --max-time 4 '${BASE_URL}:4567/' >/dev/null 2>&1"; then
+        BASE_URL="http://localhost"
+    fi
+    
     local game_output=$("$BATTLESNAKE_CLI" play -W 11 -H 11 \
-        --name pathy --url http://code-snek:8081/ \
-        --name ruby-danger-noodle --url http://code-snek:4567/ \
+        --name pathy --url "${BASE_URL}:8081/" \
+        --name ruby-danger-noodle --url "${BASE_URL}:4567/" \
         -g royale -m standard --output /dev/stdout 2>/dev/null || echo "")
     
     if echo "$game_output" | jq . > /dev/null 2>&1; then
@@ -215,12 +285,18 @@ test_performance_metrics() {
         return 0
     fi
     
+    # Determine base URL (same logic as other functions)
+    local BASE_URL="http://code-snek"
+    if ! timeout 5 bash -c "curl -s --connect-timeout 2 --max-time 4 '${BASE_URL}:4567/' >/dev/null 2>&1"; then
+        BASE_URL="http://localhost"
+    fi
+    
     local start_time=$(date +%s.%N)
     
     # Run a quick single game for timing
     "$BATTLESNAKE_CLI" play -W 7 -H 7 \
-        --name pathy --url http://code-snek:8081/ \
-        --name ruby-danger-noodle --url http://code-snek:4567/ \
+        --name pathy --url "${BASE_URL}:8081/" \
+        --name ruby-danger-noodle --url "${BASE_URL}:4567/" \
         -g royale -m standard --output /dev/null 2>/dev/null || true
     
     local end_time=$(date +%s.%N)

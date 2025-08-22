@@ -236,9 +236,9 @@ end
 def get_position_after_move(current_pos, direction)
   case direction
   when 'up'
-    { x: current_pos[:x], y: current_pos[:y] - 1 }
-  when 'down'
     { x: current_pos[:x], y: current_pos[:y] + 1 }
+  when 'down'
+    { x: current_pos[:x], y: current_pos[:y] - 1 }
   when 'left'
     { x: current_pos[:x] - 1, y: current_pos[:y] }
   when 'right'

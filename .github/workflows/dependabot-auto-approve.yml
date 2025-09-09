@@ -3,6 +3,12 @@ name: Dependabot Auto Approve
 on:
   pull_request_target:
     types: [opened, reopened, synchronize]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to auto-approve (optional - if not provided, will check all open dependabot PRs)'
+        required: false
+        type: number
 
 permissions:
   contents: read
@@ -11,14 +17,52 @@ permissions:
 jobs:
   auto-approve:
     runs-on: ubuntu-latest
-    if: github.actor == 'dependabot[bot]'
+    if: github.actor == 'dependabot[bot]' || github.event_name == 'workflow_dispatch'
     steps:
       - name: Auto approve dependabot PRs
         uses: actions/github-script@v7
         with:
           script: |
-            const prNumber = context.payload.pull_request.number;
-            const prTitle = context.payload.pull_request.title;
+            let prNumber;
+            let prTitle;
+            
+            if (context.eventName === 'workflow_dispatch' && context.payload.inputs.pr_number) {
+              prNumber = parseInt(context.payload.inputs.pr_number);
+              // Get PR details for manual dispatch
+              const pr = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber
+              });
+              prTitle = pr.data.title;
+              
+              // Verify it's a dependabot PR
+              if (pr.data.user.login !== 'dependabot[bot]') {
+                console.log(`PR #${prNumber} is not from dependabot, skipping auto-approval`);
+                return;
+              }
+            } else if (context.eventName === 'workflow_dispatch') {
+              // Find all open dependabot PRs
+              const prs = await github.rest.pulls.list({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: 'open'
+              });
+              
+              const dependabotPRs = prs.data.filter(pr => pr.user.login === 'dependabot[bot]');
+              if (dependabotPRs.length === 0) {
+                console.log('No open dependabot PRs found');
+                return;
+              }
+              
+              // Process the first dependabot PR found
+              prNumber = dependabotPRs[0].number;
+              prTitle = dependabotPRs[0].title;
+              console.log(`Found ${dependabotPRs.length} dependabot PRs, processing PR #${prNumber}`);
+            } else {
+              prNumber = context.payload.pull_request.number;
+              prTitle = context.payload.pull_request.title;
+            }
             
             console.log(`Auto-approving dependabot PR #${prNumber}: ${prTitle}`);
             

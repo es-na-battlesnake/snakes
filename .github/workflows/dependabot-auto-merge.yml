@@ -6,6 +6,12 @@ on:
   check_suite:
     types: [completed]
   status: {}
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to auto-merge (optional - if not provided, will check all open dependabot PRs)'
+        required: false
+        type: number
 
 permissions:
   contents: write
@@ -15,16 +21,18 @@ permissions:
 jobs:
   auto-merge:
     runs-on: ubuntu-latest
-    if: github.actor == 'dependabot[bot]'
+    if: github.actor == 'dependabot[bot]' || github.event_name == 'workflow_dispatch'
     steps:
       - name: Get PR details
         id: pr
         uses: actions/github-script@v7
         with:
           script: |
-            // Get the PR number from the event
+            // Get the PR number from the event or manual input
             let prNumber;
-            if (context.eventName === 'pull_request_target') {
+            if (context.eventName === 'workflow_dispatch' && context.payload.inputs.pr_number) {
+              prNumber = parseInt(context.payload.inputs.pr_number);
+            } else if (context.eventName === 'pull_request_target') {
               prNumber = context.payload.pull_request.number;
             } else {
               // For check_suite and status events, find the PR
@@ -40,6 +48,25 @@ jobs:
                 return;
               }
               prNumber = prs.data[0].number;
+            }
+            
+            // If workflow_dispatch without PR number, find all open dependabot PRs
+            if (context.eventName === 'workflow_dispatch' && !context.payload.inputs.pr_number) {
+              const prs = await github.rest.pulls.list({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: 'open'
+              });
+              
+              const dependabotPRs = prs.data.filter(pr => pr.user.login === 'dependabot[bot]');
+              if (dependabotPRs.length === 0) {
+                console.log('No open dependabot PRs found');
+                return;
+              }
+              
+              // Process the first dependabot PR found
+              prNumber = dependabotPRs[0].number;
+              console.log(`Found ${dependabotPRs.length} dependabot PRs, processing PR #${prNumber}`);
             }
             
             // Get PR details

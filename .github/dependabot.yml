@@ -9,14 +9,20 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "monthly"
+    # Allow patch and minor updates to be auto-merged
+    open-pull-requests-limit: 5
  
   - package-ecosystem: "docker" # See documentation for possible values
     directory: "/" # Location of package manifests
     schedule:
       interval: "monthly"
+    # Allow patch updates to be auto-merged
+    open-pull-requests-limit: 5
       
   - package-ecosystem: "github-actions" # See documentation for possible values
     directory: "/" # Location of package manifests
     schedule:
       interval: "monthly"
+    # Allow patch and minor updates to be auto-merged
+    open-pull-requests-limit: 5
 

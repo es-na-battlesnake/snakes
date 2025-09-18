@@ -118,7 +118,7 @@ DEPENDENCIES
   rack-contrib
   rack-test
   rackup
-  rspec (~> 3.13)
+  rspec
   rubocop
   simplecov
   sinatra

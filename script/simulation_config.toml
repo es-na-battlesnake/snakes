@@ -1,0 +1,81 @@
+# Battlesnake Simulation Configuration
+# 
+# This file defines the test configurations for comprehensive simulation testing.
+# Modify these settings to customize the simulation suite.
+
+# Test Configurations
+# Each configuration tests different aspects of the snake's performance
+
+[standard_royale]
+mode = "royale"
+map = "standard"
+width = 11
+height = 11
+runs = 30
+description = "Primary competitive test - most common tournament format"
+weight = 3
+
+[wrapped_standard]
+mode = "wrapped"
+map = "standard" 
+width = 11
+height = 11
+runs = 15
+description = "Edge wrapping challenge - tests boundary handling"
+weight = 2
+
+[hazard_islands]
+mode = "royale"
+map = "hz_islands_bridges"
+width = 11
+height = 11
+runs = 10
+description = "Hazard navigation - tests risk assessment and avoidance"
+weight = 2
+
+[large_arcade]
+mode = "royale"
+map = "arcade_maze"
+width = 19
+height = 21
+runs = 10
+description = "Large map performance - tests scalability and pathfinding"
+weight = 1
+
+[small_standard]
+mode = "royale"
+map = "standard"
+width = 7
+height = 7
+runs = 15
+description = "Small map agility - tests quick decision making"
+weight = 1
+
+# Performance Thresholds
+[thresholds]
+excellent_competitive_rate = 60.0
+good_competitive_rate = 40.0
+max_acceptable_timeout_rate = 5.0
+target_response_time_ms = 200
+
+# Testing Parameters
+[testing]
+total_target_games = 80
+max_timeout_minutes = 30
+health_check_timeout_seconds = 30
+service_startup_delay_seconds = 15
+
+# Opponents Configuration
+[opponents]
+primary = "pathy"
+primary_url = "http://code-snek:8081/"
+# Additional opponents can be added here for future expansion
+# secondary = "starter-snake"
+# secondary_url = "http://code-snek:8082/"
+
+# Reporting Configuration
+[reporting]
+include_trend_analysis = true
+include_actionable_recommendations = true
+include_technical_metrics = true
+save_performance_history = true

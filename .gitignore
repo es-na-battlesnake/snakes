@@ -5,3 +5,6 @@ battlesnake
 .vscode
 /snakes/go/*/tmp/
 .air.toml
+coverage/
+.bundle/
+vendor/

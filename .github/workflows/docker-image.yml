@@ -63,6 +63,6 @@ jobs:
         image: ghcr.io/es-na-battlesnake/code-snake:latest
         name: code-snake
         location: 'west us 2'
-        ports: '4567 4568 4569 4570 4571 8080 8081'
+        ports: '4567 4568 4569 4570 4571 8080 8081 8082 8083 8084 8085'
         restart-policy: OnFailure
         ip-address: Public

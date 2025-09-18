@@ -10,6 +10,7 @@ gem 'sinatra'
 gem 'puma'
 
 group :dev do
+    gem 'rspec'
     gem 'rubocop'
     gem 'rack-test'
     gem 'simplecov'

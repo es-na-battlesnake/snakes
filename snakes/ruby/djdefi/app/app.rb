@@ -3,25 +3,53 @@
 require 'rack'
 require 'rack/contrib'
 require 'sinatra'
+require 'json'
 
 require_relative './util'
 require_relative './move'
 
 
 use Rack::PostBodyContentTypeParser
+
+# Disable all protections for battlesnake simulator
+configure do
+  set :protection, false
+  set :bind, '0.0.0.0'
+  disable :protection
+end
+
+# For Sinatra 4+, explicitly disable host authorization
+before do
+  env.delete('HTTP_HOST_AUTHORIZATION')
+end
+
 # This function is called when you register your Battlesnake on play.battlesnake.com
 # It controls your Battlesnake appearance and author permissions.
 # TIP: If you open your Battlesnake URL in browser you should see this data
 get '/' do
-  appearance = {
-    apiversion: '1',
-    author: 'djdefi',
-    color: '#ff33fb',
-    head: 'gamer',
-    tail: 'virus'
-  }
+  content_type :json
+  begin
+    appearance = {
+      apiversion: '1',
+      author: 'djdefi',
+      color: '#ff33fb',
+      head: 'gamer',
+      tail: 'virus'
+    }
 
-  camelcase(appearance).to_json
+    camelcase(appearance).to_json
+  rescue => e
+    puts "Error in root endpoint: #{e.message}"
+    puts e.backtrace
+    # Return basic JSON response even if there's an error
+    {
+      apiversion: '1',
+      author: 'djdefi',
+      color: '#ff33fb',
+      head: 'gamer',
+      tail: 'virus'
+    }.to_json
+  end
 end
 
 # This function is called everytime your snake is entered into a game.
@@ -38,14 +66,22 @@ end
 # Valid moves are "up", "down", "left", or "right".
 # TODO: Use the information in rack.request.form_hash to decide your next move.
 post '/move' do
+  begin
     # Puts raw request body
-  puts request.body.read
-  request = underscore(env['rack.request.form_hash'])
+    puts request.body.read
+    request = underscore(env['rack.request.form_hash'])
 
-  # Implement move logic in app/move.rb
-  response = move(request)
-  content_type :json
-  camelcase(response).to_json
+    # Implement move logic in app/move.rb
+    response = move(request)
+    content_type :json
+    camelcase(response).to_json
+  rescue => e
+    puts "Error in move endpoint: #{e.message}"
+    puts e.backtrace
+    content_type :json
+    # Return a safe default move
+    { move: 'up' }.to_json
+  end
 end
 
 # This function is called when a game your Battlesnake was in ends.

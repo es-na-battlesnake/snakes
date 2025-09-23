@@ -1,0 +1,243 @@
+name: Dependabot Auto Merge
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+  check_suite:
+    types: [completed]
+  status: {}
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to auto-merge (optional - if not provided, will check all open dependabot PRs)'
+        required: false
+        type: number
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Get PR details
+        id: pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Get the PR number from the event or manual input
+            let prNumber;
+            if (context.eventName === 'workflow_dispatch' && context.payload.inputs.pr_number) {
+              prNumber = parseInt(context.payload.inputs.pr_number);
+            } else if (context.eventName === 'pull_request_target') {
+              prNumber = context.payload.pull_request.number;
+            } else {
+              // For check_suite and status events, find the PR
+              const prs = await github.rest.pulls.list({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: 'open',
+                head: `${context.repo.owner}:${context.payload.check_suite?.head_branch || context.payload.branches?.[0]?.name}`
+              });
+              
+              if (prs.data.length === 0) {
+                console.log('No open PR found for this commit');
+                return;
+              }
+              prNumber = prs.data[0].number;
+            }
+            
+            // If workflow_dispatch without PR number, find all open dependabot PRs
+            if (context.eventName === 'workflow_dispatch' && !context.payload.inputs.pr_number) {
+              const prs = await github.rest.pulls.list({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: 'open'
+              });
+              
+              const dependabotPRs = prs.data.filter(pr => pr.user.login === 'dependabot[bot]');
+              if (dependabotPRs.length === 0) {
+                console.log('No open dependabot PRs found');
+                return;
+              }
+              
+              // Process the first dependabot PR found
+              prNumber = dependabotPRs[0].number;
+              console.log(`Found ${dependabotPRs.length} dependabot PRs, processing PR #${prNumber}`);
+            }
+            
+            // Get PR details
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber
+            });
+            
+            console.log(`PR #${prNumber}: ${pr.data.title}`);
+            console.log(`Author: ${pr.data.user.login}`);
+            console.log(`Draft: ${pr.data.draft}`);
+            console.log(`Mergeable: ${pr.data.mergeable}`);
+            
+            return {
+              number: prNumber,
+              title: pr.data.title,
+              author: pr.data.user.login,
+              draft: pr.data.draft,
+              mergeable: pr.data.mergeable,
+              head_sha: pr.data.head.sha
+            };
+
+      - name: Check if PR is from dependabot
+        if: steps.pr.outputs.result != 'undefined'
+        id: check-author
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prData = ${{ steps.pr.outputs.result }};
+            if (!prData) return false;
+            
+            const isDependabot = prData.author === 'dependabot[bot]';
+            console.log(`Is dependabot PR: ${isDependabot}`);
+            return isDependabot;
+
+      - name: Wait for status checks
+        if: steps.check-author.outputs.result == 'true'
+        id: wait-for-checks
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prData = ${{ steps.pr.outputs.result }};
+            if (!prData) return false;
+            
+            // Required status checks that must pass
+            const requiredChecks = [
+              'build', // from pr-build.yml - "Docker Image CI - Pull Request"
+              'Run hadolint scanning', // from hadolint.yml
+              'Analyze (go)', // from codeql-analysis.yml
+              'Analyze (ruby)', // from codeql-analysis.yml  
+              'Analyze (python)' // from codeql-analysis.yml
+            ];
+            
+            // Note: Go and Python workflows only run when their respective files change
+            // So we'll check for them but won't require them if no relevant files changed
+            
+            console.log(`Checking status for commit: ${prData.head_sha}`);
+            
+            // Get all status checks for the head commit
+            const checks = await github.rest.checks.listForRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: prData.head_sha
+            });
+            
+            // Get commit status as well (for legacy status API)
+            const status = await github.rest.repos.getCombinedStatusForRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: prData.head_sha
+            });
+            
+            console.log(`Found ${checks.data.check_runs.length} check runs`);
+            console.log(`Combined status: ${status.data.state}`);
+            
+            // Check if all required checks have passed
+            let allPassed = true;
+            let pendingChecks = [];
+            let criticalChecksPassed = true;
+            
+            // Critical checks that must always pass
+            const criticalChecks = ['build', 'Run hadolint scanning'];
+            
+            for (const checkName of requiredChecks) {
+              const checkRun = checks.data.check_runs.find(check => 
+                check.name === checkName || check.name.includes(checkName)
+              );
+              
+              const isCritical = criticalChecks.includes(checkName);
+              
+              if (!checkRun) {
+                if (isCritical) {
+                  console.log(`❌ Critical check not found: ${checkName}`);
+                  allPassed = false;
+                  criticalChecksPassed = false;
+                } else {
+                  console.log(`⚠️ Optional check not found (may not be triggered): ${checkName}`);
+                }
+                pendingChecks.push(checkName);
+              } else if (checkRun.status !== 'completed') {
+                console.log(`⏳ Check still running: ${checkName} (${checkRun.status})`);
+                allPassed = false;
+                pendingChecks.push(checkName);
+                if (isCritical) criticalChecksPassed = false;
+              } else if (checkRun.conclusion !== 'success') {
+                console.log(`❌ Check failed: ${checkName} (${checkRun.conclusion})`);
+                allPassed = false;
+                if (isCritical) criticalChecksPassed = false;
+              } else {
+                console.log(`✅ Check passed: ${checkName}`);
+              }
+            }
+            
+            // Also check overall status
+            if (status.data.state === 'pending') {
+              console.log('⏳ Some checks are still pending');
+              allPassed = false;
+            } else if (status.data.state === 'failure' || status.data.state === 'error') {
+              console.log('❌ Some checks have failed');
+              allPassed = false;
+              criticalChecksPassed = false;
+            }
+            
+            console.log(`All checks passed: ${allPassed}`);
+            console.log(`Critical checks passed: ${criticalChecksPassed}`);
+            if (pendingChecks.length > 0) {
+              console.log(`Pending checks: ${pendingChecks.join(', ')}`);
+            }
+            
+            // For safety, require critical checks to pass and overall status to not be failure
+            return criticalChecksPassed && status.data.state !== 'failure' && status.data.state !== 'error';
+
+      - name: Auto merge PR
+        if: steps.wait-for-checks.outputs.result == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prData = ${{ steps.pr.outputs.result }};
+            if (!prData) return;
+            
+            console.log(`Attempting to merge PR #${prData.number}: ${prData.title}`);
+            
+            try {
+              await github.rest.pulls.merge({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prData.number,
+                commit_title: `Auto-merge: ${prData.title}`,
+                commit_message: `Automatically merged dependabot PR #${prData.number}`,
+                merge_method: 'squash'
+              });
+              
+              console.log(`✅ Successfully merged PR #${prData.number}`);
+              
+              // Add a comment to the PR
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prData.number,
+                body: '🤖 This dependabot PR was automatically merged after all status checks passed.'
+              });
+              
+            } catch (error) {
+              console.error(`Failed to merge PR: ${error.message}`);
+              
+              // Add a comment about the failure
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prData.number,
+                body: `❌ Auto-merge failed: ${error.message}`
+              });
+            }

@@ -16,7 +16,7 @@ jobs:
 
     steps:
       # Post a comment on newly opened PRs describing the deployment process and related PR steps to deploy
-      - uses: actions/checkout@v4 
+      - uses: actions/checkout@v5 
       - name: comment
         uses: GrantBirki/comment@v2.1.1
         with:

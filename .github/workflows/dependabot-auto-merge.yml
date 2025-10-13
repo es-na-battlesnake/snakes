@@ -45,7 +45,7 @@ jobs:
               
               if (prs.data.length === 0) {
                 console.log('No open PR found for this commit');
-                return;
+                return null;
               }
               prNumber = prs.data[0].number;
             }
@@ -61,7 +61,7 @@ jobs:
               const dependabotPRs = prs.data.filter(pr => pr.user.login === 'dependabot[bot]');
               if (dependabotPRs.length === 0) {
                 console.log('No open dependabot PRs found');
-                return;
+                return null;
               }
               
               // Process the first dependabot PR found
@@ -91,12 +91,12 @@ jobs:
             };
 
       - name: Check if PR is from dependabot
-        if: steps.pr.outputs.result != 'undefined'
+        if: steps.pr.outputs.result != 'undefined' && steps.pr.outputs.result != 'null'
         id: check-author
         uses: actions/github-script@v8
         with:
           script: |
-            const prData = ${{ steps.pr.outputs.result }};
+            const prData = ${{ steps.pr.outputs.result || 'null' }};
             if (!prData) return false;
             
             const isDependabot = prData.author === 'dependabot[bot]';
@@ -109,7 +109,7 @@ jobs:
         uses: actions/github-script@v8
         with:
           script: |
-            const prData = ${{ steps.pr.outputs.result }};
+            const prData = ${{ steps.pr.outputs.result || 'null' }};
             if (!prData) return false;
             
             // Required status checks that must pass
@@ -205,7 +205,7 @@ jobs:
         uses: actions/github-script@v8
         with:
           script: |
-            const prData = ${{ steps.pr.outputs.result }};
+            const prData = ${{ steps.pr.outputs.result || 'null' }};
             if (!prData) return;
             
             console.log(`Attempting to merge PR #${prData.number}: ${prData.title}`);

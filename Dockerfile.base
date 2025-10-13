@@ -1,4 +1,4 @@
-FROM ruby:3.4.6
+FROM ruby:3.4.7
 
 EXPOSE 4567
 CMD ["/usr/bin/supervisord"]

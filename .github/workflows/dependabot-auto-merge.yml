@@ -91,7 +91,7 @@ jobs:
             };
 
       - name: Check if PR is from dependabot
-        if: steps.pr.outputs.result != 'undefined' && steps.pr.outputs.result != 'null'
+        if: steps.pr.outputs.result && steps.pr.outputs.result != 'null'
         id: check-author
         uses: actions/github-script@v8
         with:

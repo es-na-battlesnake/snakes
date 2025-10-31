@@ -183,26 +183,26 @@ jobs:
           const winRate = '${{ steps.create-summary.outputs.win_rate }}';
           
           const summary = `## 🎮 Simulation Results
-
-**Mode**: Wrapped | **Map**: hz_islands_bridges | **Games**: 10
-
-### 📊 Summary
-| Snake | Wins | Win Rate |
-|-------|------|----------|
-| 🔴 Ruby (ruby-danger-noodle) | ${rubyWins} | ${winRate}% |
-| 🔵 Pathy (Go snake) | ${pathyWins} | ${(parseFloat(pathyWins) * 10).toFixed(1)}% |
-| 🤝 Draws | ${draws} | ${(parseFloat(draws) * 10).toFixed(1)}% |
-
-### 🎯 Performance Assessment
-${parseFloat(rubyWins) >= 5 ? '✅ **Ruby snake performing well!**' : parseFloat(rubyWins) >= 3 ? '⚠️  **Ruby snake performance is moderate** - Consider reviewing strategy' : '❌ **Ruby snake needs improvement** - Performance below target'}
-
-### 📝 Detailed Results
-\`\`\`
-${results}
-\`\`\`
-
----
-*Simulation completed via GitHub Actions*`;
+          
+          **Mode**: Wrapped | **Map**: hz_islands_bridges | **Games**: 10
+          
+          ### 📊 Summary
+          | Snake | Wins | Win Rate |
+          |-------|------|----------|
+          | 🔴 Ruby (ruby-danger-noodle) | ${rubyWins} | ${winRate}% |
+          | 🔵 Pathy (Go snake) | ${pathyWins} | ${(parseFloat(pathyWins) * 10).toFixed(1)}% |
+          | 🤝 Draws | ${draws} | ${(parseFloat(draws) * 10).toFixed(1)}% |
+          
+          ### 🎯 Performance Assessment
+          ${parseFloat(rubyWins) >= 5 ? '✅ **Ruby snake performing well!**' : parseFloat(rubyWins) >= 3 ? '⚠️  **Ruby snake performance is moderate** - Consider reviewing strategy' : '❌ **Ruby snake needs improvement** - Performance below target'}
+          
+          ### 📝 Detailed Results
+          \`\`\`
+          ${results}
+          \`\`\`
+          
+          ---
+          *Simulation completed via GitHub Actions*`;
           
           return summary;
         result-encoding: string

@@ -180,14 +180,13 @@ jobs:
           const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
           
           const comment = `## Simulation Run - ${timestamp}
+          ${analysis}
           
-${analysis}
-
-[View full workflow run](${runUrl})
-
----
-${winRate < 40 ? '⚠️ Win rate is below 40%. Consider reviewing and improving the Ruby snake logic.' : '✅ Win rate is acceptable.'}
-`;
+          [View full workflow run](${runUrl})
+          
+          ---
+          ${winRate < 40 ? '⚠️ Win rate is below 40%. Consider reviewing and improving the Ruby snake logic.' : '✅ Win rate is acceptable.'}
+          `;
           
           if (issues.data.length > 0) {
             // Update existing issue
@@ -205,18 +204,18 @@ ${winRate < 40 ? '⚠️ Win rate is below 40%. Consider reviewing and improving
               repo: context.repo.repo,
               title: 'Ruby Snake - Continuous Improvement Tracking',
               body: `This issue tracks the continuous simulation and improvement of the Ruby Battlesnake.
-
-## Latest Results
-
-${comment}
-
-## Improvement Ideas
-- [ ] Analyze low win rate scenarios
-- [ ] Improve food-seeking behavior
-- [ ] Better collision avoidance
-- [ ] Optimize scoring weights
-- [ ] Improve endgame strategy
-`,
+              
+              ## Latest Results
+              
+              ${comment}
+              
+              ## Improvement Ideas
+              - [ ] Analyze low win rate scenarios
+              - [ ] Improve food-seeking behavior
+              - [ ] Better collision avoidance
+              - [ ] Optimize scoring weights
+              - [ ] Improve endgame strategy
+              `,
               labels: ['snake-improvement', 'automation', 'ruby']
             });
           }

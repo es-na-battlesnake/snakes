@@ -1,0 +1,149 @@
+name: Continuous Snake Simulation and Improvement
+
+on:
+  # Run on a schedule (every 6 hours)
+  schedule:
+    - cron: '0 */6 * * *'
+  
+  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      runs:
+        description: 'Number of simulation runs'
+        required: false
+        default: '50'
+      mode:
+        description: 'Game mode (royale, wrapped, etc.)'
+        required: false
+        default: 'wrapped'
+
+jobs:
+  simulate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+
+    steps:
+    - uses: actions/checkout@v5
+    
+    - uses: actions/setup-go@v6
+      with:
+        go-version: '^1.17.1'
+    
+    - name: Build the Docker image
+      run: docker build . --file Dockerfile --tag code-snek:simulation
+      
+    - name: Setup Docker network
+      run: docker network create test
+      
+    - name: Run the Docker image
+      run: docker run -d -p 4567:4567 --network test --name code-snek code-snek:simulation
+      
+    - name: Wait for snakes to start
+      run: sleep 10
+      
+    - name: Run simulations
+      id: simulate
+      run: |
+        RUNS=${{ github.event.inputs.runs || '50' }}
+        MODE=${{ github.event.inputs.mode || 'wrapped' }}
+        docker run --rm --network test code-snek:simulation script/simulate_royale --mode $MODE --map hz_islands_bridges --width 11 --height 11 --runs $RUNS | tee simulation_results.log
+        
+    - name: Analyze results
+      id: analyze
+      run: |
+        # Extract win counts from simulation results
+        echo "## Simulation Results" > analysis.md
+        echo "" >> analysis.md
+        echo "\`\`\`" >> analysis.md
+        grep -A 5 "Simulating battlesnake" simulation_results.log | tee -a analysis.md
+        grep -A 10 "winner:" simulation_results.log | tail -5 | tee -a analysis.md
+        echo "\`\`\`" >> analysis.md
+        
+        # Calculate win rate for Ruby snake
+        RUBY_WINS=$(grep "winner: ruby-danger-noodle" simulation_results.log | wc -l || echo "0")
+        TOTAL_RUNS=${{ github.event.inputs.runs || '50' }}
+        WIN_RATE=$(echo "scale=2; ($RUBY_WINS / $TOTAL_RUNS) * 100" | bc)
+        
+        echo "" >> analysis.md
+        echo "### Performance Metrics" >> analysis.md
+        echo "- Ruby snake wins: $RUBY_WINS / $TOTAL_RUNS" >> analysis.md
+        echo "- Win rate: ${WIN_RATE}%" >> analysis.md
+        echo "" >> analysis.md
+        
+        # Set output for issue creation
+        echo "ruby_wins=$RUBY_WINS" >> $GITHUB_OUTPUT
+        echo "total_runs=$TOTAL_RUNS" >> $GITHUB_OUTPUT
+        echo "win_rate=$WIN_RATE" >> $GITHUB_OUTPUT
+        
+    - name: Upload simulation results
+      uses: actions/upload-artifact@v4
+      with:
+        name: simulation-results-${{ github.run_number }}
+        path: |
+          simulation_results.log
+          analysis.md
+        retention-days: 30
+        
+    - name: Create or update tracking issue
+      uses: actions/github-script@v8
+      with:
+        script: |
+          const fs = require('fs');
+          const analysis = fs.readFileSync('analysis.md', 'utf8');
+          const winRate = parseFloat('${{ steps.analyze.outputs.win_rate }}');
+          
+          // Search for existing tracking issue
+          const issues = await github.rest.issues.listForRepo({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            labels: ['snake-improvement', 'automation'],
+            state: 'open'
+          });
+          
+          const timestamp = new Date().toISOString();
+          const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+          
+          const comment = `## Simulation Run - ${timestamp}
+          
+${analysis}
+
+[View full workflow run](${runUrl})
+
+---
+${winRate < 40 ? '⚠️ Win rate is below 40%. Consider reviewing and improving the Ruby snake logic.' : '✅ Win rate is acceptable.'}
+`;
+          
+          if (issues.data.length > 0) {
+            // Update existing issue
+            const issue = issues.data[0];
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              body: comment
+            });
+          } else {
+            // Create new tracking issue
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: 'Ruby Snake - Continuous Improvement Tracking',
+              body: `This issue tracks the continuous simulation and improvement of the Ruby Battlesnake.
+
+## Latest Results
+
+${comment}
+
+## Improvement Ideas
+- [ ] Analyze low win rate scenarios
+- [ ] Improve food-seeking behavior
+- [ ] Better collision avoidance
+- [ ] Optimize scoring weights
+- [ ] Improve endgame strategy
+`,
+              labels: ['snake-improvement', 'automation', 'ruby']
+            });
+          }

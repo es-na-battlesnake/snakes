@@ -8,3 +8,6 @@ battlesnake
 coverage/
 snakes/go/*/pathy-snake
 snakes/go/*/starter-snake
+simulation_results/
+out.log
+winner.txt

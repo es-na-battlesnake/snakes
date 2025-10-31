@@ -5,6 +5,7 @@ ENV['RACK_ENV'] = 'test'
 
 require 'minitest/autorun'
 require 'rack/test'
+require 'json'
 
 # If an argument is passed, chdir to ../../snakes/<arg>/
 

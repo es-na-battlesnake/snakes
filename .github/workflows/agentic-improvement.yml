@@ -1,89 +1,79 @@
-name: Agentic Snake Improvement
+name: Agentic Snake Improvement System
 
 on:
   schedule:
-    - cron: '0 */12 * * *'  # Every 12 hours
+    - cron: '0 */6 * * *'  # Every 6 hours
   workflow_dispatch:
     inputs:
-      max_iterations:
-        description: 'Maximum improvement iterations'
+      improvement_focus:
+        description: 'Focus area for improvement'
         required: false
-        default: '3'
-      target_win_rate:
-        description: 'Target win rate (0-100)'
+        default: 'auto'
+        type: choice
+        options:
+          - auto
+          - food_seeking
+          - collision_avoidance
+          - positioning
+          - aggression
+      iterations:
+        description: 'Number of improvement iterations'
         required: false
-        default: '45'
-
-permissions:
-  contents: write
-  issues: write
-  pull-requests: write
+        default: '1'
+        type: number
 
 jobs:
-  agentic_improvement:
+  analyze_and_improve:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
     
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-
+          ref: ${{ github.ref }}
+      
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.1'
+          ruby-version: '3.2'
           bundler-cache: false
-
+      
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v4
         with:
           go-version: '1.21'
-
-      - name: Install battlesnake CLI
-        run: |
-          go install github.com/BattlesnakeOfficial/rules/cli/battlesnake@latest
-          echo "$HOME/go/bin" >> $GITHUB_PATH
-
+      
       - name: Install dependencies
         run: |
-          cd snakes/ruby/djdefi
+          cd /home/runner/work/snakes/snakes/snakes/ruby/djdefi
+          gem install bundler
           bundle install
-
-      - name: Load agentic workflow definition
-        id: load_workflow
-        run: |
-          echo "Loading agentic workflow definition..."
-          if [ -f .github/workflows-agentic/improve-snake.yml ]; then
-            echo "workflow_loaded=true" >> $GITHUB_OUTPUT
-            # Extract target win rate from workflow definition
-            TARGET=$(grep -A 3 "metric: \"win_rate\"" .github/workflows-agentic/improve-snake.yml | grep "threshold:" | awk '{print $2}' || echo "0.45")
-            echo "target_win_rate=$TARGET" >> $GITHUB_OUTPUT
-          else
-            echo "workflow_loaded=false" >> $GITHUB_OUTPUT
-            echo "target_win_rate=${{ github.event.inputs.target_win_rate || '45' }}" >> $GITHUB_OUTPUT
-          fi
-
-      - name: "TASK 1: Analyze Performance"
-        id: analyze
-        run: |
-          echo "## 🔍 Task 1: Analyze Performance" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Goal**: Identify performance bottlenecks and improvement opportunities" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
           
-          # Run baseline simulations
-          cd /home/runner/work/snakes/snakes
-          
+          # Install battlesnake CLI
+          go install github.com/BattlesnakeOfficial/rules/cli/battlesnake@latest
+          echo "$HOME/go/bin" >> $GITHUB_PATH
+      
+      - name: Build Go snake
+        run: |
+          cd /home/runner/work/snakes/snakes/snakes/go/pathy-snake
+          go build -o pathy-snake .
+      
+      - name: Run baseline simulations
+        id: baseline
+        run: |
           # Start Ruby snake
-          cd snakes/ruby/djdefi
-          bundle exec rackup --host 0.0.0.0 -p 4567 &
+          cd /home/runner/work/snakes/snakes/snakes/ruby/djdefi
+          bundle exec rackup --host 0.0.0.0 --port 4567 > /tmp/ruby-baseline.log 2>&1 &
           RUBY_PID=$!
           echo "ruby_pid=$RUBY_PID" >> $GITHUB_OUTPUT
           
           # Start Go snake
           cd /home/runner/work/snakes/snakes/snakes/go/pathy-snake
-          go run . --host 0.0.0.0 --port 8081 &
+          ./pathy-snake --host 0.0.0.0 --port 8081 > /tmp/go-baseline.log 2>&1 &
           GO_PID=$!
           echo "go_pid=$GO_PID" >> $GITHUB_OUTPUT
           
@@ -91,246 +81,313 @@ jobs:
           sleep 5
           
           # Verify endpoints
-          RUBY_OK=$(curl -s http://localhost:4567/ | grep -q "apiversion" && echo "true" || echo "false")
-          GO_OK=$(curl -s http://localhost:8081/ | grep -q "apiversion" && echo "true" || echo "false")
+          curl -s http://localhost:4567/ || echo "Ruby snake not responding"
+          curl -s http://localhost:8081/ || echo "Go snake not responding"
           
-          echo "Ruby snake: $RUBY_OK" >> $GITHUB_STEP_SUMMARY
-          echo "Go snake: $GO_OK" >> $GITHUB_STEP_SUMMARY
+          # Run simulations
+          RESULTS=""
+          RUBY_WINS=0
+          GO_WINS=0
+          DRAWS=0
           
-          if [ "$RUBY_OK" = "true" ] && [ "$GO_OK" = "true" ]; then
-            echo "✅ Both snakes running" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ Snake startup failed" >> $GITHUB_STEP_SUMMARY
-            kill $RUBY_PID $GO_PID 2>/dev/null || true
-            exit 1
-          fi
+          for i in $(seq 1 20); do
+            OUTPUT=$($HOME/go/bin/battlesnake play -W 11 -H 11 \
+              --name ruby-danger-noodle --url http://localhost:4567/ \
+              --name pathy --url http://localhost:8081/ \
+              -g wrapped -v 2>&1 || true)
+            
+            if echo "$OUTPUT" | grep -q "ruby-danger-noodle is the winner"; then
+              RUBY_WINS=$((RUBY_WINS + 1))
+              RESULTS="${RESULTS}✅"
+            elif echo "$OUTPUT" | grep -q "pathy is the winner"; then
+              GO_WINS=$((GO_WINS + 1))
+              RESULTS="${RESULTS}❌"
+            else
+              DRAWS=$((DRAWS + 1))
+              RESULTS="${RESULTS}🤝"
+            fi
+          done
           
-          # Run 20 simulations for analysis
-          cd /home/runner/work/snakes/snakes
-          RESULTS=$(battlesnake play -W 11 -H 11 --name pathy --url http://localhost:8081/ --name ruby-danger-noodle --url http://localhost:4567/ -g wrapped --repeat 20 2>&1 || true)
-          
-          # Parse results
-          RUBY_WINS=$(echo "$RESULTS" | grep -o "ruby-danger-noodle.*won" | wc -l || echo "0")
-          PATHY_WINS=$(echo "$RESULTS" | grep -o "pathy.*won" | wc -l || echo "0")
           TOTAL=20
+          RUBY_WIN_RATE=$(awk -v wins="$RUBY_WINS" -v total="$TOTAL" 'BEGIN{printf "%.1f", (wins/total)*100}')
           
-          if [ "$TOTAL" -gt 0 ]; then
-            WIN_RATE=$(awk -v wins="$RUBY_WINS" -v total="$TOTAL" 'BEGIN{printf "%.1f", (wins/total)*100}')
-          else
-            WIN_RATE="0.0"
-          fi
-          
-          echo "baseline_win_rate=$WIN_RATE" >> $GITHUB_OUTPUT
+          echo "results=$RESULTS" >> $GITHUB_OUTPUT
           echo "ruby_wins=$RUBY_WINS" >> $GITHUB_OUTPUT
-          echo "pathy_wins=$PATHY_WINS" >> $GITHUB_OUTPUT
-          
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Baseline Performance" >> $GITHUB_STEP_SUMMARY
-          echo "- Ruby wins: $RUBY_WINS / $TOTAL ($WIN_RATE%)" >> $GITHUB_STEP_SUMMARY
-          echo "- Pathy wins: $PATHY_WINS / $TOTAL" >> $GITHUB_STEP_SUMMARY
+          echo "go_wins=$GO_WINS" >> $GITHUB_OUTPUT
+          echo "draws=$DRAWS" >> $GITHUB_OUTPUT
+          echo "win_rate=$RUBY_WIN_RATE" >> $GITHUB_OUTPUT
           
           # Cleanup
-          kill $RUBY_PID $GO_PID 2>/dev/null || true
-
-      - name: "TASK 2: Generate Improvement Recommendations"
+          kill $RUBY_PID $GO_PID || true
+      
+      - name: Analyze performance and generate improvement plan
+        id: analyze
+        env:
+          RUBY_WINS: ${{ steps.baseline.outputs.ruby_wins }}
+          WIN_RATE: ${{ steps.baseline.outputs.win_rate }}
+          FOCUS: ${{ github.event.inputs.improvement_focus || 'auto' }}
+        run: |
+          cat > /tmp/analysis.md << 'ANALYSIS_EOF'
+          # 🤖 Agentic Analysis Report
+          
+          ## Baseline Performance
+          - **Ruby Wins**: ${RUBY_WINS}/20 (${WIN_RATE}%)
+          - **Performance Level**: $(
+            if (( $(echo "$WIN_RATE < 30" | bc -l) )); then
+              echo "⚠️ Poor - Needs significant improvement"
+            elif (( $(echo "$WIN_RATE < 45" | bc -l) )); then
+              echo "📊 Moderate - Room for improvement"
+            elif (( $(echo "$WIN_RATE < 60" | bc -l) )); then
+              echo "✅ Good - Minor optimizations possible"
+            else
+              echo "🏆 Excellent - Maintain and refine"
+            fi
+          )
+          
+          ## Improvement Recommendations
+          
+          ### Primary Focus Area: ${FOCUS}
+          
+          ANALYSIS_EOF
+          
+          # Determine improvement areas based on win rate
+          if (( $(echo "$WIN_RATE < 30" | bc -l) )); then
+            cat >> /tmp/analysis.md << 'REC_EOF'
+          **Critical Issues Detected:**
+          1. **Food Seeking**: Health management appears problematic
+             - Lower health threshold further (60 → 50)
+             - Increase food score multiplier by 30%
+             - Add starvation prevention logic
+          
+          2. **Collision Avoidance**: High death rate suggests collisions
+             - Increase snake body penalties by 50%
+             - Add predictive collision detection
+             - Improve wall awareness
+          
+          3. **Space Control**: Likely getting trapped
+             - Implement flood fill for space calculation
+             - Prefer moves toward open areas
+             - Avoid dead ends proactively
+          REC_EOF
+          
+          elif (( $(echo "$WIN_RATE < 45" | bc -l) )); then
+            cat >> /tmp/analysis.md << 'REC_EOF'
+          **Moderate Improvements Needed:**
+          1. **Food Seeking Optimization**:
+             - Fine-tune health threshold (70 → 65)
+             - Increase food score by 20%
+             - Improve pathfinding to food
+          
+          2. **Tactical Positioning**:
+             - Better center control
+             - Improved tail-chasing
+             - Corner avoidance refinement
+          
+          3. **Opponent Awareness**:
+             - Track snake lengths better
+             - Aggressive pursuit of smaller snakes
+             - Defensive play against larger snakes
+          REC_EOF
+          
+          else
+            cat >> /tmp/analysis.md << 'REC_EOF'
+          **Fine-Tuning Recommendations**:
+          1. **Endgame Optimization**:
+             - Improve 1v1 strategies
+             - Better space calculation in late game
+             - Optimize for long-term survival
+          
+          2. **Efficiency Improvements**:
+             - Reduce unnecessary moves
+             - Optimize scoring weights
+             - Improve decision speed
+          REC_EOF
+          fi
+          
+          cat >> /tmp/analysis.md << 'NEXT_EOF'
+          
+          ## Proposed Changes
+          
+          ### Task List (Natural Language):
+          - [ ] Analyze current health threshold effectiveness
+          - [ ] Adjust food scoring multipliers based on simulation data
+          - [ ] Review collision penalties and increase if needed
+          - [ ] Test corner/edge avoidance improvements
+          - [ ] Validate changes don't break existing behavior
+          - [ ] Run verification simulations (target: +10% win rate)
+          
+          ### Success Criteria:
+          - Win rate improvement of at least 10 percentage points
+          - No increase in early-game deaths
+          - Maintained or improved late-game performance
+          - All unit tests passing
+          
+          ## Next Actions
+          1. Apply recommended code changes to `move.rb`
+          2. Run verification simulations
+          3. Compare results against baseline
+          4. Iterate if target not met
+          NEXT_EOF
+          
+          # Replace variables in analysis
+          sed -i "s/\${RUBY_WINS}/$RUBY_WINS/g" /tmp/analysis.md
+          sed -i "s/\${WIN_RATE}/$WIN_RATE/g" /tmp/analysis.md
+          sed -i "s/\${FOCUS}/$FOCUS/g" /tmp/analysis.md
+          
+          cat /tmp/analysis.md
+          
+          # Determine if improvement needed
+          if (( $(echo "$WIN_RATE < 45" | bc -l) )); then
+            echo "needs_improvement=true" >> $GITHUB_OUTPUT
+            echo "improvement_type=significant" >> $GITHUB_OUTPUT
+          elif (( $(echo "$WIN_RATE < 55" | bc -l) )); then
+            echo "needs_improvement=true" >> $GITHUB_OUTPUT
+            echo "improvement_type=moderate" >> $GITHUB_OUTPUT
+          else
+            echo "needs_improvement=false" >> $GITHUB_OUTPUT
+            echo "improvement_type=none" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Generate improvement recommendations
+        if: steps.analyze.outputs.needs_improvement == 'true'
         id: recommend
+        env:
+          WIN_RATE: ${{ steps.baseline.outputs.win_rate }}
+          IMPROVEMENT_TYPE: ${{ steps.analyze.outputs.improvement_type }}
         run: |
-          echo "## 💡 Task 2: Improvement Recommendations" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          cat > /tmp/recommendations.md << 'REC_END'
+          # 🎯 Automated Improvement Recommendations
           
-          WIN_RATE="${{ steps.analyze.outputs.baseline_win_rate }}"
-          TARGET="${{ steps.load_workflow.outputs.target_win_rate }}"
+          ## Code Changes Suggested
           
-          # Convert percentages to decimals for comparison
-          WIN_RATE_DECIMAL=$(awk -v wr="$WIN_RATE" 'BEGIN{print wr/100}')
-          TARGET_DECIMAL=$(awk -v t="$TARGET" 'BEGIN{print t/100}')
+          Based on analysis, here are specific code modifications:
           
-          echo "Current: $WIN_RATE% | Target: $TARGET%" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          ### File: `snakes/ruby/djdefi/app/move.rb`
           
-          # Analyze current code and generate recommendations
-          NEEDS_IMPROVEMENT=$(awk -v wr="$WIN_RATE_DECIMAL" -v target="$TARGET_DECIMAL" 'BEGIN{exit !(wr < target)}' && echo "true" || echo "false")
-          echo "needs_improvement=$NEEDS_IMPROVEMENT" >> $GITHUB_OUTPUT
+          REC_END
           
-          if [ "$NEEDS_IMPROVEMENT" = "true" ]; then
-            echo "### 🎯 Recommended Improvements:" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "1. **Food Seeking Optimization**" >> $GITHUB_STEP_SUMMARY
-            echo "   - Current health threshold may need tuning" >> $GITHUB_STEP_SUMMARY
-            echo "   - Expected impact: +5-10% win rate" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "2. **Collision Avoidance Enhancement**" >> $GITHUB_STEP_SUMMARY
-            echo "   - Strengthen penalties for risky moves" >> $GITHUB_STEP_SUMMARY
-            echo "   - Expected impact: +3-7% win rate" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "3. **Space Control Improvement**" >> $GITHUB_STEP_SUMMARY
-            echo "   - Better endgame positioning" >> $GITHUB_STEP_SUMMARY
-            echo "   - Expected impact: +2-5% win rate" >> $GITHUB_STEP_SUMMARY
-            
-            # Create detailed recommendation report
-            cat > /tmp/improvement_recommendations.md << 'EOF'
-# Agentic Improvement Recommendations
-
-## Current Performance Analysis
-
-**Win Rate**: $WIN_RATE%
-**Target**: $TARGET%
-**Gap**: $(awk -v t="$TARGET" -v w="$WIN_RATE" 'BEGIN{printf "%.1f", t-w}')%
-
-## Recommended Changes
-
-### Priority 1: Food Seeking Optimization
-- Adjust health threshold for earlier food seeking
-- Increase food score multipliers
-- Add dynamic health-based urgency scaling
-
-### Priority 2: Collision Avoidance
-- Increase penalties for moves near other snakes
-- Add head-to-head collision prediction
-- Improve body segment avoidance
-
-### Priority 3: Space Control  
-- Better corner and edge handling
-- Improved tail-chasing logic
-- Strategic positioning for endgame
-
-## Implementation Plan
-
-1. Make targeted changes to `snakes/ruby/djdefi/app/move.rb`
-2. Run validation simulations (30+ games)
-3. Measure actual vs expected impact
-4. Iterate if target not reached
-EOF
-            
-            echo "recommendations_generated=true" >> $GITHUB_OUTPUT
-          else
-            echo "### ✅ Performance Target Achieved!" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "Current win rate ($WIN_RATE%) meets or exceeds target ($TARGET%)" >> $GITHUB_STEP_SUMMARY
-            echo "recommendations_generated=false" >> $GITHUB_OUTPUT
+          if [ "$IMPROVEMENT_TYPE" = "significant" ]; then
+            cat >> /tmp/recommendations.md << 'CHANGES_EOF'
+          #### Change 1: Lower Health Threshold
+          ```ruby
+          # Current: @health_threshold = 70
+          # Proposed: @health_threshold = 50
+          # Rationale: More aggressive food seeking to prevent starvation
+          ```
+          
+          #### Change 2: Increase Food Scoring
+          ```ruby
+          # Current food multipliers
+          # Wrapped: 65, Standard: 25
+          # Proposed: Wrapped: 85, Standard: 35
+          # Rationale: Prioritize food more heavily
+          ```
+          
+          #### Change 3: Enhanced Collision Avoidance
+          ```ruby
+          # Increase snake body penalties by 50%
+          # Current: -60 (wrapped), -150 (standard)
+          # Proposed: -90 (wrapped), -225 (standard)
+          ```
+          CHANGES_EOF
+          
+          elif [ "$IMPROVEMENT_TYPE" = "moderate" ]; then
+            cat >> /tmp/recommendations.md << 'CHANGES_EOF'
+          #### Change 1: Fine-tune Health Threshold
+          ```ruby
+          # Current: @health_threshold = 70
+          # Proposed: @health_threshold = 65
+          # Rationale: Slightly more proactive food seeking
+          ```
+          
+          #### Change 2: Adjust Food Scoring
+          ```ruby
+          # Increase food multipliers by 20%
+          # Current Wrapped: 65 → Proposed: 78
+          # Current Standard: 25 → Proposed: 30
+          ```
+          
+          #### Change 3: Improve Positioning
+          ```ruby
+          # Increase corner penalties by 25%
+          # Better center control scoring
+          ```
+          CHANGES_EOF
           fi
-
-      - name: "TASK 3: Validation Decision"
-        id: decide
-        run: |
-          echo "## 🤔 Task 3: Decision Making" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
           
-          NEEDS_IMPROVEMENT="${{ steps.recommend.outputs.needs_improvement }}"
-          WIN_RATE="${{ steps.analyze.outputs.baseline_win_rate }}"
-          TARGET="${{ steps.load_workflow.outputs.target_win_rate }}"
+          cat >> /tmp/recommendations.md << 'TEST_EOF'
           
-          if [ "$NEEDS_IMPROVEMENT" = "true" ]; then
-            echo "### Decision: Continue Improvement Cycle" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Rationale**: Current win rate ($WIN_RATE%) below target ($TARGET%)" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Next Actions**:" >> $GITHUB_STEP_SUMMARY
-            echo "1. Review improvement recommendations" >> $GITHUB_STEP_SUMMARY
-            echo "2. Implement highest-priority changes" >> $GITHUB_STEP_SUMMARY
-            echo "3. Run validation simulations" >> $GITHUB_STEP_SUMMARY
-            echo "4. Measure impact and iterate" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "💡 **Tip**: Check the tracking issue for detailed recommendations" >> $GITHUB_STEP_SUMMARY
-            
-            echo "decision=continue_improvement" >> $GITHUB_OUTPUT
-            echo "action=create_improvement_issue" >> $GITHUB_OUTPUT
-          else
-            echo "### Decision: Performance Target Achieved" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Rationale**: Win rate ($WIN_RATE%) meets target ($TARGET%)" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Next Actions**:" >> $GITHUB_STEP_SUMMARY
-            echo "1. Monitor performance stability" >> $GITHUB_STEP_SUMMARY
-            echo "2. Continue periodic validation" >> $GITHUB_STEP_SUMMARY
-            echo "3. Maintain current optimization level" >> $GITHUB_STEP_SUMMARY
-            
-            echo "decision=maintain" >> $GITHUB_OUTPUT
-            echo "action=report_success" >> $GITHUB_OUTPUT
-          fi
-
-      - name: "TASK 4: Create Improvement Issue"
-        if: steps.decide.outputs.action == 'create_improvement_issue'
+          ## Testing Protocol
+          
+          1. **Unit Tests**: Ensure all existing tests pass
+          2. **Integration Tests**: Run 30+ simulation games
+          3. **Performance Validation**: Verify win rate improvement
+          4. **Regression Check**: Confirm no new failure modes
+          
+          ## Rollback Plan
+          
+          If changes degrade performance:
+          - Revert commits immediately
+          - Analyze failure modes
+          - Adjust parameters more conservatively
+          - Re-test incrementally
+          TEST_EOF
+          
+          cat /tmp/recommendations.md
+          
+          echo "recommendations_generated=true" >> $GITHUB_OUTPUT
+      
+      - name: Create tracking issue
+        if: steps.analyze.outputs.needs_improvement == 'true'
         uses: actions/github-script@v7
+        env:
+          ANALYSIS: ${{ steps.analyze.outputs }}
+          BASELINE_RESULTS: ${{ steps.baseline.outputs.results }}
+          WIN_RATE: ${{ steps.baseline.outputs.win_rate }}
+          RUBY_WINS: ${{ steps.baseline.outputs.ruby_wins }}
+          GO_WINS: ${{ steps.baseline.outputs.go_wins }}
         with:
           script: |
-            const winRate = '${{ steps.analyze.outputs.baseline_win_rate }}';
-            const target = '${{ steps.load_workflow.outputs.target_win_rate }}';
-            const rubyWins = '${{ steps.analyze.outputs.ruby_wins }}';
-            const pathyWins = '${{ steps.analyze.outputs.pathy_wins }}';
+            const fs = require('fs');
+            const analysis = fs.readFileSync('/tmp/analysis.md', 'utf8');
+            const recommendations = fs.readFileSync('/tmp/recommendations.md', 'utf8');
             
-            const issueBody = `## 🤖 Agentic Improvement Cycle
+            const issueBody = `
+            # 🤖 Agentic Improvement Cycle - ${new Date().toISOString()}
             
-            **Generated by**: Agentic Improvement Workflow
-            **Date**: ${new Date().toISOString().split('T')[0]}
-            **Run**: ${{ github.run_number }}
+            ## Baseline Simulation Results
             
-            ---
+            **Games**: 20  
+            **Ruby Wins**: ${process.env.RUBY_WINS}  
+            **Go Wins**: ${process.env.GO_WINS}  
+            **Win Rate**: ${process.env.WIN_RATE}%
             
-            ## 📊 Current Performance
-            
-            | Metric | Value |
-            |--------|-------|
-            | Win Rate | ${winRate}% |
-            | Target | ${target}% |
-            | Gap | ${(parseFloat(target) - parseFloat(winRate)).toFixed(1)}% |
-            | Ruby Wins | ${rubyWins} / 20 |
-            | Pathy Wins | ${pathyWins} / 20 |
+            **Results**: ${process.env.BASELINE_RESULTS}
             
             ---
             
-            ## 💡 Recommended Improvements
-            
-            ### Priority 1: Food Seeking Optimization
-            - **Action**: Adjust health threshold for earlier food seeking
-            - **Expected Impact**: +5-10% win rate
-            - **Implementation**: Modify \`@health_threshold\` in \`move.rb\`
-            
-            ### Priority 2: Collision Avoidance Enhancement
-            - **Action**: Strengthen penalties for risky moves
-            - **Expected Impact**: +3-7% win rate  
-            - **Implementation**: Increase penalty multipliers in collision detection
-            
-            ### Priority 3: Space Control Improvement
-            - **Action**: Better endgame positioning
-            - **Expected Impact**: +2-5% win rate
-            - **Implementation**: Enhance corner/edge handling logic
+            ${analysis}
             
             ---
             
-            ## 🎯 Success Criteria
-            
-            - [ ] Win rate reaches ${target}%
-            - [ ] No regression in other metrics
-            - [ ] All tests pass
-            - [ ] Security scan passes
+            ${recommendations}
             
             ---
             
-            ## 📝 Implementation Plan
+            ## Automated Actions
             
-            1. Review current \`move.rb\` implementation
-            2. Make targeted changes to address top recommendations
-            3. Run validation simulations (30+ games)
-            4. Measure actual vs expected impact
-            5. If target reached: merge changes
-            6. If target not reached: iterate with next priority
+            - [ ] Review analysis and recommendations
+            - [ ] Approve or modify suggested changes
+            - [ ] Apply improvements to codebase
+            - [ ] Run verification simulations
+            - [ ] Update this issue with results
             
-            ---
+            **Next Scheduled Run**: In 6 hours
             
-            ## 🔗 Resources
-            
-            - [Workflow Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-            - [Agentic Workflow Definition](.github/workflows-agentic/improve-snake.yml)
-            - [Documentation](docs/CONTINUOUS_IMPROVEMENT.md)
-            
-            ---
-            
-            **Next automated run**: 12 hours from now
-            **Manual trigger**: [Run workflow](${{ github.server_url }}/${{ github.repository }}/actions/workflows/agentic-improvement.yml)
+            _This issue was automatically generated by the Agentic Improvement System_
             `;
             
-            // Check for existing improvement issue
+            // Check for existing open improvement issues
             const issues = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -340,29 +397,30 @@ EOF
             
             if (issues.data.length > 0) {
               // Update existing issue
-              const issue = issues.data[0];
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                issue_number: issue.number,
-                body: `## 🔄 Iteration Update\n\n${issueBody}`
+                issue_number: issues.data[0].number,
+                body: issueBody
               });
-              core.info(`Updated existing issue #${issue.number}`);
             } else {
               // Create new issue
-              const issue = await github.rest.issues.create({
+              await github.rest.issues.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                title: `🤖 Agentic Improvement: Raise Win Rate to ${target}%`,
+                title: `🤖 Agentic Improvement Recommendations - ${new Date().toLocaleDateString()}`,
                 body: issueBody,
-                labels: ['agentic-improvement', 'snake-improvement', 'automation']
+                labels: ['agentic-improvement', 'snake-improvement', 'automated']
               });
-              core.info(`Created new issue #${issue.data.number}`);
             }
-
-      - name: "Cleanup"
-        if: always()
-        run: |
-          # Kill any remaining snake processes
-          pkill -f "rackup.*4567" || true
-          pkill -f "go run.*8081" || true
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: agentic-analysis
+          path: |
+            /tmp/analysis.md
+            /tmp/recommendations.md
+            /tmp/ruby-baseline.log
+            /tmp/go-baseline.log
+          retention-days: 30

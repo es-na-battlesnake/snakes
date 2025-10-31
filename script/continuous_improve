@@ -96,14 +96,20 @@ if [ "$ANALYZE_ONLY" = false ]; then
     echo "Starting snakes..."
     docker stop code-snek 2>/dev/null || true
     docker rm code-snek 2>/dev/null || true
-    docker run -d -p 4567:4567 --network test --name code-snek code-snek:improve > /dev/null
+    docker run -d -p 4567:4567 -p 8081:8081 --network test --name code-snek code-snek:improve > /dev/null
 
     echo "Waiting for snakes to start..."
     sleep 10
 
-    # Test endpoint
+    # Test endpoints
     if ! curl -s http://localhost:4567/ > /dev/null; then
         echo "Error: Ruby snake is not responding"
+        docker logs code-snek
+        exit 1
+    fi
+    
+    if ! curl -s http://localhost:8081/ > /dev/null; then
+        echo "Error: Go snake (pathy) is not responding"
         docker logs code-snek
         exit 1
     fi

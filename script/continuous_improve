@@ -198,12 +198,12 @@ echo ""
 
 # Provide recommendations
 echo "Recommendations:"
-if (( $(echo "$RUBY_WIN_RATE < 30" | bc -l 2>/dev/null || echo "0") )); then
+if awk -v rate="$RUBY_WIN_RATE" 'BEGIN{exit !(rate < 30)}' 2>/dev/null; then
     echo "  ⚠️  CRITICAL: Win rate is very low (<30%)"
     echo "      - Review collision avoidance logic"
     echo "      - Analyze food-seeking behavior"
     echo "      - Check edge case handling"
-elif (( $(echo "$RUBY_WIN_RATE < 45" | bc -l 2>/dev/null || echo "0") )); then
+elif awk -v rate="$RUBY_WIN_RATE" 'BEGIN{exit !(rate < 45)}' 2>/dev/null; then
     echo "  ⚠️  Win rate is below target (<45%)"
     echo "      - Consider adjusting scoring weights"
     echo "      - Improve endgame strategy"

@@ -81,9 +81,9 @@ echo "  Ruby wins:  $RUBY_WINS"
 echo "  Pathy wins: $PATHY_WINS"
 echo "  Draws:      $DRAWS"
 
-if [ "$RUBY_WINS" -gt "$PATHY_WINS" ]; then
+if (( RUBY_WINS > PATHY_WINS )); then
     echo "  🏆 Ruby snake is winning!"
-elif [ "$PATHY_WINS" -gt "$RUBY_WINS" ]; then
+elif (( PATHY_WINS > RUBY_WINS )); then
     echo "  ⚠️  Pathy snake is winning"
 else
     echo "  🤝 Tied performance"

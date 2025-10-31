@@ -180,9 +180,9 @@ echo "  Pathy wins: $PATHY_WINS / $RUNS"
 echo "  Draws:      $DRAWS / $RUNS"
 echo ""
 
-if [ $RUBY_WINS -gt $PATHY_WINS ]; then
+if [ "$RUBY_WINS" -gt "$PATHY_WINS" ] 2>/dev/null; then
     echo "🏆 Ruby snake is winning!"
-elif [ $PATHY_WINS -gt $RUBY_WINS ]; then
+elif [ "$PATHY_WINS" -gt "$RUBY_WINS" ] 2>/dev/null; then
     echo "⚠️  Pathy snake is winning"
 else
     echo "🤝 Tied performance"

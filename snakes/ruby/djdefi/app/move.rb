@@ -13,7 +13,6 @@ def move(board)
   # Health threshold variable - seek food more actively
   # Lower threshold means snake seeks food earlier
   @health_threshold = 70
-  @health_threshold.clamp(0, 100)
 
   #puts board
 
@@ -463,7 +462,7 @@ def move(board)
   # When health is low, dramatically increase food attractiveness
   # Health multiplier ranges from 0 to 7 as health goes from threshold to 0
   if @health < @health_threshold
-    health_multiplier = [(@health_threshold - @health) / 10.0, 7].min.max(0)  # Clamp 0-7
+    health_multiplier = ((@health_threshold - @health) / 10.0).clamp(0, 7)  # Clamp 0-7
     @turn_score_array.each do |cell|
       if cell[:types].include?('food')
         cell[:score] += (health_multiplier * 10).to_i  # Add up to 70 points when critical
@@ -487,7 +486,7 @@ def move(board)
     @top_direction_score_multiplier = 0
   else
     # Scale multiplier based on health: lower health = higher multiplier (clamped to 15-45)
-    health_factor = [(@health_threshold - @health) / 3.0, 30].min.max(0)
+    health_factor = ((@health_threshold - @health) / 3.0).clamp(0, 30)
     @top_direction_score_multiplier = 15 + health_factor.to_i
   end
 

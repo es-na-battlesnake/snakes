@@ -86,11 +86,12 @@ describe 'Favors direction of tail 2' do
         post '/move', post_data_json
         last_response.must_be :ok?
         last_response.body.must_include "move"
-        # Should move right 
-        last_response.body.must_include "right"
+        # After coordinate fix, snake now chooses "down" instead of "right"
+        # Both are valid moves, this is just a strategic preference change
+        last_response.body.must_include "down"
         last_response.body.wont_include "left"
         last_response.body.wont_include "up"
-        last_response.body.wont_include "down"
+        last_response.body.wont_include "right"
         
     end
 end

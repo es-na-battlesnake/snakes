@@ -1,0 +1,168 @@
+# Agentic Workflow: Improve Ruby Battlesnake Performance
+# This workflow uses natural language task definitions to guide autonomous improvements
+
+name: "Improve Ruby Snake Performance"
+description: "Analyze simulation results and autonomously improve the Ruby snake's strategy"
+
+# Natural language goal definition
+goal: |
+  Continuously improve the Ruby Battlesnake's win rate through iterative strategy enhancements.
+  Target: Achieve and maintain >50% win rate against the Go snake (pathy).
+
+# Task definitions in natural language
+tasks:
+  - name: "analyze_performance"
+    description: "Analyze recent simulation results to identify weaknesses"
+    inputs:
+      - simulation_results
+      - win_rate_history
+    outputs:
+      - performance_analysis
+      - improvement_areas
+    
+  - name: "identify_improvements"
+    description: "Based on analysis, identify specific code improvements"
+    inputs:
+      - performance_analysis
+      - current_strategy_code
+    outputs:
+      - improvement_proposals
+      - priority_ranking
+    
+  - name: "implement_changes"
+    description: "Apply highest-priority improvements to the code"
+    inputs:
+      - improvement_proposals
+      - priority_ranking
+    outputs:
+      - modified_code
+      - change_description
+    
+  - name: "validate_improvements"
+    description: "Run simulations to validate the improvements"
+    inputs:
+      - modified_code
+    outputs:
+      - new_win_rate
+      - validation_results
+    
+  - name: "decide_next_action"
+    description: "Decide whether to commit changes or iterate further"
+    inputs:
+      - new_win_rate
+      - validation_results
+      - goal
+    outputs:
+      - decision
+      - reasoning
+
+# Autonomous decision rules
+decision_rules:
+  commit_changes:
+    - condition: "new_win_rate > previous_win_rate + 5%"
+      action: "Create PR with improvements"
+    - condition: "new_win_rate > 50% AND new_win_rate > previous_win_rate"
+      action: "Create PR with improvements"
+  
+  iterate_further:
+    - condition: "new_win_rate <= previous_win_rate"
+      action: "Analyze failure and try alternative approach"
+    - condition: "new_win_rate < 50% AND iteration_count < 10"
+      action: "Continue iterating with different improvements"
+  
+  report_failure:
+    - condition: "iteration_count >= 10 AND new_win_rate < previous_win_rate"
+      action: "Report analysis and await manual intervention"
+
+# Improvement strategies in priority order
+improvement_strategies:
+  - name: "food_seeking_optimization"
+    description: "Adjust health thresholds and food scoring based on starvation rate"
+    triggers:
+      - "death_by_starvation_rate > 20%"
+    parameters:
+      - health_threshold
+      - food_score_multiplier
+      - health_urgency_factor
+  
+  - name: "collision_avoidance_enhancement"
+    description: "Strengthen collision penalties based on collision death rate"
+    triggers:
+      - "death_by_collision_rate > 30%"
+    parameters:
+      - snake_body_penalty
+      - head_collision_penalty
+      - larger_snake_avoidance
+  
+  - name: "space_control_improvement"
+    description: "Improve corner/edge handling based on trapped death rate"
+    triggers:
+      - "death_by_trapped_rate > 15%"
+    parameters:
+      - corner_penalty
+      - edge_penalty
+      - space_preservation_score
+  
+  - name: "aggression_tuning"
+    description: "Adjust aggression based on win/loss patterns"
+    triggers:
+      - "win_rate < 40%"
+      - "average_game_length < 50_turns"
+    parameters:
+      - shorter_snake_pursuit
+      - attack_opportunity_score
+
+# Learning feedback loop
+feedback_loop:
+  frequency: "every_6_hours"
+  steps:
+    1. "Collect simulation results from last run"
+    2. "Analyze performance metrics and death causes"
+    3. "Identify top 3 improvement areas"
+    4. "Generate code modifications for highest priority area"
+    5. "Run validation simulations (20 games)"
+    6. "If improved, commit and continue; otherwise try next priority"
+    7. "Update performance history and repeat"
+
+# Success metrics
+success_metrics:
+  primary:
+    - metric: "win_rate"
+      target: ">50%"
+      weight: 0.6
+  
+  secondary:
+    - metric: "survival_time"
+      target: ">100_turns_avg"
+      weight: 0.2
+    
+    - metric: "food_efficiency"
+      target: "<5_starvation_deaths_per_100_games"
+      weight: 0.1
+    
+    - metric: "collision_avoidance"
+      target: "<10_collision_deaths_per_100_games"
+      weight: 0.1
+
+# Constraints and safety rules
+constraints:
+  - "Never decrease win_rate by more than 5%"
+  - "Always validate changes with at least 20 simulation games"
+  - "Maintain backward compatibility with existing API"
+  - "Keep code changes minimal and focused"
+  - "Document all autonomous changes in tracking issue"
+
+# Integration with existing workflows
+integration:
+  trigger_on:
+    - "continuous-simulation.yml completion"
+    - "schedule: every 6 hours"
+  
+  uses_results_from:
+    - "continuous-simulation.yml"
+    - "simulate-games.yml"
+  
+  creates:
+    - "Improvement proposals in tracking issue"
+    - "Pull requests for validated improvements"
+    - "Performance trend reports"

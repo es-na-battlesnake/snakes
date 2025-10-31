@@ -1,0 +1,47 @@
+name: Improve Food Seeking Strategy
+description: |
+  Enhance the snake's ability to find and reach food efficiently,
+  reducing starvation deaths and improving overall survival rate.
+
+context: |
+  Current behavior:
+  - Health threshold set to 70 (seeks food when health <= 70)
+  - Food scoring uses base multiplier of 65-135 depending on health
+  - Dynamic boost of 0-70 points based on health urgency
+  
+  Observed issues:
+  - Sometimes starves while pursuing other objectives
+  - Doesn't prioritize food aggressively enough when low on health
+  - Can get trapped trying to reach distant food
+
+desired_outcome: |
+  Snake should:
+  - Seek food more proactively when health drops
+  - Prioritize nearby food over distant food
+  - Balance food seeking with collision avoidance
+  - Avoid starvation deaths (target: <10% of games)
+
+success_criteria:
+  - Reduce starvation deaths by 50%
+  - Increase win rate by 5-10%
+  - Maintain collision avoidance effectiveness
+  - Average health at death should increase
+
+implementation_hints:
+  - Lower health threshold to 60-65
+  - Increase food scoring multiplier
+  - Add distance-based urgency scaling
+  - Consider path length to food vs raw distance
+  - Add "critical health" mode for emergency food seeking
+
+metrics_to_track:
+  - Starvation death rate
+  - Average health when seeking food
+  - Food acquisition success rate
+  - Win rate before/after changes
+
+risk_mitigation:
+  - Ensure collision avoidance isn't compromised
+  - Test with both wrapped and standard modes
+  - Validate against different snake counts
+  - Check endgame performance isn't degraded

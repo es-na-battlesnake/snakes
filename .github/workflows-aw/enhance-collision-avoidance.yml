@@ -1,0 +1,56 @@
+name: Enhance Collision Avoidance
+description: |
+  Improve the snake's ability to avoid collisions with walls,
+  other snakes, and hazards, especially in tight spaces and endgame scenarios.
+
+context: |
+  Current behavior:
+  - Body collision penalty: -150 (standard), -60 (wrapped)
+  - Head collision penalty: -5 to -10
+  - Longer snake avoidance penalty: -70 to -100
+  
+  Observed issues:
+  - Dies to collisions in ~60% of games
+  - Struggles in crowded endgame situations
+  - Sometimes makes risky moves when safer options exist
+  - Doesn't predict opponent movement well
+
+desired_outcome: |
+  Snake should:
+  - Avoid all unnecessary collisions
+  - Recognize and avoid dangerous situations early
+  - Navigate crowded boards effectively
+  - Predict and avoid opponent head-to-head collisions
+  - Maintain safe distance from larger snakes
+
+success_criteria:
+  - Reduce collision deaths by 30-40%
+  - Increase survival turns in crowded games
+  - Win more endgame scenarios (3-4 snakes remaining)
+  - Decrease head-to-head losses
+
+implementation_hints:
+  - Increase all collision penalties by 50-100%
+  - Add multi-threat detection (cells threatened by multiple snakes)
+  - Implement predictive collision avoidance
+  - Add "danger zone" calculation around opponent heads
+  - Consider implementing flood fill for space awareness
+  - Penalize moves that lead to enclosed spaces
+
+specific_changes:
+  - Increase body penalty to -200 (standard), -120 (wrapped)
+  - Add multi-threat penalty of -50 to -100
+  - Increase head neighbor penalty to -15 to -20
+  - Add predictive collision check (where will opponent move)
+
+metrics_to_track:
+  - Collision death rate
+  - Average survival turns
+  - Head-to-head win/loss ratio
+  - Deaths in endgame vs early game
+
+risk_mitigation:
+  - Ensure snake doesn't become too passive
+  - Balance with food seeking (don't starve avoiding collisions)
+  - Test against aggressive opponents
+  - Validate in both open and enclosed spaces

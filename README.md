@@ -43,12 +43,25 @@ CI/CD:
 
 ## Deployment 🚀
 
-To deploy a change to this repository, follow the general process laid out below:
+The deployment pipeline has been restored and automatically deploys to Azure on every push to `main`.
+
+**Quick Start:**
+- **Automatic:** Merge to `main` → automatic deployment to production
+- **Branch Testing:** Comment `.deploy` on a PR to test before merging
+- **Rollback:** Comment `.deploy main` on any PR
+
+**Detailed Documentation:** See [DEPLOYMENT.md](DEPLOYMENT.md) for:
+- Azure infrastructure setup
+- Required secrets configuration
+- Deployment workflows explained
+- Troubleshooting guide
+
+### Standard Deployment Process
 
 1. Create a new branch and pull request with your changes
-1. Observe CI to ensure it is passing
-1. Get an approval from from the required codeowners
-1. Run `.deploy` on your pull request to deploy your changes to production
-1. If you branch deployment completes successfully, merge your pull request!
+2. Observe CI to ensure it is passing
+3. Get an approval from the required codeowners
+4. (Optional) Run `.deploy` on your pull request to test your changes in Azure
+5. Merge your pull request to deploy automatically to production!
 
 To roll back a deployment to the last `main` version, run `.deploy main`.

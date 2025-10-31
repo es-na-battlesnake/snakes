@@ -85,7 +85,14 @@ if [ "$ANALYZE_ONLY" = false ]; then
 
     # Build Docker image
     echo "Building Docker image..."
-    docker build . --file Dockerfile --tag code-snek:improve > /dev/null 2>&1
+    if ! docker build . --file Dockerfile --tag code-snek:improve 2>&1 | tee /tmp/docker_build.log | tail -10; then
+        echo ""
+        echo "ERROR: Docker build failed. Last 20 lines of build log:"
+        tail -20 /tmp/docker_build.log
+        exit 1
+    fi
+    echo "Docker image built successfully"
+    echo ""
 
     # Setup network
     echo "Setting up Docker network..."
@@ -102,17 +109,23 @@ if [ "$ANALYZE_ONLY" = false ]; then
     sleep 10
 
     # Test endpoints
+    echo "Testing snake endpoints..."
     if ! curl -s http://localhost:4567/ > /dev/null; then
-        echo "Error: Ruby snake is not responding"
-        docker logs code-snek
+        echo "Error: Ruby snake is not responding on port 4567"
+        echo "Docker logs:"
+        docker logs code-snek | tail -30
         exit 1
     fi
+    echo "✓ Ruby snake responding on port 4567"
     
     if ! curl -s http://localhost:8081/ > /dev/null; then
-        echo "Error: Go snake (pathy) is not responding"
-        docker logs code-snek
+        echo "Error: Go snake (pathy) is not responding on port 8081"
+        echo "Docker logs:"
+        docker logs code-snek | tail -30
         exit 1
     fi
+    echo "✓ Go snake responding on port 8081"
+    echo ""
 
     echo "Running $RUNS simulations..."
     echo ""

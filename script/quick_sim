@@ -1,0 +1,90 @@
+#!/bin/bash
+#
+# Quick Simulation Runner
+# Runs a few simulations and reports results quickly
+# Assumes Docker image is already built or uses pre-built image
+#
+
+set -e
+
+RUNS=${1:-5}
+MODE=${2:-wrapped}
+
+echo "Quick Simulation Test"
+echo "====================="
+echo "Runs: $RUNS"
+echo "Mode: $MODE"
+echo ""
+
+# Check if code-snek container is running
+if docker ps | grep -q code-snek; then
+    echo "✓ Using existing code-snek container"
+else
+    echo "Starting code-snek container..."
+    docker network create test 2>/dev/null || true
+    
+    # Try to use existing image or pull/build
+    if docker images | grep -q "code-snek"; then
+        echo "✓ Using existing code-snek image"
+    else
+        echo "No code-snek image found. Please run: docker build . -t code-snek"
+        exit 1
+    fi
+    
+    docker run -d -p 4567:4567 -p 8081:8081 --network test --name code-snek code-snek > /dev/null
+    sleep 10
+fi
+
+# Quick health check
+echo "Testing endpoints..."
+if curl -s http://localhost:4567/ | grep -q "apiversion"; then
+    echo "✓ Ruby snake healthy"
+else
+    echo "✗ Ruby snake not responding"
+    exit 1
+fi
+
+if curl -s http://localhost:8081/ | grep -q "apiversion"; then
+    echo "✓ Go snake healthy"
+else
+    echo "✗ Go snake not responding"
+    exit 1
+fi
+
+echo ""
+echo "Running $RUNS simulations..."
+echo ""
+
+# Run simulations
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+LOGFILE="/tmp/quick_sim_${TIMESTAMP}.log"
+
+docker run --rm --network test code-snek \
+    script/simulate_royale \
+    --mode "$MODE" \
+    --map hz_islands_bridges \
+    --width 11 \
+    --height 11 \
+    --runs "$RUNS" | tee "$LOGFILE"
+
+echo ""
+echo "Results saved to: $LOGFILE"
+echo ""
+
+# Quick analysis
+RUBY_WINS=$(grep -c "winner: ruby-danger-noodle" "$LOGFILE" || echo "0")
+PATHY_WINS=$(grep -c "winner: pathy" "$LOGFILE" || echo "0")
+DRAWS=$(grep -c "winner: draw" "$LOGFILE" || echo "0")
+
+echo "Quick Summary:"
+echo "  Ruby wins:  $RUBY_WINS"
+echo "  Pathy wins: $PATHY_WINS"
+echo "  Draws:      $DRAWS"
+
+if [ "$RUBY_WINS" -gt "$PATHY_WINS" ]; then
+    echo "  🏆 Ruby snake is winning!"
+elif [ "$PATHY_WINS" -gt "$RUBY_WINS" ]; then
+    echo "  ⚠️  Pathy snake is winning"
+else
+    echo "  🤝 Tied performance"
+fi

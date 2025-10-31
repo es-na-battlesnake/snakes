@@ -39,9 +39,9 @@ jobs:
       run: docker network create test
       
     - name: Run the Docker image
-      run: docker run -d -p 4567:4567 -p 8081:8081 --network test --name code-snek code-snek:simulation
+      run: docker run -d -p 4567:4567 --network test --name code-snek code-snek:simulation
       
-    - name: Wait for snakes to start
+    - name: Pause for 10 seconds
       run: sleep 10
       
     - name: Run simulations

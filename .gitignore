@@ -4,6 +4,7 @@ battlesnake
 .idea
 .vscode
 /snakes/go/*/tmp/
-.air.tomlcoverage/
+.air.toml
+coverage/
 snakes/go/*/pathy-snake
 snakes/go/*/starter-snake

@@ -159,6 +159,12 @@ else
     TOTAL=$RUNS
 fi
 
+# Avoid division by zero
+if [ "$TOTAL" -eq 0 ]; then
+    echo "Error: No simulation results to analyze"
+    exit 1
+fi
+
 # Calculate percentages
 RUBY_WIN_RATE=$(echo "scale=2; ($RUBY_WINS / $TOTAL) * 100" | bc 2>/dev/null || echo "0")
 PATHY_WIN_RATE=$(echo "scale=2; ($PATHY_WINS / $TOTAL) * 100" | bc 2>/dev/null || echo "0")

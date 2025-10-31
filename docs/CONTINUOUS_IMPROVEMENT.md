@@ -86,9 +86,9 @@ Edit `snakes/ruby/djdefi/app/move.rb` to:
 - Fix edge cases
 
 Key areas to tune:
-- `@score_multiplier` hash (lines 323-386)
-- Health threshold behavior (line 14)
-- Directional scoring logic (lines 484-514)
+- Score multiplier hash (search for `@score_multiplier` in move.rb)
+- Health threshold behavior (search for `@health_threshold`)
+- Directional scoring logic (search for `direction_scores`)
 
 ### 5. Test Changes
 

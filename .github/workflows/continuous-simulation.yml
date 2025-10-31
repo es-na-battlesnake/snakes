@@ -65,7 +65,7 @@ jobs:
         # Calculate win rate for Ruby snake
         RUBY_WINS=$(grep "winner: ruby-danger-noodle" simulation_results.log | wc -l || echo "0")
         TOTAL_RUNS=${{ github.event.inputs.runs || '50' }}
-        WIN_RATE=$(echo "scale=2; ($RUBY_WINS / $TOTAL_RUNS) * 100" | bc)
+        WIN_RATE=$(echo "scale=2; ($RUBY_WINS / $TOTAL_RUNS) * 100" | bc 2>/dev/null || echo "0")
         
         echo "" >> analysis.md
         echo "### Performance Metrics" >> analysis.md

@@ -461,8 +461,9 @@ def move(board)
 
   # Apply health-based food scoring boost
   # When health is low, dramatically increase food attractiveness
+  # Health multiplier ranges from 0 to 7 as health goes from threshold to 0
   if @health < @health_threshold
-    health_multiplier = (@health_threshold - @health) / 10.0  # 0 to ~7 multiplier
+    health_multiplier = [(@health_threshold - @health) / 10.0, 7].min.max(0)  # Clamp 0-7
     @turn_score_array.each do |cell|
       if cell[:types].include?('food')
         cell[:score] += (health_multiplier * 10).to_i  # Add up to 70 points when critical
@@ -481,11 +482,12 @@ def move(board)
 
   # If our @health is above the @health_threshold, set the multiplier to 0
   # If our @health is below the @health_threshold, increase the multiplier based on how low health is
+  # Multiplier ranges from 15 to 45 as health decreases
   if @health > @health_threshold
     @top_direction_score_multiplier = 0
   else
-    # Scale multiplier based on health: lower health = higher multiplier (up to 30 when critical)
-    health_factor = [(@health_threshold - @health) / 3.0, 30].min
+    # Scale multiplier based on health: lower health = higher multiplier (clamped to 15-45)
+    health_factor = [(@health_threshold - @health) / 3.0, 30].min.max(0)
     @top_direction_score_multiplier = 15 + health_factor.to_i
   end
 

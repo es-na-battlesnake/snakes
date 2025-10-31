@@ -25,7 +25,32 @@
 
 Beyond language and snake-specific testing, we also run simulated games to get quick feedback on how snakes are performing.
 
-[Testing isntructions here]
+### Running Simulations
+
+Use the continuous improvement script to run simulations locally:
+
+```bash
+# Run 20 simulations (default)
+./script/continuous_improve
+
+# Run 50 simulations with custom settings
+./script/continuous_improve --runs 50 --mode wrapped
+
+# View help
+./script/continuous_improve --help
+```
+
+### Continuous Improvement
+
+The repository includes automated tools for continuous snake improvement:
+
+- **Automated Workflow**: Runs simulations every 6 hours via GitHub Actions
+- **Local Testing**: `script/continuous_improve` for quick iteration
+- **Performance Tracking**: Results stored and tracked via GitHub Issues
+
+📚 **Documentation**:
+- [Continuous Improvement Guide](docs/CONTINUOUS_IMPROVEMENT.md)
+- [Ruby Snake Improvements](docs/RUBY_SNAKE_IMPROVEMENTS.md)
 
 ## Infrastructure
 

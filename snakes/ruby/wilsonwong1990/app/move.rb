@@ -107,12 +107,12 @@ if @snakeheady == 0
   @possible_moves.delete("down")
 end
 
-if@snakeheadx == @width - 1
+if @snakeheadx == @width - 1
   puts "removing right"
   @possible_moves.delete("right")
 end
 
-if@snakeheadx == 0
+if @snakeheadx == 0
   puts "removing left"
   @possible_moves.delete("left")
 end 

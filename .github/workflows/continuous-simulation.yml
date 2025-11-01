@@ -1,0 +1,221 @@
+name: Continuous Snake Simulation and Improvement
+
+on:
+  # Run on a schedule (every 6 hours)
+  schedule:
+    - cron: '0 */6 * * *'
+  
+  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      runs:
+        description: 'Number of simulation runs'
+        required: false
+        default: '50'
+      mode:
+        description: 'Game mode (royale, wrapped, etc.)'
+        required: false
+        default: 'wrapped'
+
+jobs:
+  simulate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+
+    steps:
+    - uses: actions/checkout@v5
+    
+    - uses: actions/setup-go@v6
+      with:
+        go-version: '^1.17.1'
+    
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.2'
+        bundler-cache: true
+    
+    - name: Install battlesnake CLI
+      run: go install github.com/BattlesnakeOfficial/rules/cli/battlesnake@latest
+    
+    - name: Install Ruby dependencies
+      run: |
+        cd snakes/ruby/djdefi
+        bundle install
+    
+    - name: Build Go snake
+      run: |
+        cd snakes/go/pathy-snake
+        go build -o pathy-snake .
+    
+    - name: Start Ruby snake
+      run: |
+        cd snakes/ruby/djdefi
+        bundle exec rackup --host 0.0.0.0 -p 4567 > /tmp/ruby-snake.log 2>&1 &
+        echo $! > /tmp/ruby-pid.txt
+    
+    - name: Start Go snake
+      run: |
+        cd snakes/go/pathy-snake
+        ./pathy-snake > /tmp/go-snake.log 2>&1 &
+        echo $! > /tmp/go-pid.txt
+    
+    - name: Wait for snakes to start
+      run: sleep 5
+    
+    - name: Health check
+      run: |
+        echo "Checking Ruby snake..."
+        curl -f http://localhost:4567/ || (cat /tmp/ruby-snake.log && exit 1)
+        echo "✓ Ruby snake healthy"
+        
+        echo "Checking Go snake..."
+        curl -f http://localhost:8081/ || (cat /tmp/go-snake.log && exit 1)
+        echo "✓ Go snake healthy"
+    
+    - name: Run simulations
+      id: simulate
+      run: |
+        RUNS=${{ github.event.inputs.runs || '50' }}
+        MODE=${{ github.event.inputs.mode || 'wrapped' }}
+        
+        echo "Running $RUNS simulations in $MODE mode..."
+        
+        for i in $(seq 1 $RUNS); do
+          echo "Run [$i/$RUNS]"
+          
+          $(go env GOPATH)/bin/battlesnake play \
+            -W 11 \
+            -H 11 \
+            --name ruby-danger-noodle \
+            --url http://localhost:4567/ \
+            --name pathy \
+            --url http://localhost:8081/ \
+            -g $MODE \
+            -m hz_islands_bridges \
+            --output /tmp/sim_output_$i.json 2>&1 | grep -E "(winner|draw)" || true
+          
+          if [ -f /tmp/sim_output_$i.json ]; then
+            cat /tmp/sim_output_$i.json | jq -c 'if .isDraw then {winner: "draw"} else {winner: .winnerName} end' | tee -a simulation_results.log
+          fi
+        done
+    
+    - name: Cleanup processes
+      if: always()
+      run: |
+        if [ -f /tmp/ruby-pid.txt ]; then
+          kill $(cat /tmp/ruby-pid.txt) 2>/dev/null || true
+        fi
+        if [ -f /tmp/go-pid.txt ]; then
+          kill $(cat /tmp/go-pid.txt) 2>/dev/null || true
+        fi
+        
+    - name: Analyze results
+      id: analyze
+      run: |
+        # Extract win counts from simulation results
+        echo "## Simulation Results" > analysis.md
+        echo "" >> analysis.md
+        echo "\`\`\`" >> analysis.md
+        echo "Mode: ${{ github.event.inputs.mode || 'wrapped' }}" >> analysis.md
+        echo "Runs: ${{ github.event.inputs.runs || '50' }}" >> analysis.md
+        echo "" >> analysis.md
+        tail -10 simulation_results.log >> analysis.md
+        echo "\`\`\`" >> analysis.md
+        
+        # Calculate win rate for Ruby snake
+        RUBY_WINS=$(grep -c '"winner":"ruby-danger-noodle"' simulation_results.log || echo "0")
+        PATHY_WINS=$(grep -c '"winner":"pathy"' simulation_results.log || echo "0")
+        DRAWS=$(grep -c '"winner":"draw"' simulation_results.log || echo "0")
+        TOTAL_RUNS=${{ github.event.inputs.runs || '50' }}
+        
+        if [ "$TOTAL_RUNS" -gt 0 ] 2>/dev/null; then
+          WIN_RATE=$(echo "scale=2; ($RUBY_WINS / $TOTAL_RUNS) * 100" | bc 2>/dev/null || echo "0")
+        else
+          WIN_RATE="0"
+        fi
+        
+        echo "" >> analysis.md
+        echo "### Performance Metrics" >> analysis.md
+        echo "- Ruby snake wins: $RUBY_WINS / $TOTAL_RUNS (${WIN_RATE}%)" >> analysis.md
+        echo "- Pathy snake wins: $PATHY_WINS / $TOTAL_RUNS" >> analysis.md
+        echo "- Draws: $DRAWS / $TOTAL_RUNS" >> analysis.md
+        echo "" >> analysis.md
+        
+        # Set output for issue creation
+        echo "ruby_wins=$RUBY_WINS" >> $GITHUB_OUTPUT
+        echo "total_runs=$TOTAL_RUNS" >> $GITHUB_OUTPUT
+        echo "win_rate=$WIN_RATE" >> $GITHUB_OUTPUT
+        
+    - name: Upload simulation results
+      uses: actions/upload-artifact@v4
+      with:
+        name: simulation-results-${{ github.run_number }}
+        path: |
+          simulation_results.log
+          analysis.md
+          /tmp/ruby-snake.log
+          /tmp/go-snake.log
+        retention-days: 30
+        
+    - name: Create or update tracking issue
+      uses: actions/github-script@v8
+      with:
+        script: |
+          const fs = require('fs');
+          const analysis = fs.readFileSync('analysis.md', 'utf8');
+          const winRate = parseFloat('${{ steps.analyze.outputs.win_rate }}');
+          
+          // Search for existing tracking issue
+          const issues = await github.rest.issues.listForRepo({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            labels: ['snake-improvement', 'automation'],
+            state: 'open'
+          });
+          
+          const timestamp = new Date().toISOString();
+          const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+          
+          const comment = `## Simulation Run - ${timestamp}
+          ${analysis}
+          
+          [View full workflow run](${runUrl})
+          
+          ---
+          ${winRate < 40 ? '⚠️ Win rate is below 40%. Consider reviewing and improving the Ruby snake logic.' : '✅ Win rate is acceptable.'}
+          `;
+          
+          if (issues.data.length > 0) {
+            // Update existing issue
+            const issue = issues.data[0];
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              body: comment
+            });
+          } else {
+            // Create new tracking issue
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: 'Ruby Snake - Continuous Improvement Tracking',
+              body: `This issue tracks the continuous simulation and improvement of the Ruby Battlesnake.
+              
+              ## Latest Results
+              
+              ${comment}
+              
+              ## Improvement Ideas
+              - [ ] Analyze low win rate scenarios
+              - [ ] Improve food-seeking behavior
+              - [ ] Better collision avoidance
+              - [ ] Optimize scoring weights
+              - [ ] Improve endgame strategy
+              `,
+              labels: ['snake-improvement', 'automation', 'ruby']
+            });
+          }

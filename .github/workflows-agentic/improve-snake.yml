@@ -1,0 +1,311 @@
+# Agentic Workflow: Continuous Snake Improvement
+# This workflow uses natural language task definitions to guide automated improvements
+
+name: "Improve Snake Performance"
+
+# Task Definition (Natural Language)
+# Goal: Continuously improve Ruby snake's win rate through iterative testing and code modifications
+# Success Criteria: Achieve >45% win rate in simulations
+# Constraints: Maintain code quality, don't break existing functionality
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # Every 6 hours
+  workflow_dispatch:
+    inputs:
+      improvement_focus:
+        description: 'Area to focus improvements (food_seeking, collision_avoidance, positioning, aggression)'
+        required: false
+        default: 'auto'
+      target_win_rate:
+        description: 'Target win rate percentage'
+        required: false
+        default: '45'
+
+jobs:
+  # Agent Task 1: Analyze Current Performance
+  analyze_performance:
+    name: "📊 Analyze Current Performance"
+    runs-on: ubuntu-latest
+    outputs:
+      current_win_rate: ${{ steps.analyze.outputs.win_rate }}
+      weak_areas: ${{ steps.analyze.outputs.weak_areas }}
+      recommendations: ${{ steps.analyze.outputs.recommendations }}
+      needs_improvement: ${{ steps.analyze.outputs.needs_improvement }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+          working-directory: snakes/ruby/djdefi
+      
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+      
+      - name: Install Battlesnake CLI
+        run: |
+          go install github.com/BattlesnakeOfficial/rules/cli/battlesnake@latest
+          echo "$HOME/go/bin" >> $GITHUB_PATH
+      
+      - name: Start Snakes
+        run: |
+          cd snakes/ruby/djdefi && bundle exec rackup --host 0.0.0.0 -p 4567 > /tmp/ruby-snake.log 2>&1 &
+          echo $! > /tmp/ruby-snake.pid
+          cd snakes/go/pathy-snake && go run . --host 0.0.0.0 --port 8081 > /tmp/go-snake.log 2>&1 &
+          echo $! > /tmp/go-snake.pid
+          sleep 5
+      
+      - name: Run Simulations
+        id: simulate
+        run: |
+          mkdir -p simulation_results
+          
+          for i in {1..30}; do
+            echo "🎮 Game $i/30"
+            $HOME/go/bin/battlesnake play -W 11 -H 11 \
+              --name pathy --url http://localhost:8081/ \
+              --name ruby-danger-noodle --url http://localhost:4567/ \
+              -g wrapped -v 2>&1 | tee -a simulation_results/game_$i.log || true
+          done
+      
+      - name: Analyze Results
+        id: analyze
+        run: |
+          RUBY_WINS=$(grep -r "ruby-danger-noodle is the winner" simulation_results/ | wc -l || echo "0")
+          PATHY_WINS=$(grep -r "pathy is the winner" simulation_results/ | wc -l || echo "0")
+          TOTAL_GAMES=30
+          
+          if [ "$TOTAL_GAMES" -gt 0 ]; then
+            WIN_RATE=$(awk -v wins="$RUBY_WINS" -v total="$TOTAL_GAMES" 'BEGIN{printf "%.1f", (wins/total)*100}')
+          else
+            WIN_RATE="0"
+          fi
+          
+          echo "win_rate=$WIN_RATE" >> $GITHUB_OUTPUT
+          
+          # Analyze weak areas based on game logs
+          STARVATION=$(grep -r "ruby-danger-noodle eliminated by starvation" simulation_results/ | wc -l || echo "0")
+          COLLISIONS=$(grep -r "ruby-danger-noodle eliminated by collision" simulation_results/ | wc -l || echo "0")
+          
+          WEAK_AREAS=""
+          if [ "$STARVATION" -gt 5 ]; then
+            WEAK_AREAS="${WEAK_AREAS}food_seeking,"
+          fi
+          if [ "$COLLISIONS" -gt 5 ]; then
+            WEAK_AREAS="${WEAK_AREAS}collision_avoidance,"
+          fi
+          
+          echo "weak_areas=${WEAK_AREAS}" >> $GITHUB_OUTPUT
+          
+          # Generate recommendations
+          RECOMMENDATIONS=""
+          if [ "$STARVATION" -gt 5 ]; then
+            RECOMMENDATIONS="${RECOMMENDATIONS}Increase food-seeking priority. "
+          fi
+          if [ "$COLLISIONS" -gt 5 ]; then
+            RECOMMENDATIONS="${RECOMMENDATIONS}Strengthen collision avoidance. "
+          fi
+          
+          TARGET_RATE="${{ github.event.inputs.target_win_rate || '45' }}"
+          if awk -v rate="$WIN_RATE" -v target="$TARGET_RATE" 'BEGIN{exit !(rate < target)}'; then
+            echo "needs_improvement=true" >> $GITHUB_OUTPUT
+            RECOMMENDATIONS="${RECOMMENDATIONS}Current win rate ($WIN_RATE%) below target ($TARGET_RATE%). "
+          else
+            echo "needs_improvement=false" >> $GITHUB_OUTPUT
+          fi
+          
+          echo "recommendations=${RECOMMENDATIONS}" >> $GITHUB_OUTPUT
+          
+          # Save detailed analysis
+          cat > simulation_results/analysis.md << EOF
+          # Performance Analysis
+          
+          ## Results
+          - Ruby Wins: $RUBY_WINS / $TOTAL_GAMES ($WIN_RATE%)
+          - Pathy Wins: $PATHY_WINS / $TOTAL_GAMES
+          - Starvation Deaths: $STARVATION
+          - Collision Deaths: $COLLISIONS
+          
+          ## Weak Areas
+          $WEAK_AREAS
+          
+          ## Recommendations
+          $RECOMMENDATIONS
+          EOF
+      
+      - name: Cleanup
+        if: always()
+        run: |
+          [ -f /tmp/ruby-snake.pid ] && kill $(cat /tmp/ruby-snake.pid) || true
+          [ -f /tmp/go-snake.pid ] && kill $(cat /tmp/go-snake.pid) || true
+      
+      - name: Upload Analysis
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-analysis
+          path: simulation_results/
+
+  # Agent Task 2: Generate Improvement Proposals
+  generate_improvements:
+    name: "💡 Generate Improvement Proposals"
+    needs: analyze_performance
+    if: needs.analyze_performance.outputs.needs_improvement == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      has_proposals: ${{ steps.propose.outputs.has_proposals }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Generate Improvement Proposals
+        id: propose
+        run: |
+          mkdir -p improvement_proposals
+          
+          WEAK_AREAS="${{ needs.analyze_performance.outputs.weak_areas }}"
+          WIN_RATE="${{ needs.analyze_performance.outputs.current_win_rate }}"
+          FOCUS="${{ github.event.inputs.improvement_focus || 'auto' }}"
+          
+          # Create improvement proposal document
+          cat > improvement_proposals/proposal.md << 'EOF'
+          # Snake Improvement Proposal
+          
+          ## Current State
+          - Win Rate: ${{ needs.analyze_performance.outputs.current_win_rate }}%
+          - Weak Areas: ${{ needs.analyze_performance.outputs.weak_areas }}
+          
+          ## Proposed Improvements
+          
+          ### Priority 1: Food Seeking
+          **Rationale**: Starvation is a major cause of death
+          **Changes**:
+          - Lower health threshold from 70 to 60
+          - Increase food score multiplier by 20%
+          - Add urgency factor when health < 50
+          
+          ### Priority 2: Collision Avoidance
+          **Rationale**: Improve survival against opponent snakes
+          **Changes**:
+          - Increase snake body penalty by 50%
+          - Add head-to-head collision prediction
+          - Improve space awareness calculations
+          
+          ### Priority 3: Strategic Positioning
+          **Rationale**: Better board control leads to more wins
+          **Changes**:
+          - Increase corner penalties
+          - Improve center control scoring
+          - Add flood fill for space evaluation
+          
+          ## Implementation Plan
+          1. Apply highest priority change
+          2. Run simulation tests
+          3. If win rate improves >2%, keep change
+          4. If win rate degrades, revert
+          5. Repeat with next priority
+          
+          ## Success Metrics
+          - Target win rate: >${{ github.event.inputs.target_win_rate || '45' }}%
+          - No regression in code quality
+          - All tests passing
+          EOF
+          
+          echo "has_proposals=true" >> $GITHUB_OUTPUT
+      
+      - name: Upload Proposals
+        uses: actions/upload-artifact@v4
+        with:
+          name: improvement-proposals
+          path: improvement_proposals/
+
+  # Agent Task 3: Create Tracking Issue
+  track_improvements:
+    name: "📝 Track Improvements"
+    needs: [analyze_performance, generate_improvements]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download Analysis
+        uses: actions/download-artifact@v4
+        with:
+          name: performance-analysis
+          path: analysis
+      
+      - name: Create or Update Issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const winRate = '${{ needs.analyze_performance.outputs.current_win_rate }}';
+            const weakAreas = '${{ needs.analyze_performance.outputs.weak_areas }}';
+            const recommendations = '${{ needs.analyze_performance.outputs.recommendations }}';
+            const needsImprovement = '${{ needs.analyze_performance.outputs.needs_improvement }}';
+            
+            const title = '🤖 Agentic Workflow: Snake Performance Tracking';
+            const label = 'agentic-workflow';
+            
+            // Search for existing tracking issue
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: label,
+              state: 'open'
+            });
+            
+            const body = `
+            # 🎮 Automated Performance Analysis
+            
+            **Run Date**: ${new Date().toISOString()}
+            **Win Rate**: ${winRate}%
+            **Status**: ${needsImprovement === 'true' ? '⚠️ Needs Improvement' : '✅ Meeting Target'}
+            
+            ## 📊 Performance Metrics
+            - Current Win Rate: **${winRate}%**
+            - Target Win Rate: **${{ github.event.inputs.target_win_rate || '45' }}%**
+            - Weak Areas: ${weakAreas || 'None identified'}
+            
+            ## 💡 AI Recommendations
+            ${recommendations || 'Performance is meeting targets. Continue monitoring.'}
+            
+            ## 🔄 Next Actions
+            ${needsImprovement === 'true' ? `
+            1. Review improvement proposals in workflow artifacts
+            2. Implement highest priority changes
+            3. Re-run simulations to validate
+            4. Iterate until target win rate achieved
+            ` : `
+            - Continue monitoring performance
+            - Run next analysis in 6 hours
+            `}
+            
+            ## 📁 Artifacts
+            - [View detailed analysis](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+            - Download simulation logs and improvement proposals from workflow artifacts
+            
+            ---
+            *This issue is automatically updated by the Agentic Workflow system*
+            `;
+            
+            if (issues.data.length > 0) {
+              // Update existing issue
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issues.data[0].number,
+                body: body
+              });
+            } else {
+              // Create new issue
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: [label, 'snake-improvement']
+              });
+            }

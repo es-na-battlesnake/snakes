@@ -30,24 +30,145 @@ jobs:
 
     steps:
     - uses: actions/checkout@v5
+    
     - uses: actions/setup-go@v6
       with:
-          go-version: '^1.17.1'
+        go-version: '^1.17.1'
     
-    - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag code-snek:pr
-    - name: Setup Docker network
-      run: docker network create test
-    - name: Run the Docker image
-      run: docker run -d -p 4567:4567 --network test --name code-snek code-snek:pr
-
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.2'
+        bundler-cache: true
+    
+    - name: Install battlesnake CLI
+      run: go install github.com/BattlesnakeOfficial/rules/cli/battlesnake@latest
+    
+    - name: Install Ruby dependencies
+      run: |
+        cd snakes/ruby/djdefi
+        bundle install
+    
+    - name: Build Go snake
+      run: |
+        cd snakes/go/pathy-snake
+        go build -o pathy-snake .
+    
+    - name: Start Ruby snake
+      run: |
+        cd snakes/ruby/djdefi
+        bundle exec rackup --host 0.0.0.0 -p 4567 > /tmp/ruby-snake.log 2>&1 &
+        echo $! > /tmp/ruby-pid.txt
+    
+    - name: Start Go snake
+      run: |
+        cd snakes/go/pathy-snake
+        ./pathy-snake > /tmp/go-snake.log 2>&1 &
+        echo $! > /tmp/go-pid.txt
+    
     - name: Pause for 10 seconds
       run: sleep 10
+    
+    - name: Health check
+      run: |
+        echo "Checking Ruby snake..."
+        curl -f http://localhost:4567/ || (cat /tmp/ruby-snake.log && exit 1)
+        echo "✓ Ruby snake healthy"
+        
+        echo "Checking Go snake..."
+        curl -f http://localhost:8081/ || (cat /tmp/go-snake.log && exit 1)
+        echo "✓ Go snake healthy"
 
     - name: Simulate games
       id: simulate-games
       run: |
-          docker run --rm --network test code-snek:pr script/simulate_royale --mode wrapped --map hz_islands_bridges  --width 11 --height 11 --runs 10 | tee -a simulate_royale.log
+        echo "🎮 Starting 10 simulation games..."
+        echo ""
+        
+        for i in $(seq 1 10); do
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "🐍 Game $i of 10"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          
+          $(go env GOPATH)/bin/battlesnake play \
+            -W 11 \
+            -H 11 \
+            --name ruby-danger-noodle \
+            --url http://localhost:4567/ \
+            --name pathy \
+            --url http://localhost:8081/ \
+            -g wrapped \
+            -m hz_islands_bridges \
+            --output /tmp/sim_output_$i.json 2>&1 | tee -a simulation_full.log | grep -E "(winner|draw|Turn)" || true
+          
+          if [ -f /tmp/sim_output_$i.json ]; then
+            RESULT=$(cat /tmp/sim_output_$i.json | jq -c 'if .isDraw then {winner: "draw", turns: .Turn} else {winner: .winnerName, turns: .Turn} end')
+            echo "$RESULT" | tee -a simulate_royale.log
+            
+            # Extract winner for display
+            WINNER=$(echo "$RESULT" | jq -r '.winner')
+            TURNS=$(echo "$RESULT" | jq -r '.turns')
+            
+            if [ "$WINNER" = "ruby-danger-noodle" ]; then
+              echo "✅ Ruby snake wins! (Turn $TURNS)"
+            elif [ "$WINNER" = "pathy" ]; then
+              echo "❌ Pathy snake wins (Turn $TURNS)"
+            else
+              echo "🤝 Draw (Turn $TURNS)"
+            fi
+          fi
+          echo ""
+        done
+        
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "📊 SIMULATION SUMMARY"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        
+        # Calculate statistics
+        RUBY_WINS=$(grep -c '"winner":"ruby-danger-noodle"' simulate_royale.log || echo "0")
+        PATHY_WINS=$(grep -c '"winner":"pathy"' simulate_royale.log || echo "0")
+        DRAWS=$(grep -c '"winner":"draw"' simulate_royale.log || echo "0")
+        
+        echo "Ruby (ruby-danger-noodle): $RUBY_WINS wins"
+        echo "Pathy (Go snake):          $PATHY_WINS wins"
+        echo "Draws:                     $DRAWS"
+        echo ""
+        
+        WIN_RATE=$(echo "scale=1; ($RUBY_WINS * 100) / 10" | bc)
+        echo "🎯 Ruby Win Rate: ${WIN_RATE}%"
+        
+        if [ "$RUBY_WINS" -ge 5 ]; then
+          echo "✅ Ruby snake performing well!"
+        elif [ "$RUBY_WINS" -ge 3 ]; then
+          echo "⚠️  Ruby snake performance is moderate"
+        else
+          echo "❌ Ruby snake needs improvement"
+        fi
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    
+    - name: Cleanup processes
+      if: always()
+      run: |
+        if [ -f /tmp/ruby-pid.txt ]; then
+          kill $(cat /tmp/ruby-pid.txt) 2>/dev/null || true
+        fi
+        if [ -f /tmp/go-pid.txt ]; then
+          kill $(cat /tmp/go-pid.txt) 2>/dev/null || true
+        fi
+    
+    - name: Create detailed summary
+      id: create-summary
+      run: |
+        # Calculate statistics
+        RUBY_WINS=$(grep -c '"winner":"ruby-danger-noodle"' simulate_royale.log || echo "0")
+        PATHY_WINS=$(grep -c '"winner":"pathy"' simulate_royale.log || echo "0")
+        DRAWS=$(grep -c '"winner":"draw"' simulate_royale.log || echo "0")
+        WIN_RATE=$(echo "scale=1; ($RUBY_WINS * 100) / 10" | bc)
+        
+        # Store for later use
+        echo "ruby_wins=$RUBY_WINS" >> $GITHUB_OUTPUT
+        echo "pathy_wins=$PATHY_WINS" >> $GITHUB_OUTPUT
+        echo "draws=$DRAWS" >> $GITHUB_OUTPUT
+        echo "win_rate=$WIN_RATE" >> $GITHUB_OUTPUT
 
     - name: Set sim-log to var
       uses: actions/github-script@v8
@@ -55,15 +176,41 @@ jobs:
       with:
         script: |
           const fs = require('fs');
-          return fs.readFileSync('simulate_royale.log','utf8').toString();
+          const results = fs.readFileSync('simulate_royale.log','utf8').toString();
+          const rubyWins = '${{ steps.create-summary.outputs.ruby_wins }}';
+          const pathyWins = '${{ steps.create-summary.outputs.pathy_wins }}';
+          const draws = '${{ steps.create-summary.outputs.draws }}';
+          const winRate = '${{ steps.create-summary.outputs.win_rate }}';
+          
+          const summary = `## 🎮 Simulation Results
+          
+          **Mode**: Wrapped | **Map**: hz_islands_bridges | **Games**: 10
+          
+          ### 📊 Summary
+          | Snake | Wins | Win Rate |
+          |-------|------|----------|
+          | 🔴 Ruby (ruby-danger-noodle) | ${rubyWins} | ${winRate}% |
+          | 🔵 Pathy (Go snake) | ${pathyWins} | ${(parseFloat(pathyWins) * 10).toFixed(1)}% |
+          | 🤝 Draws | ${draws} | ${(parseFloat(draws) * 10).toFixed(1)}% |
+          
+          ### 🎯 Performance Assessment
+          ${parseFloat(rubyWins) >= 5 ? '✅ **Ruby snake performing well!**' : parseFloat(rubyWins) >= 3 ? '⚠️  **Ruby snake performance is moderate** - Consider reviewing strategy' : '❌ **Ruby snake needs improvement** - Performance below target'}
+          
+          ### 📝 Detailed Results
+          \`\`\`
+          ${results}
+          \`\`\`
+          
+          ---
+          *Simulation completed via GitHub Actions*`;
+          
+          return summary;
         result-encoding: string
 
     - name: Post comment
       uses: mshick/add-pr-comment@v2
       with:
-        message: |
-            🤖 🐍:
-            ${{ steps.sim-log.outputs.result }}
+        message: ${{ steps.sim-log.outputs.result }}
         repo-token: ${{ secrets.GITHUB_TOKEN }}
-        repo-token-user-login: 'github-actions[bot]' # The user.login for temporary GitHub tokens
-        allow-repeats: false # This is the default, but let's be explicit
+        repo-token-user-login: 'github-actions[bot]'
+        allow-repeats: false

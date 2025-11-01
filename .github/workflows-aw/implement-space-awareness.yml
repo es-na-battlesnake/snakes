@@ -1,0 +1,85 @@
+name: Implement Space Awareness
+description: |
+  Add flood fill algorithm to detect enclosed spaces and avoid
+  moves that lead to traps or dead ends.
+
+context: |
+  Current behavior:
+  - No explicit space awareness
+  - Uses basic distance and direction scoring
+  - Can get trapped in enclosed areas
+  
+  Observed issues:
+  - Dies in enclosed spaces where it trapped itself
+  - Doesn't recognize when a move leads to limited space
+  - Fails to evaluate reachable area before committing to move
+  - Can corner itself while chasing food or tail
+
+desired_outcome: |
+  Snake should:
+  - Calculate available space before each move
+  - Avoid moves that lead to spaces smaller than body length
+  - Recognize and avoid dead ends
+  - Prefer moves that maintain access to open areas
+  - Use space control as strategic advantage
+
+success_criteria:
+  - Reduce trap deaths by 70-80%
+  - Increase average survival turns
+  - Win more games through superior positioning
+  - Avoid unnecessary deaths in enclosed areas
+
+implementation_hints:
+  - Implement breadth-first search (BFS) for space calculation
+  - Count reachable cells from each potential move
+  - Penalize moves to spaces smaller than body length
+  - Consider time horizon (how many turns until space becomes available)
+  - Add territory control scoring in competitive situations
+
+algorithm_outline: |
+  ```ruby
+  def calculate_available_space(start_pos, max_depth = 10)
+    visited = Set.new([start_pos])
+    queue = [[start_pos, 0]]
+    
+    while !queue.empty? && queue.first[1] < max_depth
+      pos, depth = queue.shift
+      
+      neighbors(pos).each do |neighbor|
+        next if visited.include?(neighbor)
+        next if cell_occupied?(neighbor)
+        
+        visited.add(neighbor)
+        queue << [neighbor, depth + 1]
+      end
+    end
+    
+    visited.size
+  end
+  
+  # In scoring:
+  space = calculate_available_space(cell[:position])
+  if space < @body.length
+    cell[:score] -= 100  # Severe penalty for trap moves
+  elsif space < @body.length * 2
+    cell[:score] -= 50   # Moderate penalty for tight spaces
+  end
+  ```
+
+metrics_to_track:
+  - Trap death rate
+  - Average available space per move
+  - Space utilization efficiency
+  - Endgame positioning quality
+
+performance_considerations:
+  - Limit BFS depth to avoid timeout (max_depth = 10-15)
+  - Cache space calculations for repeated positions
+  - Only calculate for top-scoring moves to save time
+  - Use early termination if space is clearly adequate
+
+risk_mitigation:
+  - Don't over-penalize moves (balance with other factors)
+  - Test performance impact (ensure moves complete in time)
+  - Validate against fast-paced games
+  - Ensure doesn't become too conservative

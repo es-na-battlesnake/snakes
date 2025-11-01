@@ -1,0 +1,254 @@
+#!/bin/bash
+#
+# Continuous Improvement Script for Ruby Snake
+# This script runs multiple simulations and provides analysis to help improve the snake
+#
+# Usage: ./continuous_improve --runs <number> [--mode <mode>] [--analyze-only]
+#
+
+set -e
+
+# Default values
+RUNS=20
+MODE="wrapped"
+MAP="hz_islands_bridges"
+WIDTH=11
+HEIGHT=11
+ANALYZE_ONLY=false
+VERBOSE=false
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --runs)
+            RUNS="$2"
+            shift 2
+            ;;
+        --mode)
+            MODE="$2"
+            shift 2
+            ;;
+        --map)
+            MAP="$2"
+            shift 2
+            ;;
+        --analyze-only)
+            ANALYZE_ONLY=true
+            shift
+            ;;
+        --verbose|-v)
+            VERBOSE=true
+            shift
+            ;;
+        --help)
+            echo "Usage: $0 [OPTIONS]"
+            echo ""
+            echo "Options:"
+            echo "  --runs <number>      Number of simulation runs (default: 20)"
+            echo "  --mode <mode>        Game mode (default: wrapped)"
+            echo "  --map <map>          Map type (default: hz_islands_bridges)"
+            echo "  --analyze-only       Only analyze existing results, don't run new simulations"
+            echo "  --verbose, -v        Verbose output"
+            echo "  --help               Show this help message"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+done
+
+RESULTS_DIR="simulation_results"
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+RESULT_FILE="$RESULTS_DIR/sim_${TIMESTAMP}.log"
+
+# Create results directory if it doesn't exist
+mkdir -p "$RESULTS_DIR"
+
+if [ "$ANALYZE_ONLY" = false ]; then
+    echo "=========================================="
+    echo "Starting Continuous Improvement Simulation"
+    echo "=========================================="
+    echo "Runs: $RUNS"
+    echo "Mode: $MODE"
+    echo "Map: $MAP"
+    echo "Dimensions: ${WIDTH}x${HEIGHT}"
+    echo "Results will be saved to: $RESULT_FILE"
+    echo ""
+
+    # Check if Docker is running
+    if ! docker info > /dev/null 2>&1; then
+        echo "Error: Docker is not running"
+        exit 1
+    fi
+
+    # Build Docker image
+    echo "Building Docker image..."
+    if ! docker build . --file Dockerfile --tag code-snek:improve 2>&1 | tee /tmp/docker_build.log | tail -10; then
+        echo ""
+        echo "ERROR: Docker build failed. Last 20 lines of build log:"
+        tail -20 /tmp/docker_build.log
+        exit 1
+    fi
+    echo "Docker image built successfully"
+    echo ""
+
+    # Setup network
+    echo "Setting up Docker network..."
+    docker network rm test 2>/dev/null || true
+    docker network create test > /dev/null
+
+    # Run snakes
+    echo "Starting snakes..."
+    docker stop code-snek 2>/dev/null || true
+    docker rm code-snek 2>/dev/null || true
+    docker run -d -p 4567:4567 -p 8081:8081 --network test --name code-snek code-snek:improve > /dev/null
+
+    echo "Waiting for snakes to start..."
+    sleep 10
+
+    # Test endpoints
+    echo "Testing snake endpoints..."
+    if ! curl -s http://localhost:4567/ > /dev/null; then
+        echo "Error: Ruby snake is not responding on port 4567"
+        echo "Docker logs:"
+        docker logs code-snek | tail -30
+        exit 1
+    fi
+    echo "✓ Ruby snake responding on port 4567"
+    
+    if ! curl -s http://localhost:8081/ > /dev/null; then
+        echo "Error: Go snake (pathy) is not responding on port 8081"
+        echo "Docker logs:"
+        docker logs code-snek | tail -30
+        exit 1
+    fi
+    echo "✓ Go snake responding on port 8081"
+    echo ""
+
+    echo "Running $RUNS simulations..."
+    echo ""
+    
+    # Run simulations
+    VERBOSE_FLAG=""
+    if [ "$VERBOSE" = true ]; then
+        VERBOSE_FLAG="-v"
+    fi
+    
+    docker run --rm --network test code-snek:improve \
+        script/simulate_royale \
+        --mode "$MODE" \
+        --map "$MAP" \
+        --width "$WIDTH" \
+        --height "$HEIGHT" \
+        --runs "$RUNS" \
+        $VERBOSE_FLAG | tee "$RESULT_FILE"
+
+    # Cleanup
+    echo ""
+    echo "Cleaning up..."
+    docker stop code-snek > /dev/null 2>&1
+    docker rm code-snek > /dev/null 2>&1
+    docker network rm test > /dev/null 2>&1
+else
+    # Find the most recent result file
+    RESULT_FILE=$(ls -t $RESULTS_DIR/sim_*.log 2>/dev/null | head -1)
+    if [ -z "$RESULT_FILE" ]; then
+        echo "No simulation results found. Run without --analyze-only first."
+        exit 1
+    fi
+    echo "Analyzing results from: $RESULT_FILE"
+fi
+
+echo ""
+echo "=========================================="
+echo "Analysis"
+echo "=========================================="
+
+# Extract and analyze results
+RUBY_WINS=$(grep -c "winner: ruby-danger-noodle" "$RESULT_FILE" || echo "0")
+PATHY_WINS=$(grep -c "winner: pathy" "$RESULT_FILE" || echo "0")
+DRAWS=$(grep -c "winner: draw" "$RESULT_FILE" || echo "0")
+
+# Calculate total from file if not provided
+if [ "$ANALYZE_ONLY" = true ]; then
+    TOTAL=$(($RUBY_WINS + $PATHY_WINS + $DRAWS))
+else
+    TOTAL=$RUNS
+fi
+
+# Avoid division by zero
+if [ "$TOTAL" -eq 0 ]; then
+    echo "Error: No simulation results to analyze"
+    exit 1
+fi
+
+# Calculate percentages
+RUBY_WIN_RATE=$(echo "scale=2; ($RUBY_WINS / $TOTAL) * 100" | bc 2>/dev/null || echo "0")
+PATHY_WIN_RATE=$(echo "scale=2; ($PATHY_WINS / $TOTAL) * 100" | bc 2>/dev/null || echo "0")
+DRAW_RATE=$(echo "scale=2; ($DRAWS / $TOTAL) * 100" | bc 2>/dev/null || echo "0")
+
+echo ""
+echo "Win Statistics:"
+echo "  Ruby (ruby-danger-noodle): $RUBY_WINS / $TOTAL (${RUBY_WIN_RATE}%)"
+echo "  Pathy (Go snake):          $PATHY_WINS / $TOTAL (${PATHY_WIN_RATE}%)"
+echo "  Draws:                     $DRAWS / $TOTAL (${DRAW_RATE}%)"
+echo ""
+
+# Provide recommendations
+echo "Recommendations:"
+if awk -v rate="$RUBY_WIN_RATE" 'BEGIN{exit !(rate < 30)}' 2>/dev/null; then
+    echo "  ⚠️  CRITICAL: Win rate is very low (<30%)"
+    echo "      - Review collision avoidance logic"
+    echo "      - Analyze food-seeking behavior"
+    echo "      - Check edge case handling"
+elif awk -v rate="$RUBY_WIN_RATE" 'BEGIN{exit !(rate < 45)}' 2>/dev/null; then
+    echo "  ⚠️  Win rate is below target (<45%)"
+    echo "      - Consider adjusting scoring weights"
+    echo "      - Improve endgame strategy"
+    echo "      - Review hazard avoidance"
+else
+    echo "  ✅ Win rate is acceptable (>45%)"
+    echo "      - Continue monitoring"
+    echo "      - Look for edge case improvements"
+fi
+
+echo ""
+echo "Next Steps:"
+echo "  1. Review simulation logs: $RESULT_FILE"
+echo "  2. Identify patterns in losses"
+echo "  3. Adjust snake logic in snakes/ruby/djdefi/app/move.rb"
+echo "  4. Run tests: script/test djdefi"
+echo "  5. Re-run simulations to validate improvements"
+echo ""
+
+# Save analysis summary
+SUMMARY_FILE="$RESULTS_DIR/analysis_${TIMESTAMP}.txt"
+cat > "$SUMMARY_FILE" <<EOF
+Simulation Analysis - $TIMESTAMP
+=====================================
+
+Configuration:
+  Runs: $TOTAL
+  Mode: $MODE
+  Map: $MAP
+  Dimensions: ${WIDTH}x${HEIGHT}
+
+Results:
+  Ruby wins: $RUBY_WINS (${RUBY_WIN_RATE}%)
+  Pathy wins: $PATHY_WINS (${PATHY_WIN_RATE}%)
+  Draws: $DRAWS (${DRAW_RATE}%)
+
+Recommendations:
+$(if (( $(echo "$RUBY_WIN_RATE < 30" | bc -l 2>/dev/null || echo "0") )); then
+    echo "  - CRITICAL: Very low win rate - needs immediate attention"
+elif (( $(echo "$RUBY_WIN_RATE < 45" | bc -l 2>/dev/null || echo "0") )); then
+    echo "  - Below target - consider improvements"
+else
+    echo "  - Acceptable performance - continue monitoring"
+fi)
+EOF
+
+echo "Analysis saved to: $SUMMARY_FILE"
+echo ""

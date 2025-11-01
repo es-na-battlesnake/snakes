@@ -1,0 +1,127 @@
+name: Improve Ruby Snake Performance
+description: Continuously improve the Ruby Battlesnake through automated simulation, analysis, and code modifications
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # Every 6 hours
+  workflow_dispatch:
+    inputs:
+      target_win_rate:
+        description: 'Target win rate percentage'
+        required: false
+        default: '50'
+      max_iterations:
+        description: 'Maximum improvement iterations'
+        required: false
+        default: '5'
+
+tasks:
+  - name: Run baseline simulations
+    description: Execute battlesnake simulations to establish current performance metrics
+    run: |
+      Run 30 simulation games between the Ruby snake and Go snake
+      Record win rates, turn counts, and common failure patterns
+      Save results to simulation_results/baseline_{timestamp}.json
+
+  - name: Analyze simulation results
+    description: Examine simulation data to identify improvement opportunities
+    run: |
+      Analyze the simulation results from the previous task
+      Identify patterns in losses (starvation, collisions, positioning errors)
+      Calculate current win rate and compare to target of {{ inputs.target_win_rate }}%
+      Generate prioritized list of improvement areas:
+        - Food seeking efficiency
+        - Collision avoidance  
+        - Space control and positioning
+        - Endgame strategy
+      Save analysis to simulation_results/analysis_{timestamp}.md
+
+  - name: Propose code improvements
+    description: Generate specific code modifications to address identified weaknesses
+    run: |
+      Based on the analysis, propose specific changes to snakes/ruby/djdefi/app/move.rb:
+      
+      If win rate < 30%:
+        - Increase food seeking urgency (lower health threshold)
+        - Strengthen collision avoidance penalties
+        - Improve corner/edge detection
+      
+      If deaths by starvation > 40%:
+        - Adjust health threshold for food seeking
+        - Increase food scoring multipliers
+        - Add dynamic health-based scoring boost
+      
+      If deaths by collision > 40%:
+        - Increase snake body avoidance penalties
+        - Add head-to-head collision detection
+        - Strengthen wall/boundary penalties
+      
+      If deaths by space constraints > 20%:
+        - Improve flood fill or space awareness
+        - Better tail-chasing logic
+        - Enhanced endgame positioning
+      
+      Generate a detailed modification plan with:
+        - Specific line numbers and code changes
+        - Expected impact on win rate
+        - Rationale for each change
+
+  - name: Apply code modifications
+    description: Implement the proposed improvements to the Ruby snake
+    run: |
+      Apply the proposed changes to snakes/ruby/djdefi/app/move.rb
+      Ensure changes maintain Ruby syntax and style
+      Verify that @score_multiplier values are properly adjusted
+      Update health_threshold if needed
+      Add comments explaining the rationale for changes
+      
+      Do not modify:
+        - API endpoints or response formats
+        - Core game state parsing logic
+        - Test files (unless adding new tests)
+
+  - name: Validate changes
+    description: Run tests and simulations to verify improvements
+    run: |
+      Run the Ruby unit tests: script/test djdefi
+      Ensure all tests pass (0 failures, 0 errors)
+      
+      Run 30 new simulation games with the modified snake
+      Compare win rate to baseline
+      
+      If win rate improved by at least 5%:
+        - Commit changes with message "Improve Ruby snake: [description]"
+        - Save comparison metrics
+      Else:
+        - Revert changes
+        - Document why changes didn't improve performance
+
+  - name: Iterate if needed
+    description: Continue improving until target win rate or max iterations reached
+    run: |
+      Check current win rate vs target ({{ inputs.target_win_rate }}%)
+      Check iteration count vs max ({{ inputs.max_iterations }})
+      
+      If win rate < target AND iterations < max:
+        - Return to "Run baseline simulations" with current version
+        - Continue improvement cycle
+      Else:
+        - Generate final report with:
+          - Total iterations completed
+          - Initial vs final win rate
+          - All modifications made
+          - Performance metrics timeline
+        - Post report to tracking issue (label: snake-improvement)
+
+outputs:
+  - name: final_win_rate
+    description: The win rate achieved after all improvements
+  
+  - name: iterations_completed
+    description: Number of improvement cycles executed
+  
+  - name: total_improvements
+    description: Count of successful code modifications applied
+  
+  - name: performance_report
+    description: Comprehensive analysis of improvement journey

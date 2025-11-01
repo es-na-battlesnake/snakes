@@ -1,0 +1,224 @@
+# Agentic Workflow: Continuous Snake Improvement
+# This workflow uses natural language task definitions to drive autonomous improvement
+
+name: "Improve Snake Performance"
+
+# Natural language goal definition
+goal: |
+  Continuously improve the Ruby Battlesnake's win rate through iterative
+  testing, analysis, and strategic code modifications.
+
+# Success criteria
+success_criteria:
+  - win_rate: ">45%"
+  - consistency: "Win rate stable across 50+ games"
+  - safety: "No regression in collision avoidance"
+
+# Workflow tasks in natural language
+tasks:
+  - name: "Analyze Current Performance"
+    description: |
+      Run simulations to establish baseline performance metrics.
+      Measure win rate, average game length, cause of death distribution.
+    
+    outputs:
+      - baseline_win_rate
+      - performance_metrics
+      - weakness_analysis
+    
+    implementation:
+      workflow: continuous-simulation.yml
+      parameters:
+        runs: 50
+        mode: wrapped
+
+  - name: "Identify Improvement Opportunities"
+    description: |
+      Based on simulation results, identify specific areas where the snake
+      is underperforming. Prioritize improvements by impact potential.
+    
+    inputs:
+      - performance_metrics
+      - weakness_analysis
+    
+    outputs:
+      - improvement_priorities
+      - recommended_changes
+    
+    strategy:
+      - If high starvation rate: Improve food seeking behavior
+      - If frequent collisions: Enhance obstacle avoidance
+      - If losses to smaller snakes: Increase aggression
+      - If corner deaths: Improve space awareness
+
+  - name: "Generate Code Modifications"
+    description: |
+      Create targeted code changes to address the highest priority
+      improvement opportunity. Changes should be incremental and testable.
+    
+    inputs:
+      - improvement_priorities
+      - recommended_changes
+    
+    outputs:
+      - code_changes
+      - change_description
+    
+    constraints:
+      - max_changes_per_iteration: 3
+      - must_pass_unit_tests: true
+      - preserve_existing_functionality: true
+    
+    targets:
+      - file: snakes/ruby/djdefi/app/move.rb
+        areas:
+          - scoring_weights
+          - health_thresholds
+          - collision_penalties
+          - positioning_logic
+
+  - name: "Validate Changes"
+    description: |
+      Test the proposed changes to ensure they improve performance
+      without introducing regressions.
+    
+    inputs:
+      - code_changes
+    
+    outputs:
+      - validation_results
+      - new_win_rate
+      - regression_check
+    
+    validation_steps:
+      - Run unit tests (must pass)
+      - Run 20 simulation games
+      - Compare against baseline
+      - Check for regressions
+    
+    acceptance_criteria:
+      - unit_tests_pass: true
+      - win_rate_improvement: ">2%"
+      - no_critical_regressions: true
+
+  - name: "Commit Successful Changes"
+    description: |
+      If validation passes, commit the changes with descriptive message
+      documenting the improvement and metrics.
+    
+    inputs:
+      - validation_results
+      - code_changes
+      - new_win_rate
+    
+    conditions:
+      - validation_results.passed == true
+      - new_win_rate > baseline_win_rate
+    
+    actions:
+      - Create feature branch
+      - Commit changes with metrics
+      - Create pull request with analysis
+      - Merge if CI passes
+
+  - name: "Update Performance Tracking"
+    description: |
+      Record the iteration results for historical tracking and
+      trend analysis.
+    
+    inputs:
+      - validation_results
+      - new_win_rate
+      - change_description
+    
+    outputs:
+      - performance_history
+      - trend_analysis
+    
+    tracking:
+      - Log to GitHub Issue (label: snake-improvement)
+      - Update performance dashboard
+      - Store artifacts for analysis
+
+# Iteration loop configuration
+iteration:
+  trigger:
+    - schedule: "0 */6 * * *"  # Every 6 hours
+    - on_performance_regression: true
+    - manual: true
+  
+  loop_until:
+    - win_rate >= 45%
+    - max_iterations: 100
+    - improvement_plateau: true  # No improvement in 10 iterations
+  
+  safety:
+    - require_approval_above: "major changes"
+    - rollback_on_regression: true
+    - preserve_history: true
+
+# Agent decision-making guidelines
+decision_logic:
+  priority_order:
+    1: "Fix critical safety issues (collisions, starvation)"
+    2: "Improve food seeking efficiency"
+    3: "Enhance positioning and space awareness"
+    4: "Optimize aggression and opportunistic behavior"
+  
+  change_magnitude:
+    conservative: "Adjust values by 10-20%"
+    moderate: "Adjust values by 20-50%"
+    aggressive: "Adjust values by 50-100% or add new logic"
+  
+  risk_assessment:
+    low_risk: "Scoring weight adjustments"
+    medium_risk: "Threshold changes"
+    high_risk: "New strategic logic"
+
+# Learning and adaptation
+learning:
+  track_patterns:
+    - "Which changes correlate with win rate improvements"
+    - "Which scenarios cause the most losses"
+    - "How performance varies by game mode and map"
+  
+  adapt_strategy:
+    - Adjust decision_logic based on success patterns
+    - Prioritize changes that historically work well
+    - Avoid repeating failed approaches
+  
+  knowledge_base:
+    - Store successful change patterns
+    - Document failure modes
+    - Build strategy library
+
+# Communication and reporting
+reporting:
+  on_iteration_complete:
+    - Post summary to tracking issue
+    - Update performance graphs
+    - Store detailed logs as artifacts
+  
+  on_success:
+    - Announce win rate improvement
+    - Document successful strategy
+    - Share insights with team
+  
+  on_failure:
+    - Report validation failure
+    - Provide rollback instructions
+    - Suggest alternative approaches
+
+# Integration with existing infrastructure
+integration:
+  simulation_workflow: .github/workflows/continuous-simulation.yml
+  pr_workflow: .github/workflows/simulate-games.yml
+  testing_scripts:
+    - script/continuous_improve
+    - script/quick_sim
+    - script/run_local_sim
+  
+  telemetry:
+    - docs/SIMULATION_TELEMETRY.md
+    - GitHub Issues (label: snake-improvement)
+    - Workflow artifacts

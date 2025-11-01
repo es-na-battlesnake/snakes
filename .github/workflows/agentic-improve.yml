@@ -1,0 +1,431 @@
+name: Agentic Snake Improvement
+
+on:
+  schedule:
+    - cron: '0 */12 * * *'  # Every 12 hours
+  workflow_dispatch:
+    inputs:
+      focus_area:
+        description: 'Focus area for improvement (food_seeking, collision_avoidance, positioning, aggression, or auto)'
+        required: false
+        default: 'auto'
+      runs:
+        description: 'Number of simulation runs'
+        required: false
+        default: '30'
+
+jobs:
+  agentic-improvement:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.1'
+          bundler-cache: false
+      
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+      
+      - name: Install dependencies
+        run: |
+          cd /home/runner/work/snakes/snakes/snakes/ruby/djdefi
+          sudo gem install bundler
+          sudo bundle install
+          
+          go install github.com/BattlesnakeOfficial/rules/cli/battlesnake@latest
+      
+      - name: Run baseline simulations
+        id: baseline
+        run: |
+          cd /home/runner/work/snakes/snakes/snakes/ruby/djdefi
+          bundle exec rackup --host 0.0.0.0 -p 4567 &
+          RUBY_PID=$!
+          echo "ruby_pid=$RUBY_PID" >> $GITHUB_OUTPUT
+          
+          cd /home/runner/work/snakes/snakes/snakes/go/pathy-snake
+          go run . --host 0.0.0.0 --port 8081 &
+          GO_PID=$!
+          echo "go_pid=$GO_PID" >> $GITHUB_OUTPUT
+          
+          sleep 10
+          
+          # Run simulations
+          RUNS=${{ github.event.inputs.runs || '30' }}
+          echo "Running $RUNS baseline simulations..."
+          
+          RESULTS_FILE="/tmp/baseline_results.txt"
+          > $RESULTS_FILE
+          
+          for i in $(seq 1 $RUNS); do
+            echo "Game $i..."
+            /root/go/bin/battlesnake play -W 11 -H 11 \
+              --name ruby-danger-noodle --url http://localhost:4567/ \
+              --name pathy --url http://localhost:8081/ \
+              -g wrapped --map hz_islands_bridges 2>&1 | tee -a $RESULTS_FILE
+          done
+          
+          # Analyze results
+          RUBY_WINS=$(grep -c "ruby-danger-noodle is the winner" $RESULTS_FILE || echo "0")
+          PATHY_WINS=$(grep -c "pathy is the winner" $RESULTS_FILE || echo "0")
+          DRAWS=$(grep -c "Draw" $RESULTS_FILE || echo "0")
+          
+          echo "ruby_wins=$RUBY_WINS" >> $GITHUB_OUTPUT
+          echo "pathy_wins=$PATHY_WINS" >> $GITHUB_OUTPUT
+          echo "draws=$DRAWS" >> $GITHUB_OUTPUT
+          
+          TOTAL=$RUNS
+          if [ "$TOTAL" -gt 0 ]; then
+            WIN_RATE=$(awk -v wins="$RUBY_WINS" -v total="$TOTAL" 'BEGIN{printf "%.1f", (wins/total)*100}')
+          else
+            WIN_RATE="0.0"
+          fi
+          echo "win_rate=$WIN_RATE" >> $GITHUB_OUTPUT
+          
+          kill $RUBY_PID $GO_PID 2>/dev/null || true
+      
+      - name: Analyze performance and identify improvements
+        id: analyze
+        run: |
+          WIN_RATE="${{ steps.baseline.outputs.win_rate }}"
+          FOCUS="${{ github.event.inputs.focus_area || 'auto' }}"
+          
+          cat > /tmp/analysis.md << 'EOF'
+          # Agentic Analysis Report
+          
+          ## Current Performance
+          - Win Rate: $WIN_RATE%
+          - Ruby Wins: ${{ steps.baseline.outputs.ruby_wins }}
+          - Pathy Wins: ${{ steps.baseline.outputs.pathy_wins }}
+          - Draws: ${{ steps.baseline.outputs.draws }}
+          
+          ## Performance Assessment
+          EOF
+          
+          # Assess performance
+          if awk -v rate="$WIN_RATE" 'BEGIN{exit !(rate >= 50)}'; then
+            echo "✅ **Excellent** - Snake is performing very well" >> /tmp/analysis.md
+            echo "status=excellent" >> $GITHUB_OUTPUT
+          elif awk -v rate="$WIN_RATE" 'BEGIN{exit !(rate >= 40)}'; then
+            echo "✅ **Good** - Snake is competitive" >> /tmp/analysis.md
+            echo "status=good" >> $GITHUB_OUTPUT
+          elif awk -v rate="$WIN_RATE" 'BEGIN{exit !(rate >= 30)}'; then
+            echo "⚠️ **Moderate** - Room for improvement" >> /tmp/analysis.md
+            echo "status=moderate" >> $GITHUB_OUTPUT
+          else
+            echo "❌ **Poor** - Significant improvements needed" >> /tmp/analysis.md
+            echo "status=poor" >> $GITHUB_OUTPUT
+          fi
+          
+          cat >> /tmp/analysis.md << 'EOF'
+          
+          ## Recommended Improvements
+          
+          Based on current performance, the agentic system recommends:
+          
+          EOF
+          
+          # Determine focus area
+          if [ "$FOCUS" = "auto" ]; then
+            if awk -v rate="$WIN_RATE" 'BEGIN{exit !(rate < 40)}'; then
+              FOCUS="food_seeking"
+              echo "### 1. Enhance Food Seeking (Auto-selected)" >> /tmp/analysis.md
+            elif awk -v rate="$WIN_RATE" 'BEGIN{exit !(rate < 50)}'; then
+              FOCUS="collision_avoidance"
+              echo "### 1. Improve Collision Avoidance (Auto-selected)" >> /tmp/analysis.md
+            else
+              FOCUS="aggression"
+              echo "### 1. Increase Strategic Aggression (Auto-selected)" >> /tmp/analysis.md
+            fi
+          fi
+          
+          echo "focus=$FOCUS" >> $GITHUB_OUTPUT
+          
+          # Add specific recommendations based on focus
+          case "$FOCUS" in
+            food_seeking)
+              cat >> /tmp/analysis.md << 'REOF'
+          - Lower health threshold (current: 70, suggest: 60-65)
+          - Increase food scoring multiplier by 10-15%
+          - Add distance-based food prioritization
+          REOF
+              ;;
+            collision_avoidance)
+              cat >> /tmp/analysis.md << 'REOF'
+          - Increase snake body penalties by 20%
+          - Add head-to-head collision prediction
+          - Enhance space awareness algorithms
+          REOF
+              ;;
+            positioning)
+              cat >> /tmp/analysis.md << 'REOF'
+          - Improve center control scoring
+          - Enhance tail-chasing logic
+          - Add board quadrant analysis
+          REOF
+              ;;
+            aggression)
+              cat >> /tmp/analysis.md << 'REOF'
+          - Increase shorter snake pursuit scoring
+          - Add head-to-head confrontation logic
+          - Enhance endgame aggression
+          REOF
+              ;;
+          esac
+          
+          cat >> /tmp/analysis.md << 'EOF'
+          
+          ## Next Steps
+          
+          The agentic workflow will:
+          1. Create improvement branch
+          2. Apply recommended changes
+          3. Run validation simulations
+          4. Create PR if improvements are validated
+          
+          ---
+          *Generated by Agentic Snake Improvement System*
+          EOF
+          
+          sed -i "s/\$WIN_RATE/$WIN_RATE/g" /tmp/analysis.md
+      
+      - name: Create improvement branch
+        id: branch
+        run: |
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          BRANCH="agentic/improve-${{ steps.analyze.outputs.focus }}-$TIMESTAMP"
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+          
+          git config user.name "Agentic Workflow"
+          git config user.email "agentic-workflow@github.com"
+          git checkout -b "$BRANCH"
+      
+      - name: Apply improvements
+        id: improve
+        run: |
+          FOCUS="${{ steps.analyze.outputs.focus }}"
+          
+          # Backup current move.rb
+          cp /home/runner/work/snakes/snakes/snakes/ruby/djdefi/app/move.rb /tmp/move.rb.backup
+          
+          echo "Applying improvements for focus area: $FOCUS"
+          
+          # Apply improvements based on focus area
+          case "$FOCUS" in
+            food_seeking)
+              # Lower health threshold
+              sed -i 's/@health_threshold = 70/@health_threshold = 65/' \
+                /home/runner/work/snakes/snakes/snakes/ruby/djdefi/app/move.rb
+              
+              # Increase food scoring
+              sed -i "s/@score_multiplier\['food'\] = 65/@score_multiplier['food'] = 75/" \
+                /home/runner/work/snakes/snakes/snakes/ruby/djdefi/app/move.rb
+              sed -i "s/@score_multiplier\['food'\] = 25/@score_multiplier['food'] = 30/" \
+                /home/runner/work/snakes/snakes/snakes/ruby/djdefi/app/move.rb
+              
+              echo "changes=Lowered health threshold to 65, increased food scoring by 15%" >> $GITHUB_OUTPUT
+              ;;
+            
+            collision_avoidance)
+              # Increase collision penalties
+              sed -i "s/@score_multiplier\['other_snake_body'\] = -60/@score_multiplier['other_snake_body'] = -72/" \
+                /home/runner/work/snakes/snakes/snakes/ruby/djdefi/app/move.rb
+              sed -i "s/@score_multiplier\['other_snake_body'\] = -150/@score_multiplier['other_snake_body'] = -180/" \
+                /home/runner/work/snakes/snakes/snakes/ruby/djdefi/app/move.rb
+              
+              echo "changes=Increased collision penalties by 20%" >> $GITHUB_OUTPUT
+              ;;
+            
+            positioning)
+              # Increase corner penalties
+              sed -i "s/@score_multiplier\['corner'\] = -5/@score_multiplier['corner'] = -7/" \
+                /home/runner/work/snakes/snakes/snakes/ruby/djdefi/app/move.rb
+              sed -i "s/@score_multiplier\['corner'\] = -8/@score_multiplier['corner'] = -10/" \
+                /home/runner/work/snakes/snakes/snakes/ruby/djdefi/app/move.rb
+              
+              echo "changes=Enhanced positioning with stronger corner penalties" >> $GITHUB_OUTPUT
+              ;;
+            
+            aggression)
+              # Increase aggression towards smaller snakes
+              sed -i "s/cell\[:score\] -= 10/cell[:score] -= 12/" \
+                /home/runner/work/snakes/snakes/snakes/ruby/djdefi/app/move.rb
+              
+              echo "changes=Increased aggression against smaller snakes" >> $GITHUB_OUTPUT
+              ;;
+          esac
+          
+          # Check if changes were made
+          if diff -q /tmp/move.rb.backup /home/runner/work/snakes/snakes/snakes/ruby/djdefi/app/move.rb > /dev/null; then
+            echo "applied=false" >> $GITHUB_OUTPUT
+          else
+            echo "applied=true" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Run validation simulations
+        if: steps.improve.outputs.applied == 'true'
+        id: validate
+        run: |
+          cd /home/runner/work/snakes/snakes/snakes/ruby/djdefi
+          bundle exec rackup --host 0.0.0.0 -p 4567 &
+          RUBY_PID=$!
+          
+          cd /home/runner/work/snakes/snakes/snakes/go/pathy-snake
+          go run . --host 0.0.0.0 --port 8081 &
+          GO_PID=$!
+          
+          sleep 10
+          
+          # Run validation simulations
+          RUNS=20
+          echo "Running $RUNS validation simulations..."
+          
+          RESULTS_FILE="/tmp/validation_results.txt"
+          > $RESULTS_FILE
+          
+          for i in $(seq 1 $RUNS); do
+            echo "Validation game $i..."
+            /root/go/bin/battlesnake play -W 11 -H 11 \
+              --name ruby-danger-noodle --url http://localhost:4567/ \
+              --name pathy --url http://localhost:8081/ \
+              -g wrapped --map hz_islands_bridges 2>&1 | tee -a $RESULTS_FILE
+          done
+          
+          # Analyze validation results
+          RUBY_WINS=$(grep -c "ruby-danger-noodle is the winner" $RESULTS_FILE || echo "0")
+          PATHY_WINS=$(grep -c "pathy is the winner" $RESULTS_FILE || echo "0")
+          
+          echo "ruby_wins=$RUBY_WINS" >> $GITHUB_OUTPUT
+          echo "pathy_wins=$PATHY_WINS" >> $GITHUB_OUTPUT
+          
+          if [ "$RUNS" -gt 0 ]; then
+            NEW_WIN_RATE=$(awk -v wins="$RUBY_WINS" -v total="$RUNS" 'BEGIN{printf "%.1f", (wins/total)*100}')
+          else
+            NEW_WIN_RATE="0.0"
+          fi
+          echo "win_rate=$NEW_WIN_RATE" >> $GITHUB_OUTPUT
+          
+          # Compare with baseline
+          BASELINE_RATE="${{ steps.baseline.outputs.win_rate }}"
+          if awk -v new="$NEW_WIN_RATE" -v old="$BASELINE_RATE" 'BEGIN{exit !(new > old)}'; then
+            echo "improved=true" >> $GITHUB_OUTPUT
+            DELTA=$(awk -v new="$NEW_WIN_RATE" -v old="$BASELINE_RATE" 'BEGIN{printf "%.1f", new - old}')
+            echo "delta=$DELTA" >> $GITHUB_OUTPUT
+          else
+            echo "improved=false" >> $GITHUB_OUTPUT
+            echo "delta=0" >> $GITHUB_OUTPUT
+          fi
+          
+          kill $RUBY_PID $GO_PID 2>/dev/null || true
+      
+      - name: Commit improvements
+        if: steps.improve.outputs.applied == 'true' && steps.validate.outputs.improved == 'true'
+        run: |
+          git add snakes/ruby/djdefi/app/move.rb
+          git commit -m "Agentic improvement: ${{ steps.analyze.outputs.focus }}
+          
+          Focus: ${{ steps.analyze.outputs.focus }}
+          Changes: ${{ steps.improve.outputs.changes }}
+          
+          Performance:
+          - Baseline win rate: ${{ steps.baseline.outputs.win_rate }}%
+          - New win rate: ${{ steps.validate.outputs.win_rate }}%
+          - Improvement: +${{ steps.validate.outputs.delta }}%
+          
+          Generated by Agentic Snake Improvement System"
+      
+      - name: Push branch and create PR
+        if: steps.improve.outputs.applied == 'true' && steps.validate.outputs.improved == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git push origin "${{ steps.branch.outputs.branch }}"
+          
+          # Create PR
+          gh pr create \
+            --title "Agentic Improvement: ${{ steps.analyze.outputs.focus }}" \
+            --body "## Agentic Snake Improvement
+
+          **Focus Area**: ${{ steps.analyze.outputs.focus }}
+          **Changes**: ${{ steps.improve.outputs.changes }}
+
+          ### Performance Results
+
+          | Metric | Baseline | Improved | Delta |
+          |--------|----------|----------|-------|
+          | Win Rate | ${{ steps.baseline.outputs.win_rate }}% | ${{ steps.validate.outputs.win_rate }}% | +${{ steps.validate.outputs.delta }}% |
+          | Wins | ${{ steps.baseline.outputs.ruby_wins }}/30 | ${{ steps.validate.outputs.ruby_wins }}/20 | - |
+
+          ### Analysis
+
+          $(cat /tmp/analysis.md)
+
+          ---
+          *This PR was automatically generated by the Agentic Snake Improvement System*" \
+            --label "agentic-improvement" \
+            --label "snake-enhancement"
+      
+      - name: Post results to tracking issue
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Find or create tracking issue
+          ISSUE=$(gh issue list --label "agentic-tracking" --state open --json number --jq '.[0].number')
+          
+          if [ -z "$ISSUE" ]; then
+            ISSUE=$(gh issue create \
+              --title "Agentic Snake Improvement Tracking" \
+              --label "agentic-tracking" \
+              --body "This issue tracks all agentic improvement runs." | grep -oP '\d+$')
+          fi
+          
+          # Prepare status
+          if [ "${{ steps.validate.outputs.improved }}" = "true" ]; then
+            STATUS="✅ Improvement validated and PR created"
+            PR_LINK="PR: #$(gh pr list --head ${{ steps.branch.outputs.branch }} --json number --jq '.[0].number')"
+          elif [ "${{ steps.improve.outputs.applied }}" = "true" ]; then
+            STATUS="❌ Changes applied but did not improve performance"
+            PR_LINK="No PR created"
+          else
+            STATUS="ℹ️ No changes applied"
+            PR_LINK="Analysis only"
+          fi
+          
+          # Post comment
+          gh issue comment "$ISSUE" --body "## Run $(date '+%Y-%m-%d %H:%M:%S')
+
+          **Status**: $STATUS
+          **Focus**: ${{ steps.analyze.outputs.focus }}
+          **Baseline Win Rate**: ${{ steps.baseline.outputs.win_rate }}%
+          **New Win Rate**: ${{ steps.validate.outputs.win_rate }}%
+          
+          $PR_LINK
+
+          <details>
+          <summary>Full Analysis</summary>
+
+          $(cat /tmp/analysis.md)
+
+          </details>"
+      
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: agentic-improvement-results
+          path: |
+            /tmp/baseline_results.txt
+            /tmp/validation_results.txt
+            /tmp/analysis.md
+          retention-days: 30

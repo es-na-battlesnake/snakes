@@ -1,0 +1,153 @@
+name: Experiment with Strategy Variations
+description: Test different strategic approaches and identify the most effective tactics
+
+on:
+  workflow_dispatch:
+    inputs:
+      strategy_focus:
+        description: 'Strategy area to experiment with'
+        required: false
+        default: 'food-seeking'
+        type: choice
+        options:
+          - food-seeking
+          - collision-avoidance
+          - space-control
+          - aggression
+          - all
+
+tasks:
+  - name: Define strategy variants
+    description: Create multiple strategic variations to test
+    run: |
+      Based on focus area "{{ inputs.strategy_focus }}", define 3-5 strategy variants:
+      
+      For food-seeking:
+        - Conservative: health_threshold=90, low food multipliers
+        - Moderate: health_threshold=70, balanced multipliers
+        - Aggressive: health_threshold=50, high food multipliers with dynamic boost
+        - Adaptive: Dynamic threshold based on game state
+      
+      For collision-avoidance:
+        - Cautious: Very high penalty multipliers, avoid all conflicts
+        - Balanced: Standard penalties with head-to-head awareness
+        - Opportunistic: Lower penalties, willing to take calculated risks
+      
+      For space-control:
+        - Territorial: Strong flood fill, maximize controlled area
+        - Efficient: Tail-chasing focus, minimal wasted space
+        - Flexible: Adaptive based on opponent positions
+      
+      For aggression:
+        - Passive: Avoid opponent, focus on survival
+        - Defensive: Respond to threats but don't initiate
+        - Aggressive: Actively pursue smaller snakes
+        - Dominant: Control center, force opponents to edges
+      
+      Create separate code variants for each strategy
+      Save to experiments/strategy_variants_{timestamp}/
+
+  - name: Run controlled experiments
+    description: Test each strategy variant with consistent conditions
+    run: |
+      For each strategy variant:
+        - Apply the code modifications to snakes/ruby/djdefi/app/move.rb
+        - Run 50 simulation games
+        - Record detailed metrics:
+          - Win/loss/draw counts
+          - Average game length
+          - Death causes (starvation/collision/space)
+          - Average health at death
+          - Territory controlled
+        - Save results to experiments/results_{variant_name}.json
+      
+      Ensure same opponent snake and map for all tests
+      Use seed values for reproducibility where possible
+
+  - name: Analyze results
+    description: Compare strategy variants to find the most effective approach
+    run: |
+      Load all variant results
+      Calculate comparative metrics:
+        - Win rate ranking
+        - Survival time comparison
+        - Death cause distribution
+        - Statistical significance of differences
+      
+      Identify the best-performing variant
+      Analyze why it performed better:
+        - Which tactical choices were most impactful?
+        - Were there trade-offs?
+        - How did it compare to current production version?
+      
+      Generate comparison charts and analysis
+      Save to experiments/analysis_{timestamp}.md
+
+  - name: Extract best practices
+    description: Identify the most effective tactical elements across variants
+    run: |
+      From the analysis, extract key learnings:
+        - Optimal health_threshold value
+        - Best-performing score multipliers
+        - Most effective penalty levels
+        - Successful strategic patterns
+      
+      Create a "best of breed" strategy that combines:
+        - Top-performing food seeking tactics
+        - Most effective collision avoidance
+        - Optimal space control approach
+        - Right balance of aggression
+      
+      Document the rationale for each choice
+      Save as experiments/best_practices_{timestamp}.md
+
+  - name: Implement winning strategy
+    description: Apply the most effective strategic approach to production code
+    run: |
+      If the best-performing variant shows >10% win rate improvement:
+        - Apply its modifications to snakes/ruby/djdefi/app/move.rb
+        - Add comments referencing the experiment that validated the change
+        - Update docs/RUBY_SNAKE_IMPROVEMENTS.md with findings
+        
+        Run validation simulations (30 games)
+        
+        If validation confirms improvement:
+          - Commit with message "Optimize strategy based on experimental results"
+          - Include experiment metrics in commit description
+        Else:
+          - Document unexpected results
+          - Recommend further investigation
+      Else:
+        - Document that current strategy is already near-optimal
+        - Save findings for future reference
+
+  - name: Generate experiment report
+    description: Create comprehensive documentation of the experimentation process
+    run: |
+      Create report including:
+        - All strategy variants tested
+        - Full results for each variant
+        - Statistical analysis
+        - Best practices identified
+        - Implementation recommendations
+        - Future experiment suggestions
+      
+      Save to experiments/experiment_report_{timestamp}.md
+      
+      Post summary to tracking issue:
+        - Winning strategy and win rate
+        - Key insights learned
+        - Changes implemented (if any)
+
+outputs:
+  - name: winning_strategy
+    description: Name of the best-performing strategy variant
+  
+  - name: win_rate_improvement
+    description: Percentage improvement over baseline
+  
+  - name: code_updated
+    description: Whether production code was updated with findings
+  
+  - name: experiment_report
+    description: Full documentation of experimentation process

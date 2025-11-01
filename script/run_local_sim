@@ -1,0 +1,196 @@
+#!/bin/bash
+#
+# Local Simulation Runner (No Docker Required)
+# 
+# This script runs simulations directly on your machine without Docker.
+# Requires: Ruby, Go, and battlesnake CLI installed locally.
+#
+# Usage: ./run_local_sim [runs] [mode]
+#   runs: Number of simulation games (default: 5)
+#   mode: Game mode - wrapped, royale, etc. (default: wrapped)
+#
+
+set -e
+
+RUNS=${1:-5}
+MODE=${2:-wrapped}
+MAP="hz_islands_bridges"
+WIDTH=11
+HEIGHT=11
+
+echo "╔════════════════════════════════════════╗"
+echo "║  Local Simulation Runner (No Docker)  ║"
+echo "╚════════════════════════════════════════╝"
+echo ""
+echo "Configuration:"
+echo "  Runs: $RUNS"
+echo "  Mode: $MODE"
+echo "  Map: $MAP"
+echo "  Size: ${WIDTH}x${HEIGHT}"
+echo ""
+
+# Check dependencies
+echo "Checking dependencies..."
+
+if ! command -v ruby &> /dev/null; then
+    echo "❌ Ruby not found. Install with: brew install ruby (macOS) or apt-get install ruby (Linux)"
+    exit 1
+fi
+echo "✓ Ruby: $(ruby --version | head -1)"
+
+if ! command -v go &> /dev/null; then
+    echo "❌ Go not found. Install from: https://golang.org/dl/"
+    exit 1
+fi
+echo "✓ Go: $(go version)"
+
+if ! command -v battlesnake &> /dev/null; then
+    echo "⚠️  battlesnake CLI not found. Installing..."
+    go install github.com/BattlesnakeOfficial/rules/cli/battlesnake@latest
+    export PATH=$PATH:$(go env GOPATH)/bin
+    
+    if ! command -v battlesnake &> /dev/null; then
+        echo "❌ Failed to install battlesnake CLI"
+        exit 1
+    fi
+fi
+echo "✓ battlesnake CLI installed"
+
+if ! command -v bundler &> /dev/null; then
+    echo "⚠️  bundler not found. Installing..."
+    gem install bundler
+fi
+
+echo ""
+echo "Installing dependencies..."
+
+# Install Ruby dependencies
+cd snakes/ruby/djdefi
+if [ ! -d ".bundle" ]; then
+    echo "  Installing Ruby gems..."
+    bundle install --quiet
+fi
+cd ../../..
+
+# Build Go snake
+cd snakes/go/pathy-snake
+if [ ! -f "pathy-snake" ]; then
+    echo "  Building Go snake..."
+    go build -o pathy-snake .
+fi
+cd ../../..
+
+echo "✓ Dependencies ready"
+echo ""
+
+# Start snakes
+echo "Starting snakes..."
+
+# Ruby snake on port 4567
+cd snakes/ruby/djdefi
+bundle exec rackup --host 0.0.0.0 -p 4567 > /tmp/ruby-snake.log 2>&1 &
+RUBY_PID=$!
+cd ../../..
+echo "  ✓ Ruby snake started (PID: $RUBY_PID, port: 4567)"
+
+# Go snake on port 8081  
+cd snakes/go/pathy-snake
+./pathy-snake > /tmp/go-snake.log 2>&1 &
+GO_PID=$!
+cd ../../..
+echo "  ✓ Go snake started (PID: $GO_PID, port: 8081)"
+
+# Cleanup function
+cleanup() {
+    echo ""
+    echo "Stopping snakes..."
+    kill $RUBY_PID 2>/dev/null || true
+    kill $GO_PID 2>/dev/null || true
+    echo "✓ Cleanup complete"
+}
+trap cleanup EXIT
+
+# Wait for snakes to start
+echo ""
+echo "Waiting for snakes to initialize..."
+sleep 3
+
+# Health check
+echo "Health check..."
+if ! curl -s http://localhost:4567/ | grep -q "apiversion"; then
+    echo "❌ Ruby snake not responding"
+    echo "   Check logs: tail /tmp/ruby-snake.log"
+    exit 1
+fi
+echo "  ✓ Ruby snake healthy"
+
+if ! curl -s http://localhost:8081/ | grep -q "apiversion"; then
+    echo "❌ Go snake not responding"
+    echo "   Check logs: tail /tmp/go-snake.log"
+    exit 1
+fi
+echo "  ✓ Go snake healthy"
+
+echo ""
+echo "════════════════════════════════════════"
+echo "Running $RUNS simulation(s)..."
+echo "════════════════════════════════════════"
+echo ""
+
+# Create results directory
+mkdir -p simulation_results
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+RESULT_FILE="simulation_results/local_sim_${TIMESTAMP}.log"
+
+# Run simulations
+for i in $(seq 1 $RUNS); do
+    echo "Run [$i/$RUNS]"
+    
+    battlesnake play \
+        -W $WIDTH \
+        -H $HEIGHT \
+        --name ruby-danger-noodle \
+        --url http://localhost:4567/ \
+        --name pathy \
+        --url http://localhost:8081/ \
+        -g $MODE \
+        -m $MAP \
+        --output /tmp/sim_output.json 2>&1 | grep -E "(winner|draw)" || true
+    
+    # Extract result
+    if [ -f /tmp/sim_output.json ]; then
+        cat /tmp/sim_output.json | jq -c 'if .isDraw then {winner: "draw"} else {winner: .winnerName} end' | tee -a $RESULT_FILE
+    fi
+done
+
+echo ""
+echo "════════════════════════════════════════"
+echo "Analysis"
+echo "════════════════════════════════════════"
+echo ""
+
+# Analyze results
+RUBY_WINS=$(grep -c '"winner":"ruby-danger-noodle"' $RESULT_FILE 2>/dev/null || echo "0")
+PATHY_WINS=$(grep -c '"winner":"pathy"' $RESULT_FILE 2>/dev/null || echo "0")
+DRAWS=$(grep -c '"winner":"draw"' $RESULT_FILE 2>/dev/null || echo "0")
+
+echo "Results:"
+echo "  Ruby wins:  $RUBY_WINS / $RUNS"
+echo "  Pathy wins: $PATHY_WINS / $RUNS"  
+echo "  Draws:      $DRAWS / $RUNS"
+echo ""
+
+if [ "$RUBY_WINS" -gt "$PATHY_WINS" ] 2>/dev/null; then
+    echo "🏆 Ruby snake is winning!"
+elif [ "$PATHY_WINS" -gt "$RUBY_WINS" ] 2>/dev/null; then
+    echo "⚠️  Pathy snake is winning"
+else
+    echo "🤝 Tied performance"
+fi
+
+echo ""
+echo "Results saved to: $RESULT_FILE"
+echo "Logs available at:"
+echo "  Ruby: /tmp/ruby-snake.log"
+echo "  Go:   /tmp/go-snake.log"
+echo ""

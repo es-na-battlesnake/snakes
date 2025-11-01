@@ -1,0 +1,115 @@
+name: Debug Simulation Failures
+description: Analyze failed simulation games to identify and fix bugs in the Ruby snake
+
+on:
+  issues:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number with simulation failure details'
+        required: true
+
+tasks:
+  - name: Extract failure information
+    description: Parse the simulation failure details from the issue
+    run: |
+      Get issue #{{ inputs.issue_number }} content
+      Extract simulation logs and error messages
+      Identify the failure type:
+        - JSON parsing errors
+        - Exception/crash during move calculation
+        - Timeout errors
+        - Invalid move responses
+      
+      Parse game state when failure occurred:
+        - Snake positions
+        - Food locations
+        - Health levels
+        - Board configuration
+      
+      Save to debug_data/failure_{{ inputs.issue_number }}.json
+
+  - name: Reproduce failure locally
+    description: Set up test case to reproduce the exact failure scenario
+    run: |
+      Create a test case in snakes/ruby/djdefi/spec/ that:
+        - Recreates the exact game state from the failure
+        - Calls the move logic with that state
+        - Captures any exceptions or errors
+      
+      Run the test to confirm failure is reproduced
+      Save test output to debug_data/reproduction_{{ inputs.issue_number }}.log
+
+  - name: Analyze root cause
+    description: Investigate the code to find the source of the failure
+    run: |
+      Examine the stack trace and error message
+      Identify the problematic code section in snakes/ruby/djdefi/app/
+      
+      Common failure patterns to check:
+        - Division by zero in scoring calculations
+        - Nil reference when accessing game state
+        - Invalid array indexing
+        - Missing error handling in endpoints
+        - Malformed JSON responses
+      
+      Document root cause in debug_data/root_cause_{{ inputs.issue_number }}.md
+
+  - name: Implement fix
+    description: Apply code changes to resolve the identified bug
+    run: |
+      Based on root cause analysis, modify the relevant file(s):
+        - Add error handling (begin/rescue blocks)
+        - Add nil checks before accessing objects
+        - Add bounds checking for array access
+        - Ensure JSON responses are always valid
+        - Add defensive programming patterns
+      
+      Update snakes/ruby/djdefi/app/app.rb if it's an endpoint error
+      Update snakes/ruby/djdefi/app/move.rb if it's a logic error
+      
+      Add comments explaining the fix
+
+  - name: Verify fix
+    description: Confirm the bug is resolved and no regressions introduced
+    run: |
+      Run the reproduction test case - should now pass
+      Run full test suite: script/test djdefi
+      Ensure all existing tests still pass
+      
+      Run 10 simulation games to verify fix in real scenarios
+      Check logs for any remaining errors
+      
+      If all tests pass and simulations complete successfully:
+        - Commit fix with message "Fix: [description of bug]"
+        - Reference issue #{{ inputs.issue_number }} in commit
+      Else:
+        - Document remaining issues
+        - Iterate on fix
+
+  - name: Update issue
+    description: Report back on the debugging and fix process
+    run: |
+      Comment on issue #{{ inputs.issue_number }} with:
+        - Root cause explanation
+        - Code changes made
+        - Test results
+        - Simulation verification results
+      
+      If fix is successful:
+        - Add label "fixed"
+        - Close issue
+      Else:
+        - Add label "needs-investigation"
+        - Document next steps
+
+outputs:
+  - name: bug_fixed
+    description: Whether the bug was successfully resolved
+  
+  - name: root_cause
+    description: Description of what caused the failure
+  
+  - name: files_modified
+    description: List of files changed to fix the bug

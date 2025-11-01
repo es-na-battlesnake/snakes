@@ -10,9 +10,9 @@ def move(board)
   # Record the start time of the turn
   start_time = Time.now
 
-  # Health find threshold variable clamped to 0-100
-  @health_threshold = 99
-  @health_threshold.clamp(0, 100)
+  # Health threshold variable - seek food more actively
+  # Lower threshold means snake seeks food earlier
+  @health_threshold = 70
 
   #puts board
 
@@ -325,63 +325,63 @@ def move(board)
       'wall' => 0,
       'hazard' => -550,
       'hazard_adjacent' => 0,
-      'food' => 55,
+      'food' => 65,  # Increased from 55 - more attractive
       'food_hazard' => 0,
-      'food_adjacent' => 20,
+      'food_adjacent' => 25,  # Increased from 20 - seek food vicinity
       'shared_neighbor' => 0,
-      'shared_shorter_snake' => 45,
-      'shared_longer_snake' => -80,
-      'shared_same_length_snake' => -75,
+      'shared_shorter_snake' => 50,  # Increased from 45 - more aggressive
+      'shared_longer_snake' => -100,  # Increased penalty from -80
+      'shared_same_length_snake' => -85,  # Increased penalty from -75
       'empty' => 55,
       'snake_head' => -2,
       'snake_body' => -2,
-      'snake_body_neighbor' => -20,
-      'corner' => -1,
+      'snake_body_neighbor' => -25,  # Increased penalty from -20
+      'corner' => -5,  # Increased penalty from -1 - avoid corners more
       'other_snake_head' => -2,
-      'other_snake_body' => -30,
-      'other_snake_head_neighbor' => -0,
+      'other_snake_body' => -60,  # Increased penalty from -30 - more conservative
+      'other_snake_head_neighbor' => -10,  # Increased penalty from 0
       'body' => -100,
       'head' => -4,
       'tail' => 2,
-      'my_tail' => 6,
-      'my_tail_neighbor' => 20,
+      'my_tail' => 8,  # Increased from 6 - safer tail chase
+      'my_tail_neighbor' => 25,  # Increased from 20 - more tail chasing
       'edge' => 0,
-      'edge_adjacent' => 0,
+      'edge_adjacent' => -2,  # Small penalty to avoid getting trapped at edges
       'head_neighbor' => 0,
       'three_head_neighbor' => -2,
-      'shorter_snake_heads' => 4
+      'shorter_snake_heads' => 5  # Increased from 4 - slightly more aggressive
     }
   else
     # Set score multiplier for each type of cell
     @score_multiplier = {
-      'wall' => -5,
-      'hazard' => -15,
-      'hazard_adjacent' => -7,
-      'food' => 15,
+      'wall' => -10,  # Increased penalty from -5
+      'hazard' => -20,  # Increased penalty from -15
+      'hazard_adjacent' => -10,  # Increased penalty from -7
+      'food' => 25,  # Increased from 15 - more attractive
       'food_hazard' => 2,
-      'food_adjacent' => 2,
+      'food_adjacent' => 5,  # Increased from 2
       'shared_neighbor' => 0,
-      'shared_shorter_snake' => 5,
-      'shared_longer_snake' => -50,
-      'shared_same_length_snake' => -5,
-      'empty' => 8,
+      'shared_shorter_snake' => 10,  # Increased from 5 - more aggressive
+      'shared_longer_snake' => -70,  # Increased penalty from -50
+      'shared_same_length_snake' => -10,  # Increased penalty from -5
+      'empty' => 10,  # Increased from 8
       'snake_head' => -2,
       'snake_body' => -2,
-      'snake_body_neighbor' => -10,
-      'corner' => -1,
+      'snake_body_neighbor' => -15,  # Increased penalty from -10
+      'corner' => -8,  # Increased penalty from -1 - avoid corners
       'other_snake_head' => -2,
-      'other_snake_body' => -130,
-      'other_snake_head_neighbor' => -0,
-      'body' => -5,
+      'other_snake_body' => -150,  # Increased penalty from -130
+      'other_snake_head_neighbor' => -5,  # Increased penalty from 0
+      'body' => -10,  # Increased penalty from -5
       'head' => -4,
       'tail' => 2,
-      'my_tail' => 76,
-      'my_tail_neighbor' => 12,
-      'edge' => -4,
-      'edge_adjacent' => -1,
+      'my_tail' => 80,  # Increased from 76 - safer tail chase
+      'my_tail_neighbor' => 15,  # Increased from 12
+      'edge' => -6,  # Increased penalty from -4
+      'edge_adjacent' => -3,  # Increased penalty from -1
       'head_neighbor' => 0,
       'three_head_neighbor' => -2,
-      'shorter_snake_heads' => 0
+      'shorter_snake_heads' => 2  # Increased from 0 - slightly more aggressive
     }
   end
 
@@ -458,6 +458,20 @@ def move(board)
     @turn_score_array << cell
   end
 
+  # Apply health-based food scoring boost
+  # When health is low, dramatically increase food attractiveness
+  # Health multiplier ranges from 0 to 7 as health goes from threshold to 0
+  if @health < @health_threshold
+    health_multiplier = ((@health_threshold - @health) / 10.0).clamp(0, 7)  # Clamp 0-7
+    @turn_score_array.each do |cell|
+      if cell[:types].include?('food')
+        cell[:score] += (health_multiplier * 10).to_i  # Add up to 70 points when critical
+      elsif cell[:types].include?('food_adjacent')
+        cell[:score] += (health_multiplier * 5).to_i  # Add up to 35 points for adjacent
+      end
+    end
+  end
+
   # puts "Turn score array is: #{@turn_score_array}"
 
 
@@ -465,12 +479,15 @@ def move(board)
   @highest_score_direction = @turn_score_array.max_by { |cell| cell[:score] }[:direction]
   puts "Highest score cell direction is: #{@highest_score_direction}"
 
-  # If our @health is above the @health_threshold, set the multiplier to 1
-  # If our @health is below the @health_threshold, set the multiplier to 2
+  # If our @health is above the @health_threshold, set the multiplier to 0
+  # If our @health is below the @health_threshold, increase the multiplier based on how low health is
+  # Multiplier ranges from 15 to 45 as health decreases
   if @health > @health_threshold
     @top_direction_score_multiplier = 0
   else
-    @top_direction_score_multiplier = 15
+    # Scale multiplier based on health: lower health = higher multiplier (clamped to 15-45)
+    health_factor = ((@health_threshold - @health) / 3.0).clamp(0, 30)
+    @top_direction_score_multiplier = 15 + health_factor.to_i
   end
 
   # For every cell in the turn_score_array, add types 'top_direction' if the cell's direction is the same as @highest_score_direction and increase the score by @top_direction_score_multiplier

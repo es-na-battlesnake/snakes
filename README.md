@@ -25,7 +25,42 @@
 
 Beyond language and snake-specific testing, we also run simulated games to get quick feedback on how snakes are performing.
 
-[Testing isntructions here]
+### Running Simulations
+
+**Option 1: Local Development (Simplest - No Docker)**
+```bash
+# Direct process execution - fastest iteration
+./script/run_local_sim 5 wrapped
+```
+Requires: Ruby, Go, battlesnake CLI installed locally. See [Simulation Environment Guide](docs/SIMULATION_ENVIRONMENT.md).
+
+**Option 2: Docker-based (Matches CI)**
+```bash
+# Full Docker setup - matches production
+./script/continuous_improve --runs 20
+
+# Quick Docker test
+./script/quick_sim 10 wrapped
+```
+Requires: Docker installed and running.
+
+**Option 3: GitHub Actions (Automated)**
+- Workflow runs every 6 hours automatically
+- Manual trigger available in Actions tab
+- Results posted to tracking issue
+
+### Continuous Improvement
+
+The repository includes automated tools for continuous snake improvement:
+
+- **Automated Workflow**: Runs simulations every 6 hours via GitHub Actions
+- **Local Testing**: Multiple options for quick iteration (see above)
+- **Performance Tracking**: Results stored and tracked via GitHub Issues
+
+📚 **Documentation**:
+- [Continuous Improvement Guide](docs/CONTINUOUS_IMPROVEMENT.md)
+- [Simulation Environment Setup](docs/SIMULATION_ENVIRONMENT.md)
+- [Ruby Snake Improvements](docs/RUBY_SNAKE_IMPROVEMENTS.md)
 
 ## Infrastructure
 

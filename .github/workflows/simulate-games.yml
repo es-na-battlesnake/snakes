@@ -40,6 +40,11 @@ jobs:
         ruby-version: '3.2'
         bundler-cache: true
     
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y bc jq
+    
     - name: Install battlesnake CLI
       run: go install github.com/BattlesnakeOfficial/rules/cli/battlesnake@latest
     

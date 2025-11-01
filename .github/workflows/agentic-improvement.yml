@@ -49,6 +49,10 @@ jobs:
       
       - name: Install dependencies
         run: |
+          # Install system dependencies
+          sudo apt-get update
+          sudo apt-get install -y bc jq
+          
           cd /home/runner/work/snakes/snakes/snakes/ruby/djdefi
           gem install bundler
           bundle install

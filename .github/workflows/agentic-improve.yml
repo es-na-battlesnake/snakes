@@ -67,9 +67,12 @@ jobs:
           RESULTS_FILE="/tmp/baseline_results.txt"
           > $RESULTS_FILE
           
+          GOPATH=$(go env GOPATH)
+          BATTLESNAKE_BIN="${GOPATH}/bin/battlesnake"
+          
           for i in $(seq 1 $RUNS); do
             echo "Game $i..."
-            /root/go/bin/battlesnake play -W 11 -H 11 \
+            "$BATTLESNAKE_BIN" play -W 11 -H 11 \
               --name ruby-danger-noodle --url http://localhost:4567/ \
               --name pathy --url http://localhost:8081/ \
               -g wrapped --map hz_islands_bridges 2>&1 | tee -a $RESULTS_FILE
@@ -293,9 +296,12 @@ jobs:
           RESULTS_FILE="/tmp/validation_results.txt"
           > $RESULTS_FILE
           
+          GOPATH=$(go env GOPATH)
+          BATTLESNAKE_BIN="${GOPATH}/bin/battlesnake"
+          
           for i in $(seq 1 $RUNS); do
             echo "Validation game $i..."
-            /root/go/bin/battlesnake play -W 11 -H 11 \
+            "$BATTLESNAKE_BIN" play -W 11 -H 11 \
               --name ruby-danger-noodle --url http://localhost:4567/ \
               --name pathy --url http://localhost:8081/ \
               -g wrapped --map hz_islands_bridges 2>&1 | tee -a $RESULTS_FILE

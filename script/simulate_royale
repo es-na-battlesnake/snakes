@@ -80,8 +80,12 @@ if [[ $verbose ]]; then
     verbose_flag="-v"
 fi
 
-# If /root/go/bin/battlesnake does not exist, then install it
-if [ ! -f /root/go/bin/battlesnake ]; then
+# Get the GOPATH and set battlesnake binary path
+GOPATH=$(go env GOPATH)
+BATTLESNAKE_BIN="${GOPATH}/bin/battlesnake"
+
+# If battlesnake does not exist, then install it
+if [ ! -f "$BATTLESNAKE_BIN" ]; then
     export PATH=$PATH:/usr/local/go/bin
     # Install and redirect all output to /dev/null unless verbose mode is enabled
     if [[ $verbose ]]; then
@@ -127,7 +131,7 @@ echo "\`\`\`"
 # Run command $runs times and record "is the winner" line of output to a file.
 for i in $(seq 1 $runs); do
     echo -n "Run [$i/$runs] "
-    /root/go/bin/battlesnake play -W $width -H $height \
+    "$BATTLESNAKE_BIN" play -W $width -H $height \
     --name pathy --url http://code-snek:8081/ \
     --name ruby-danger-noodle --url http://code-snek:4567/ \
     -g $mode \

@@ -129,9 +129,9 @@ jobs:
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         
         # Calculate statistics
-        RUBY_WINS=$(grep -c '"winner":"ruby-danger-noodle"' simulate_royale.log || echo "0")
-        PATHY_WINS=$(grep -c '"winner":"pathy"' simulate_royale.log || echo "0")
-        DRAWS=$(grep -c '"winner":"draw"' simulate_royale.log || echo "0")
+        RUBY_WINS=$(grep -c '"winner":"ruby-danger-noodle"' simulate_royale.log 2>/dev/null) || RUBY_WINS=0
+        PATHY_WINS=$(grep -c '"winner":"pathy"' simulate_royale.log 2>/dev/null) || PATHY_WINS=0
+        DRAWS=$(grep -c '"winner":"draw"' simulate_royale.log 2>/dev/null) || DRAWS=0
         
         echo "Ruby (ruby-danger-noodle): $RUBY_WINS wins"
         echo "Pathy (Go snake):          $PATHY_WINS wins"
@@ -164,9 +164,9 @@ jobs:
       id: create-summary
       run: |
         # Calculate statistics
-        RUBY_WINS=$(grep -c '"winner":"ruby-danger-noodle"' simulate_royale.log || echo "0")
-        PATHY_WINS=$(grep -c '"winner":"pathy"' simulate_royale.log || echo "0")
-        DRAWS=$(grep -c '"winner":"draw"' simulate_royale.log || echo "0")
+        RUBY_WINS=$(grep -c '"winner":"ruby-danger-noodle"' simulate_royale.log 2>/dev/null) || RUBY_WINS=0
+        PATHY_WINS=$(grep -c '"winner":"pathy"' simulate_royale.log 2>/dev/null) || PATHY_WINS=0
+        DRAWS=$(grep -c '"winner":"draw"' simulate_royale.log 2>/dev/null) || DRAWS=0
         WIN_RATE=$(echo "scale=1; ($RUBY_WINS * 100) / 10" | bc)
         
         # Store for later use

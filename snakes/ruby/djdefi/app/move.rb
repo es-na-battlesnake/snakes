@@ -369,6 +369,13 @@ def move(board)
 
   # Cell base score
   @cell_base_score = 1000
+  
+  # Flood fill safety constants
+  @space_points_per_cell = 10
+  @max_space_bonus = 500
+  @safe_space_buffer = 3
+  @min_absolute_safe_space = 8
+  @space_improvement_threshold = 1.5
 
   # If game mode is wrapped, use the following score multiplier array
   if @game_mode == 'wrapped'
@@ -756,22 +763,22 @@ def move(board)
       move_space_scores[turn[:direction]] = accessible_cells
       
       # Add space bonus to the turn score
-      # Give significant bonus for more space (10 points per accessible cell, capped)
-      space_bonus = [accessible_cells * 10, 500].min
+      # Give significant bonus for more space
+      space_bonus = [accessible_cells * @space_points_per_cell, @max_space_bonus].min
       turn[:score] += space_bonus
       
-      puts "Direction #{turn[:direction]}: #{accessible_cells} cells accessible, bonus: #{space_bonus}"
+      # Uncomment for debugging: puts "Direction #{turn[:direction]}: #{accessible_cells} cells accessible, bonus: #{space_bonus}"
     end
     
     # If our chosen move leads to very limited space compared to alternatives, reconsider
     chosen_move_space = move_space_scores[@move_direction] || 0
-    min_safe_space = [@length + 3, 8].max  # Need at least snake length + buffer
+    min_safe_space = [@length + @safe_space_buffer, @min_absolute_safe_space].max  # Need at least snake length + buffer
     
     # Find the move with the most space
     best_space_move = move_space_scores.max_by { |dir, space| space }
     
-    if chosen_move_space < min_safe_space && best_space_move && best_space_move[1] > chosen_move_space * 1.5
-      puts "WARNING: Chosen direction #{@move_direction} has only #{chosen_move_space} cells. Switching to #{best_space_move[0]} with #{best_space_move[1]} cells"
+    if chosen_move_space < min_safe_space && best_space_move && best_space_move[1] > chosen_move_space * @space_improvement_threshold
+      # Uncomment for debugging: puts "WARNING: Chosen direction #{@move_direction} has only #{chosen_move_space} cells. Switching to #{best_space_move[0]} with #{best_space_move[1]} cells"
       @move_direction = best_space_move[0]
     end
     

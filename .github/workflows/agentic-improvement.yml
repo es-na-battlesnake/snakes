@@ -345,7 +345,6 @@ jobs:
         if: steps.analyze.outputs.needs_improvement == 'true'
         uses: actions/github-script@v7
         env:
-          ANALYSIS: ${{ steps.analyze.outputs }}
           BASELINE_RESULTS: ${{ steps.baseline.outputs.results }}
           WIN_RATE: ${{ steps.baseline.outputs.win_rate }}
           RUBY_WINS: ${{ steps.baseline.outputs.ruby_wins }}

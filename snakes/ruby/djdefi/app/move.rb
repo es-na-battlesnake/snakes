@@ -524,6 +524,43 @@ def move(board)
     end
   end
 
+  # Function to calculate Manhattan distance between two points
+  def manhattan_distance(x1, y1, x2, y2)
+    (x1.to_i - x2.to_i).abs + (y1.to_i - y2.to_i).abs
+  end
+
+  # Prioritize closer food when health is getting low
+  # This helps avoid starving while chasing distant food
+  if @health < @health_threshold && !@food.empty?
+    # Find the closest food
+    closest_food = @food.min_by { |f| manhattan_distance(@head[:x], @head[:y], f[:x], f[:y]) }
+    closest_distance = manhattan_distance(@head[:x], @head[:y], closest_food[:x], closest_food[:y])
+    
+    # If health is critical (below 30), heavily prioritize the closest food
+    if @health < 30
+      @turn_score_array.each do |cell|
+        if cell[:types].include?('food')
+          # Extra bonus for the closest food when critical
+          if cell[:x] == closest_food[:x] && cell[:y] == closest_food[:y]
+            cell[:score] += 100
+          end
+        end
+      end
+    end
+    
+    # Boost cells that move toward the closest food
+    @turn_score_array.each do |cell|
+      if cell[:types].include?('head_neighbor')
+        cell_distance = manhattan_distance(cell[:x], cell[:y], closest_food[:x], closest_food[:y])
+        # If this move gets us closer to food, add a bonus
+        if cell_distance < closest_distance
+          proximity_bonus = (@health_threshold - @health) / 2  # More bonus when health is lower
+          cell[:score] += proximity_bonus.clamp(0, 50)
+        end
+      end
+    end
+  end
+
   # puts "Turn score array is: #{@turn_score_array}"
 
 

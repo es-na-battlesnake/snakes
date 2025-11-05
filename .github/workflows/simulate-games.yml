@@ -129,16 +129,28 @@ jobs:
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         
         # Calculate statistics
-        RUBY_WINS=$(grep -c '"winner":"ruby-danger-noodle"' simulate_royale.log || echo "0")
-        PATHY_WINS=$(grep -c '"winner":"pathy"' simulate_royale.log || echo "0")
-        DRAWS=$(grep -c '"winner":"draw"' simulate_royale.log || echo "0")
+        if [ -f simulate_royale.log ]; then
+          RUBY_WINS=$(grep -c '"winner":"ruby-danger-noodle"' simulate_royale.log || echo "0")
+          PATHY_WINS=$(grep -c '"winner":"pathy"' simulate_royale.log || echo "0")
+          DRAWS=$(grep -c '"winner":"draw"' simulate_royale.log || echo "0")
+        else
+          RUBY_WINS=0
+          PATHY_WINS=0
+          DRAWS=0
+        fi
+        
+        # Ensure variables are numbers
+        RUBY_WINS=${RUBY_WINS:-0}
+        PATHY_WINS=${PATHY_WINS:-0}
+        DRAWS=${DRAWS:-0}
         
         echo "Ruby (ruby-danger-noodle): $RUBY_WINS wins"
         echo "Pathy (Go snake):          $PATHY_WINS wins"
         echo "Draws:                     $DRAWS"
         echo ""
         
-        WIN_RATE=$(echo "scale=1; ($RUBY_WINS * 100) / 10" | bc)
+        # Calculate win rate using awk instead of bc for better error handling
+        WIN_RATE=$(awk "BEGIN {printf \"%.1f\", ($RUBY_WINS * 100) / 10}")
         echo "🎯 Ruby Win Rate: ${WIN_RATE}%"
         
         if [ "$RUBY_WINS" -ge 5 ]; then
@@ -164,10 +176,23 @@ jobs:
       id: create-summary
       run: |
         # Calculate statistics
-        RUBY_WINS=$(grep -c '"winner":"ruby-danger-noodle"' simulate_royale.log || echo "0")
-        PATHY_WINS=$(grep -c '"winner":"pathy"' simulate_royale.log || echo "0")
-        DRAWS=$(grep -c '"winner":"draw"' simulate_royale.log || echo "0")
-        WIN_RATE=$(echo "scale=1; ($RUBY_WINS * 100) / 10" | bc)
+        if [ -f simulate_royale.log ]; then
+          RUBY_WINS=$(grep -c '"winner":"ruby-danger-noodle"' simulate_royale.log || echo "0")
+          PATHY_WINS=$(grep -c '"winner":"pathy"' simulate_royale.log || echo "0")
+          DRAWS=$(grep -c '"winner":"draw"' simulate_royale.log || echo "0")
+        else
+          RUBY_WINS=0
+          PATHY_WINS=0
+          DRAWS=0
+        fi
+        
+        # Ensure variables are numbers
+        RUBY_WINS=${RUBY_WINS:-0}
+        PATHY_WINS=${PATHY_WINS:-0}
+        DRAWS=${DRAWS:-0}
+        
+        # Calculate win rate using awk instead of bc for better error handling
+        WIN_RATE=$(awk "BEGIN {printf \"%.1f\", ($RUBY_WINS * 100) / 10}")
         
         # Store for later use
         echo "ruby_wins=$RUBY_WINS" >> $GITHUB_OUTPUT

@@ -110,6 +110,58 @@ def move(board)
     [{ x: x - 1, y: y }, { x: x + 1, y: y }, { x: x, y: y - 1 }, { x: x, y: y + 1 }, { x: x - 1, y: y - 1 }, { x: x - 1, y: y + 1 }, { x: x + 1, y: y - 1 }, { x: x + 1, y: y + 1 }]
   end
 
+  # Flood fill algorithm to count accessible cells from a given position
+  # Returns the number of cells reachable from (start_x, start_y)
+  def flood_fill(start_x, start_y, obstacles)
+    start_x = start_x.to_i
+    start_y = start_y.to_i
+    
+    # Track visited cells
+    visited = {}
+    queue = [{ x: start_x, y: start_y }]
+    count = 0
+    
+    # Limit iterations to prevent timeout
+    max_iterations = @width * @height
+    iterations = 0
+    
+    while !queue.empty? && iterations < max_iterations
+      iterations += 1
+      current = queue.shift
+      
+      # Create unique key for this cell
+      cell_key = "#{current[:x]},#{current[:y]}"
+      
+      # Skip if already visited
+      next if visited[cell_key]
+      
+      # Check if cell is out of bounds (unless wrapped mode)
+      if @game_mode != 'wrapped'
+        next if current[:x] < 0 || current[:x] >= @width
+        next if current[:y] < 0 || current[:y] >= @height
+      else
+        # Wrap coordinates
+        current[:x] = current[:x] % @width
+        current[:y] = current[:y] % @height
+      end
+      
+      # Check if cell is an obstacle (snake body or wall)
+      next if obstacles.any? { |obs| obs[:x] == current[:x] && obs[:y] == current[:y] }
+      
+      # Mark as visited and increment count
+      visited[cell_key] = true
+      count += 1
+      
+      # Add neighbors to queue
+      adjacent_cells(current[:x], current[:y]).each do |neighbor|
+        neighbor_key = "#{neighbor[:x]},#{neighbor[:y]}"
+        queue << neighbor unless visited[neighbor_key]
+      end
+    end
+    
+    count
+  end
+
   # Food adjacent cells
   @food_adjacent_cells = @food.map { |f| adjacent_cells(f[:x], f[:y]) }.flatten
 
@@ -625,6 +677,71 @@ def move(board)
   end
 
   #puts "Move direction is: #{@move_direction} - highest score is: #{@highest_score[:score]} - turn is: #{@highest_score[:types]} to the #{@highest_score[:direction]}"
+
+  # Apply flood fill safety check to avoid dead ends
+  # For each possible move, calculate how much space is available
+  # Choose the move with the most accessible space (if it's significantly better)
+  
+  # Helper function to get next position based on direction
+  def next_position(x, y, direction)
+    case direction
+    when 'up'
+      { x: x, y: y + 1 }
+    when 'down'
+      { x: x, y: y - 1 }
+    when 'left'
+      { x: x - 1, y: y }
+    when 'right'
+      { x: x + 1, y: y }
+    else
+      { x: x, y: y }
+    end
+  end
+  
+  # Calculate space for each possible turn
+  if @possible_turns && !@possible_turns.empty?
+    move_space_scores = {}
+    
+    @possible_turns.each do |turn|
+      next_pos = next_position(@head[:x], @head[:y], turn[:direction])
+      
+      # Create obstacles list (all snake bodies except our tail which will move)
+      obstacles = @snakes_bodies.dup
+      # Remove our tail from obstacles since it will move
+      obstacles.delete_if { |cell| cell[:x] == @my_tail.first[:x] && cell[:y] == @my_tail.first[:y] }
+      # Add our current head position as an obstacle
+      obstacles << @head
+      
+      # Count accessible cells from this move
+      accessible_cells = flood_fill(next_pos[:x], next_pos[:y], obstacles)
+      
+      # Store the space score for this direction
+      move_space_scores[turn[:direction]] = accessible_cells
+      
+      # Add space bonus to the turn score
+      # Give significant bonus for more space (10 points per accessible cell, capped)
+      space_bonus = [accessible_cells * 10, 500].min
+      turn[:score] += space_bonus
+      
+      puts "Direction #{turn[:direction]}: #{accessible_cells} cells accessible, bonus: #{space_bonus}"
+    end
+    
+    # If our chosen move leads to very limited space compared to alternatives, reconsider
+    chosen_move_space = move_space_scores[@move_direction] || 0
+    min_safe_space = [@length + 3, 8].max  # Need at least snake length + buffer
+    
+    # Find the move with the most space
+    best_space_move = move_space_scores.max_by { |dir, space| space }
+    
+    if chosen_move_space < min_safe_space && best_space_move && best_space_move[1] > chosen_move_space * 1.5
+      puts "WARNING: Chosen direction #{@move_direction} has only #{chosen_move_space} cells. Switching to #{best_space_move[0]} with #{best_space_move[1]} cells"
+      @move_direction = best_space_move[0]
+    end
+    
+    # Recalculate highest score after adding space bonuses
+    @highest_score = @possible_turns.max_by { |turn| turn[:score] }
+    @move_direction = @highest_score[:direction] if @highest_score
+  end
 
   #TODO Function to use A* to find the safest path to food
   # A safe path is one that stays away from longer snakes, bodies, and hazards

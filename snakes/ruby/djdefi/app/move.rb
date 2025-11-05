@@ -14,7 +14,10 @@ def move(board)
   # Lower threshold means snake seeks food earlier
   @health_threshold = 70
 
-  #puts board
+  # Log game state
+  puts "\n========== TURN #{board[:turn]} =========="
+  puts "Game ID: #{board[:game][:id]}"
+  puts "Game Mode: #{board[:game][:ruleset][:name]}"
 
   # Example board object:
   # {:game=>{:id=>"f767ba58-945c-4f5a-b5b6-12990dc27ab1", :ruleset=>{:name=>"standard", :version=>"v1.0.17"}, :timeout=>500}, :turn=>0, :board=>{:height=>11, :width=>11, :snakes=>[{:id=>"gs_9PwkMwt7S3CtB9vFGjVbH39V", :name=>"ruby-danger-noodle", :latency=>"", :health=>100, :body=>[{:x=>9, :y=>9}, {:x=>9, :y=>9}, {:x=>9, :y=>9}], :head=>{:x=>9, :y=>9}, :length=>3, :shout=>""}, {:id=>"gs_qrT8RGkMKCyYCtpphtkTfQkX", :name=>"LoopSnake", :latency=>"", :health=>100, :body=>[{:x=>9, :y=>1}, {:x=>9, :y=>1}, {:x=>9, :y=>1}], :head=>{:x=>9, :y=>1}, :length=>3, :shout=>""}], :food=>[{:x=>8, :y=>10}, {:x=>8, :y=>2}, {:x=>5, :y=>5}], :hazards=>[]}, :you=>{:id=>"gs_9PwkMwt7S3CtB9vFGjVbH39V", :name=>"ruby-danger-noodle", :latency=>"", :health=>100, :body=>[{:x=>9, :y=>9}, {:x=>9, :y=>9}, {:x=>9, :y=>9}], :head=>{:x=>9, :y=>9}, :length=>3, :shout=>""}}
@@ -36,11 +39,19 @@ def move(board)
 
   # Puts all the hazards in an array
   @hazards = board[:board][:hazards] || []
-  # puts "There are hazards at: #{@hazards}"
 
   # Puts the snakes length
   @length = board[:you][:length].to_i
-  # puts "My length is: #{@length}"
+
+  # Log snake status
+  puts "My Status: Health=#{@health}, Length=#{@length}, Head=(#{board[:you][:head][:x]},#{board[:you][:head][:y]})"
+  puts "Food Available: #{@food.length} pieces at #{@food.map { |f| "(#{f[:x]},#{f[:y]})" }.join(', ')}"
+  puts "Hazards: #{@hazards.length} cells"
+  puts "Opponents: #{@snakes.length - 1}"
+  @snakes.each do |snake|
+    next if snake[:id] == board[:you][:id]
+    puts "  - #{snake[:name]}: Health=#{snake[:health]}, Length=#{snake[:body].length}, Head=(#{snake[:head][:x]},#{snake[:head][:y]})"
+  end
 
   # Puts the ruleset name
   @game_mode = board[:game][:ruleset][:name]
@@ -543,8 +554,13 @@ def move(board)
     closest_food = @food.min_by { |f| manhattan_distance(@head[:x], @head[:y], f[:x], f[:y]) }
     closest_distance = manhattan_distance(@head[:x], @head[:y], closest_food[:x], closest_food[:y])
     
+    puts "\n--- FOOD SEEKING MODE ---"
+    puts "Health #{@health} < Threshold #{@health_threshold}"
+    puts "Closest food at (#{closest_food[:x]},#{closest_food[:y]}), distance=#{closest_distance}"
+    
     # If health is critical (below 30), heavily prioritize the closest food
     if @health < 30
+      puts "CRITICAL HEALTH! Prioritizing closest food"
       @turn_score_array.each do |cell|
         if cell[:types].include?('food')
           # Extra bonus for the closest food when critical
@@ -563,6 +579,7 @@ def move(board)
         if cell_distance < closest_distance
           proximity_bonus = (@health_threshold - @health) / 2  # More bonus when health is lower
           cell[:score] += proximity_bonus.clamp(0, 50)
+          puts "  Direction #{cell[:direction]}: moves closer to food (#{closest_distance} -> #{cell_distance}), +#{proximity_bonus.clamp(0, 50)} bonus"
         end
       end
     end
@@ -573,7 +590,8 @@ def move(board)
 
   # Direction of highest score cell in the @turn_score_array
   @highest_score_direction = @turn_score_array.max_by { |cell| cell[:score] }[:direction]
-  puts "Highest score cell direction is: #{@highest_score_direction}"
+  puts "\n--- INITIAL SCORING ---"
+  puts "Highest score direction: #{@highest_score_direction}"
 
   # If our @health is above the @health_threshold, set the multiplier to 0
   # If our @health is below the @health_threshold, increase the multiplier based on how low health is
@@ -726,6 +744,8 @@ def move(board)
   # For each possible move, calculate how much space is available
   # Choose the move with the most accessible space (if it's significantly better)
   
+  puts "\n--- FLOOD FILL ANALYSIS ---"
+  
   # Helper function to get next position based on direction
   def next_position(x, y, direction)
     case direction
@@ -767,7 +787,7 @@ def move(board)
       space_bonus = [accessible_cells * @space_points_per_cell, @max_space_bonus].min
       turn[:score] += space_bonus
       
-      # Uncomment for debugging: puts "Direction #{turn[:direction]}: #{accessible_cells} cells accessible, bonus: #{space_bonus}"
+      puts "Direction #{turn[:direction]}: #{accessible_cells} cells accessible, space_bonus=#{space_bonus}, total_score=#{turn[:score]}"
     end
     
     # If our chosen move leads to very limited space compared to alternatives, reconsider
@@ -777,8 +797,12 @@ def move(board)
     # Find the move with the most space
     best_space_move = move_space_scores.max_by { |dir, space| space }
     
+    puts "Min safe space required: #{min_safe_space} (length #{@length} + buffer #{@safe_space_buffer})"
+    puts "Chosen move (#{@move_direction}) space: #{chosen_move_space}"
+    puts "Best space move: #{best_space_move[0]} with #{best_space_move[1]} cells"
+    
     if chosen_move_space < min_safe_space && best_space_move && best_space_move[1] > chosen_move_space * @space_improvement_threshold
-      # Uncomment for debugging: puts "WARNING: Chosen direction #{@move_direction} has only #{chosen_move_space} cells. Switching to #{best_space_move[0]} with #{best_space_move[1]} cells"
+      puts "⚠️  OVERRIDE: Switching from #{@move_direction} (#{chosen_move_space} cells) to #{best_space_move[0]} (#{best_space_move[1]} cells)"
       @move_direction = best_space_move[0]
     end
     
@@ -793,7 +817,6 @@ def move(board)
 
   # Output the end time in ms
   end_time = Time.now
-  puts "End time is: #{end_time} - took #{end_time - start_time} seconds"
 
   debug = false
 # Debug output, only if debug is true
@@ -849,7 +872,10 @@ end
 
   
 
-
-  puts "MOVE: #{@move_direction} - TURN: #{board[:turn]}"
+  puts "\n--- FINAL DECISION ---"
+  puts "MOVE: #{@move_direction.upcase} (Turn #{board[:turn]})"
+  puts "Execution time: #{end_time - start_time} seconds"
+  puts "=" * 50
+  
   { "move": @move_direction }
 end

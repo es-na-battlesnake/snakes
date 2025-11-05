@@ -94,8 +94,11 @@ jobs:
           GO_WINS=0
           DRAWS=0
           
+          GOPATH=$(go env GOPATH)
+          BATTLESNAKE_BIN="${GOPATH}/bin/battlesnake"
+          
           for i in $(seq 1 20); do
-            OUTPUT=$($HOME/go/bin/battlesnake play -W 11 -H 11 \
+            OUTPUT=$("$BATTLESNAKE_BIN" play -W 11 -H 11 \
               --name ruby-danger-noodle --url http://localhost:4567/ \
               --name pathy --url http://localhost:8081/ \
               -g wrapped -v 2>&1 || true)

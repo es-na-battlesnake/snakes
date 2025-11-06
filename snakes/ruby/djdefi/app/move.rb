@@ -12,7 +12,7 @@ def move(board)
 
   # Health threshold variable - seek food more actively
   # Lower threshold means snake seeks food earlier
-  @health_threshold = 70
+  @health_threshold = 50
 
   #puts board
 
@@ -325,7 +325,7 @@ def move(board)
       'wall' => 0,
       'hazard' => -550,
       'hazard_adjacent' => 0,
-      'food' => 65,  # Increased from 55 - more attractive
+      'food' => 85,  # Increased from 65 to prioritize food more heavily
       'food_hazard' => 0,
       'food_adjacent' => 25,  # Increased from 20 - seek food vicinity
       'shared_neighbor' => 0,
@@ -338,7 +338,7 @@ def move(board)
       'snake_body_neighbor' => -25,  # Increased penalty from -20
       'corner' => -5,  # Increased penalty from -1 - avoid corners more
       'other_snake_head' => -2,
-      'other_snake_body' => -60,  # Increased penalty from -30 - more conservative
+      'other_snake_body' => -90,  # Increased penalty from -60 for better collision avoidance
       'other_snake_head_neighbor' => -10,  # Increased penalty from 0
       'body' => -100,
       'head' => -4,
@@ -357,7 +357,7 @@ def move(board)
       'wall' => -10,  # Increased penalty from -5
       'hazard' => -20,  # Increased penalty from -15
       'hazard_adjacent' => -10,  # Increased penalty from -7
-      'food' => 25,  # Increased from 15 - more attractive
+      'food' => 35,  # Increased from 25 to prioritize food more heavily
       'food_hazard' => 2,
       'food_adjacent' => 5,  # Increased from 2
       'shared_neighbor' => 0,
@@ -370,7 +370,7 @@ def move(board)
       'snake_body_neighbor' => -15,  # Increased penalty from -10
       'corner' => -8,  # Increased penalty from -1 - avoid corners
       'other_snake_head' => -2,
-      'other_snake_body' => -150,  # Increased penalty from -130
+      'other_snake_body' => -225,  # Increased penalty from -150 for better collision avoidance
       'other_snake_head_neighbor' => -5,  # Increased penalty from 0
       'body' => -10,  # Increased penalty from -5
       'head' => -4,

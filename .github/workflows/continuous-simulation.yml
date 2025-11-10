@@ -155,7 +155,7 @@ jobs:
         echo "win_rate=$WIN_RATE" >> $GITHUB_OUTPUT
         
     - name: Upload simulation results
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: simulation-results-${{ github.run_number }}
         path: |

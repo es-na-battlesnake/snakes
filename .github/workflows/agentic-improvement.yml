@@ -346,7 +346,7 @@ jobs:
       
       - name: Create tracking issue
         if: steps.analyze.outputs.needs_improvement == 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         env:
           BASELINE_RESULTS: ${{ steps.baseline.outputs.results }}
           WIN_RATE: ${{ steps.baseline.outputs.win_rate }}
